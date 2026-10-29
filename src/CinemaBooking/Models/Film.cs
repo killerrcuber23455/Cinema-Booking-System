@@ -8,9 +8,10 @@ namespace CinemaBooking.Models
         //validation rules constant values
         private const int FIRST_FILM_YEAR = 1900;
         private const int MAX_DURATION_IN_MINS = 300; //5 hours
-        private const int MAX_SEATS = 500;
         private const int MAX_TITLE_LENGTH = 100;
         private const int MAX_GENRE_LENGTH = 50;
+        private const int MAX_DESCRIPTION_LENGTH = 500;
+        private const int MAX_POSTER_FILE_LENGTH = 100;
 
 
         //properties of film
@@ -19,14 +20,13 @@ namespace CinemaBooking.Models
         public string Genre { get; set; }
         public int Year { get; set; }
         public int DurationMinutes { get; set; }
-        public int SeatsTotal { get; set; }
-        public int SeatsFree { get; set; }
-        public decimal Price { get; set; }
         public int AgeRating { get; set; }
+        public string Description { get; set; }
+        public string PosterFile { get; set; }
 
         //constructor
         public Film(int id, string title, string genre, int year, int duration_minutes, int age_rating,
-            int seats_total, int seats_free, decimal price)
+            string description, string poster_file)
         {
             Id = id;
             Title = title;
@@ -34,9 +34,9 @@ namespace CinemaBooking.Models
             Year = year;
             DurationMinutes = duration_minutes;
             AgeRating = age_rating;
-            SeatsTotal = seats_total;
-            SeatsFree = seats_free;
-            Price = price;
+            Description = description;
+            PosterFile = poster_file;
+
         }
 
         //validation method it returns false with a reason
@@ -108,33 +108,29 @@ namespace CinemaBooking.Models
             return true;
         }
 
-        public static bool IsValidSeatsTotal(int seats_total, out string error_message)
+        public static bool IsValidDescription(string description, out string error_message)
         {
-            if (seats_total < 1 || seats_total > MAX_SEATS)
+            if (description != null && description.Length > MAX_DESCRIPTION_LENGTH)
             {
-                error_message = "total seats must be 1 to " + MAX_SEATS;
+                error_message = "description must be " + MAX_DESCRIPTION_LENGTH + " characters or fewer";
                 return false;
             }
             error_message = "";
             return true;
         }
 
-        public static bool IsValidSeatsFree(int seats_free, int seats_total, out string error_message)
+        public static bool IsValidPosterFile(string poster_file, out string error_message)
         {
-            if (seats_free < 0 || seats_free > seats_total)
+            //poster can be empty, it displays a card with the title only
+            if (string.IsNullOrWhiteSpace(poster_file))
             {
-                error_message = "free seats must be 0 up to the total seats";
-                return false;
+                error_message = "";
+                return true;
             }
-            error_message = "";
-            return true;
-        }
-
-        public static bool IsValidPrice(decimal price, out string error_message)
-        {
-            if (price <= 0)
+            //file name is stored not the path
+            if (poster_file.Length > MAX_POSTER_FILE_LENGTH || poster_file != System.IO.Path.GetFileName(poster_file))
             {
-                error_message = "price must be more than 0";
+                error_message = "poster must be a file made only, up of " + MAX_POSTER_FILE_LENGTH + " characters";
                 return false;
             }
             error_message = "";
@@ -153,9 +149,8 @@ namespace CinemaBooking.Models
             if (!IsValidYear(Year, out error_message)) all_errors += error_message + "\n";
             if (!IsValidDuration(DurationMinutes, out error_message)) all_errors += error_message + "\n";
             if (!IsValidAgeRating(AgeRating, out error_message)) all_errors += error_message + "\n";
-            if (!IsValidSeatsTotal(SeatsTotal, out error_message)) all_errors += error_message + "\n";
-            if (!IsValidSeatsFree(SeatsFree, SeatsTotal, out error_message)) all_errors += error_message + "\n";
-            if (!IsValidPrice(Price, out error_message)) all_errors += error_message + "\n";
+            if (!IsValidDescription(Description, out error_message)) all_errors += error_message + "\n";
+            if (!IsValidPosterFile(PosterFile, out error_message)) all_errors += error_message + "\n";
 
             errors = all_errors;
             return all_errors == "";
@@ -164,10 +159,9 @@ namespace CinemaBooking.Models
         // one readable line per film
         public override string ToString()
         {
-            return $"{Id}: {Title} ({Year}) - {Genre}, {DurationMinutes} min, age {AgeRating}, seats {SeatsFree}/{SeatsTotal}, price {Price:0.00}";
+            return $"{Id}: {Title} ({Year}) - {Genre}, {DurationMinutes} min, age {AgeRating}";
         }
     }
 }
-
 
 
