@@ -1,0 +1,107 @@
+Hash Table Time Complexity
+Owner: Kushal C Bhagan
+Card: 301
+
+Purpose
+
+This document analyses the time complexity of adding, finding and
+removing films in our custom hash table.
+
+Films are stored using their Id as the key. Collisions are handled
+using our own linked lists. This is called separate chaining.
+
+In this analysis:
+n = the number of films stored.
+m = the number of slots in the hash table.
+
+1. Find a film by ID
+
+The hash table uses the film ID to calculate a slot index.
+It then checks the linked list at that slot for the matching ID.
+
+Best case: O(1)
+The film is the first item checked, or the slot is empty.
+
+Average case: O(1)
+If keys are spread evenly and the load factor stays low,
+the chains remain short.
+
+Worst case: O(n)
+All n films could be in the same chain. Finding the film,
+or confirming it is missing, could require checking every item.
+
+2. Add a film (without resizing)
+
+The hash table uses the film ID to calculate a slot index.
+It checks that slot's chain for a duplicate ID.
+If the ID is not present, a new node is added at the front.
+
+Best case: O(1)
+The slot is empty, so the film can be added straight away.
+
+Average case: O(1)
+With evenly spread keys and a low load factor, the chain
+checked for duplicates remains short.
+
+Worst case: O(n)
+All n films could be in the same chain. Every film must
+then be checked before adding a new ID.
+
+Resizing is analysed separately because it involves moving
+the existing items into a larger table.
+
+3. Remove a film by ID
+
+The hash table uses the film ID to calculate a slot index.
+It searches that slot's chain for the matching ID.
+
+If the film is found, the links are changed to remove its
+node while keeping the rest of the chain connected.
+
+Best case: O(1)
+The film is the first node checked, or the slot is empty.
+
+Average case: O(1)
+With evenly spread keys and a low load factor, only a
+short chain needs to be searched.
+
+Worst case: O(n)
+All n films could be in the same chain. The method may
+need to check every node before finding the film or
+confirming that it is missing.
+
+4. Resizing the hash table
+
+The load factor is calculated as n / m:
+the number of films divided by the number of slots.
+
+When it exceeds 0.75, our table doubles its capacity.
+Each film's slot index must be calculated again because
+the number of slots has changed.
+
+Moving all films takes O(n), provided each existing node
+is placed directly into its new chain without checking
+again for duplicate IDs.
+
+Doubling the capacity means resizing happens less often
+as the table grows.
+
+Including resizing, adding a film has expected amortised
+O(1) time, assuming keys are spread evenly.
+
+Amortised means the cost is spread across a sequence of
+additions, rather than measured for just one addition.
+
+5. Summary
+
+Operation               Best       Average       Worst
+Find film by ID         O(1)       O(1)          O(n)
+Add without resizing    O(1)       O(1)          O(n)
+Remove film by ID       O(1)       O(1)          O(n)
+
+These average costs assume evenly spread keys and a low
+load factor. Film IDs are integers, so hashing and comparing
+each ID are treated as constant-time operations.
+
+Including resizing, addition is expected amortised O(1),
+provided resizing moves nodes directly into their new chains.
