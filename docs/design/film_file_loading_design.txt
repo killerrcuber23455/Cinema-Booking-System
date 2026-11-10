@@ -1,0 +1,54 @@
+Film File Loading Design
+Owner: Kushal C Bhagan
+Card: 307
+
+Purpose:
+Load film details from a text file chosen by the user.
+
+User input:
+The program asks the user to type the name of the film file.
+The file name must not be hard-coded in the program.
+
+Example:
+Enter the film file name: films.txt
+
+File format:
+Each film will be stored on one line.
+Fields will be separated by commas.
+
+Example line:
+1,Test Film,Action,120,12A,A test film.
+
+Fields:
+Film Id
+Title
+Genre
+Duration in minutes
+Age rating
+Description
+
+Loading process:
+1. Ask the user for the file name.
+2. Check whether the file exists.
+3. If the file does not exist, show a clear error message.
+4. If the file exists, open it and read one line at a time.
+5. Split each line using commas.
+6. Check that each line has the correct number of fields.
+7. Convert the film Id and duration into numbers.
+8. Create a Film object.
+9. Add the Film object to the custom FilmHashTable.
+10. Ignore empty lines.
+11. Show how many films were loaded.
+
+Error handling:
+If the file is missing:
+Show: File not found. Please check the file name and try again.
+
+If a line has the wrong number of fields:
+Skip that line and show a warning.
+
+If the film Id or duration is not a number:
+Skip that line and show a warning.
+
+If a film Id already exists:
+Do not add the duplicate film.
