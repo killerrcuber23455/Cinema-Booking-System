@@ -1,0 +1,47 @@
+Film Hash Table Design
+Owner: Kushal C Bhagan
+Card: 303
+
+Purpose
+The film records will be stored in a custom hash table.
+No built-in collections such as List, Dictionary, HashSet or arrays of objects will be used for the main film storage.
+
+Film record
+Each film has:
+- Film Id
+- Title
+- Genre
+- Duration in minutes
+- Age rating
+- Description
+
+Storage design
+The hash table will use separate chaining.
+Each slot contains a linked list of film records.
+The film Id is used as the key.
+
+Hash function
+slot index = film Id modulo number of slots
+
+Adding a film
+1. Calculate the slot from the film Id.
+2. Search that slot's linked list for the same film Id.
+3. If the film Id already exists, show an error.
+4. If it does not exist, add the new film to the front of the linked list.
+
+Finding a film
+1. Calculate the slot from the film Id.
+2. Search that slot's linked list for the matching film Id.
+3. Return the film if found.
+4. Return not found if the end of the list is reached.
+
+Removing a film
+1. Calculate the slot from the film Id.
+2. Search the linked list for the matching film Id.
+3. If found, remove that node and link the previous node to the next node.
+4. If not found, show an error.
+
+Resizing
+When the load factor becomes greater than 0.75, the number of slots will double.
+Every film will be moved into its new slot using its film Id.
+Duplicate checks will not be repeated during resizing because the original table already contained unique film Ids.
