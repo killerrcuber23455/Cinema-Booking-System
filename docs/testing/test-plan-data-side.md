@@ -1,8 +1,8 @@
 # Test plan: data side
 
 Author: Irwin Chinathoo (Tester 2)
-Card: 18 (AB#18), data-side section for Akilesh to merge into `test-plan.md`
-Status: draft 1, 30 Oct 2026. Rows marked TBC wait for an answer from Kushal.
+Card: 354 (AB#354), data-side section for Akilesh to merge into `test-plan.md`
+Status: draft 2, 12 Nov 2026. Hash table rows updated with results from card 356. Rows marked TBC wait for an answer from Kushal.
 
 This section covers Kushal's code: our own hash tables and linked list, the seat grid, search, the file loader and the database. It uses the same columns as the main plan. The last two columns stay empty until the tests are run.
 
@@ -12,20 +12,38 @@ Default sizes used below come from the AI context file (section 6 and 8): seats 
 
 | ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
 |---|---|---|---|---|---|---|
-| HASH-01 | Hash table | Empty table | New table | Count is 0, list all is empty | | |
-| HASH-02 | Hash table | Find on an empty table | Find ID 1 | Not found, no crash | | |
-| HASH-03 | Hash table | Add then find | Add film ID 1, find ID 1 | Same film comes back | | |
-| HASH-04 | Hash table | Count goes up | Add 3 films | Count is 3 | | |
-| HASH-05 | Hash table | Find a missing ID | Table has IDs 1 to 3, find ID 99 | Not found, no crash | | |
-| HASH-06 | Hash table | Two films in the same slot | Two IDs that land in the same slot (picked from Kushal's hash function) | Both can be found, count is 2 | | |
-| HASH-07 | Hash table | Remove the first item in a chain | Three films in one slot, remove the first | Other two still found, count goes down by 1 | | |
-| HASH-08 | Hash table | Remove from the middle of a chain | Three films in one slot, remove the middle one | Other two still found | | |
-| HASH-09 | Hash table | Remove the last item in a chain | Three films in one slot, remove the last | Other two still found | | |
-| HASH-10 | Hash table | Remove a missing ID | Remove ID 99 | Refused or returns false, count unchanged, no crash | | |
-| HASH-11 | Hash table | Remove then find | Add ID 1, remove ID 1, find ID 1 | Not found | | |
-| HASH-12 | Hash table | Add the same ID twice | Add ID 1 twice | TBC with Kushal: refused, or the second replaces the first. Count must stay 1 | | |
-| HASH-13 | Hash table | List all | Add 5 films | List all returns exactly those 5, no repeats | | |
-| HASH-14 | Hash table | List all after remove | Add 5, remove 2 | List all returns the other 3 | | |
+| HASH-01 | Hash table | Empty table | New table | Count is 0, list all is empty | Not run yet: needs Count / list all from Kushal | Not run |
+| HASH-02 | Hash table | Find on an empty table | Find ID 1 | Not found, no crash | Returns null, no crash | Pass |
+| HASH-03 | Hash table | Add then find | Add film ID 1, find ID 1 | Same film comes back | Same film returned | Pass |
+| HASH-04 | Hash table | Count goes up | Add 3 films | Count is 3 | Not run yet: needs Count / list all from Kushal | Not run |
+| HASH-05 | Hash table | Find a missing ID | Table has IDs 1 to 3, find ID 99 | Not found, no crash | Returns null, no crash | Pass |
+| HASH-06 | Hash table | Two films in the same slot | Two IDs that land in the same slot (picked from Kushal's hash function) | Both can be found, count is 2 | Both found (count not checked yet) | Pass |
+| HASH-07 | Hash table | Remove the first item in a chain | Three films in one slot, remove the first | Other two still found, count goes down by 1 | Other two found (count not checked yet) | Pass |
+| HASH-08 | Hash table | Remove from the middle of a chain | Three films in one slot, remove the middle one | Other two still found | Other two found | Pass |
+| HASH-09 | Hash table | Remove the last item in a chain | Three films in one slot, remove the last | Other two still found | Other two found | Pass |
+| HASH-10 | Hash table | Remove a missing ID | Remove ID 99 | Refused or returns false, count unchanged, no crash | Returns false, film 1 still there | Pass |
+| HASH-11 | Hash table | Remove then find | Add ID 1, remove ID 1, find ID 1 | Not found | Removed film not found (checked in the three remove tests) | Pass |
+| HASH-12 | Hash table | Add the same ID twice | Add ID 1 twice | Second is refused (AddFilm returns false), first film kept | Second add refused, first film kept | Pass |
+| HASH-13 | Hash table | List all | Add 5 films | List all returns exactly those 5, no repeats | Not run yet: needs Count / list all from Kushal | Not run |
+| HASH-14 | Hash table | List all after remove | Add 5, remove 2 | List all returns the other 3 | Not run yet: needs Count / list all from Kushal | Not run |
+| HASH-15 | Hash table | Negative ID | Add film ID -1 | Refused, no crash | Crashes: -1 % 16 is -1, so the slot index is outside the array. Reported to Kushal | Fail |
+
+### Hash table tests in code (card 356)
+
+Run on 12 Nov 2026 against Kushal's `FilmHashTable` (branch `feature/kushal`). File: `tests/CinemaBooking.Tests/HashTableTests.cs`. Result: 10 tests, 9 passed, 1 failed (HASH-15, a real bug).
+
+| Row | Test method |
+|---|---|
+| HASH-02 | FindFilm_EmptyTable_ReturnsNull |
+| HASH-03 | AddFilm_ThenFind_ReturnsSameFilm |
+| HASH-05 | FindFilm_MissingId_ReturnsNull |
+| HASH-06 | AddFilm_TwoIdsInSameSlot_BothFound |
+| HASH-07 | RemoveFilm_FirstInChain_OthersStillFound |
+| HASH-08 | RemoveFilm_MiddleOfChain_OthersStillFound |
+| HASH-09 | RemoveFilm_LastInChain_OthersStillFound |
+| HASH-10 | RemoveFilm_MissingId_ReturnsFalse |
+| HASH-12 | AddFilm_SameIdTwice_SecondIsRefused |
+| HASH-15 | AddFilm_NegativeId_IsRefused |
 
 ## 2. Resize
 
