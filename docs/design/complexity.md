@@ -1,4 +1,4 @@
-\# Hash Table and Search Time Complexity
+# Hash Table and Search Time Complexity
 
 
 
@@ -8,7 +8,7 @@ Card: 301
 
 
 
-\## Purpose
+## Purpose
 
 
 
@@ -24,13 +24,13 @@ In this analysis:
 
 
 
-\- `n` means the number of films stored.
+- `n` means the number of films stored.
 
-\- `m` means the number of slots in the hash table.
+- `m` means the number of slots in the hash table.
 
 
 
-\## Find a film by ID
+## Find a film by ID
 
 
 
@@ -50,7 +50,7 @@ The hash table uses the film ID to calculate a slot index. It then checks the li
 
 
 
-\## Add a film
+## Add a film
 
 
 
@@ -70,7 +70,7 @@ The hash table uses the film ID to calculate a slot index. It checks that slotâ€
 
 
 
-\## Remove a film by ID
+## Remove a film by ID
 
 
 
@@ -90,7 +90,7 @@ The hash table uses the film ID to calculate a slot index. It searches that slot
 
 
 
-\## Resize the hash table
+## Resize the hash table
 
 
 
@@ -114,7 +114,7 @@ Adding a film has an expected amortised time of O(1), assuming keys are spread e
 
 
 
-\## Search films by title
+## Search films by title
 
 
 
@@ -134,7 +134,7 @@ Title search checks every film because the user may search for part of a title, 
 
 
 
-\## Search films by genre
+## Search films by genre
 
 
 
@@ -154,7 +154,7 @@ Genre search checks every film because films with the same genre may be stored i
 
 
 
-\## Summary
+## Summary
 
 
 
