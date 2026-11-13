@@ -36,7 +36,7 @@ namespace CinemaBooking.DataStructures
         }
 
         // works out which slot a key belongs in
-        private int calculate_slot(TKey key)
+        private int CalculateSlot(TKey key)
         {
             int hash_code = key.GetHashCode();
             int slot = hash_code % _slots.Length;
@@ -52,7 +52,7 @@ namespace CinemaBooking.DataStructures
         // adds a new key and value. returns false if the key already exists.
         public bool Add(TKey key, TValue value)
         {
-            int slot = calculate_slot(key);
+            int slot = CalculateSlot(key);
 
             if (_slots[slot] == null)
             {
@@ -70,9 +70,9 @@ namespace CinemaBooking.DataStructures
             _slots[slot].Add(new_entry);
             _count++;
 
-            if (needs_resizing())
+            if (NeedsResizing())
             {
-                resize();
+                Resize();
             }
 
             return true;
@@ -81,7 +81,7 @@ namespace CinemaBooking.DataStructures
         // finds a value using its key. returns the value or the default value.
         public TValue? Find(TKey key)
         {
-            int slot = calculate_slot(key);
+            int slot = CalculateSlot(key);
 
             if (_slots[slot] == null)
             {
@@ -101,7 +101,7 @@ namespace CinemaBooking.DataStructures
         // removes a key and its value. returns true if the key was found.
         public bool Remove(TKey key)
         {
-            int slot = calculate_slot(key);
+            int slot = CalculateSlot(key);
 
             if (_slots[slot] == null)
             {
@@ -119,7 +119,7 @@ namespace CinemaBooking.DataStructures
         }
 
         // checks whether the hash table is more than 75 percent full
-        private bool needs_resizing()
+        private bool NeedsResizing()
         {
             double load_factor = (double)_count / _slots.Length;
 
@@ -127,7 +127,7 @@ namespace CinemaBooking.DataStructures
         }
 
         // makes a bigger hash table and moves every entry into its new slot
-        private void resize()
+        private void Resize()
         {
             ChainList<HashTableEntry<TKey, TValue>>[] old_slots = _slots;
 
@@ -147,7 +147,7 @@ namespace CinemaBooking.DataStructures
                 {
                     HashTableEntry<TKey, TValue> entry = entries[entry_index];
 
-                    int new_slot = calculate_slot(entry.Key);
+                    int new_slot = CalculateSlot(entry.Key);
 
                     if (_slots[new_slot] == null)
                     {
