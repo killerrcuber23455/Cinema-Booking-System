@@ -3,7 +3,7 @@
 // adding at the front is O(1), which keeps hash table inserts fast.
 namespace CinemaBooking.DataStructures
 {
-    public class LinkedList<T>
+    public class ChainList<T>
     {
         private Node<T>? _head;
         private int _count;

@@ -19,7 +19,7 @@ namespace CinemaBooking.DataStructures
     // custom hash table that uses our own linked list for chaining
     public class HashTable<TKey, TValue>
     {
-        private LinkedList<HashTableEntry<TKey, TValue>>[] _slots;
+        private ChainList<HashTableEntry<TKey, TValue>>[] _slots;
         private int _count;
 
         private const double RESIZE_AT = 0.75;
@@ -31,7 +31,7 @@ namespace CinemaBooking.DataStructures
 
         public HashTable(int initial_slots = 16)
         {
-            _slots = new LinkedList<HashTableEntry<TKey, TValue>>[initial_slots];
+            _slots = new ChainList<HashTableEntry<TKey, TValue>>[initial_slots];
             _count = 0;
         }
 
@@ -56,7 +56,7 @@ namespace CinemaBooking.DataStructures
 
             if (_slots[slot] == null)
             {
-                _slots[slot] = new LinkedList<HashTableEntry<TKey, TValue>>();
+                _slots[slot] = new ChainList<HashTableEntry<TKey, TValue>>();
             }
 
             HashTableEntry<TKey, TValue>? existing_entry = _slots[slot].Find(entry => entry.Key.Equals(key));
@@ -129,9 +129,9 @@ namespace CinemaBooking.DataStructures
         // makes a bigger hash table and moves every entry into its new slot
         private void resize()
         {
-            LinkedList<HashTableEntry<TKey, TValue>>[] old_slots = _slots;
+            ChainList<HashTableEntry<TKey, TValue>>[] old_slots = _slots;
 
-            _slots = new LinkedList<HashTableEntry<TKey, TValue>>[old_slots.Length * 2];
+            _slots = new ChainList<HashTableEntry<TKey, TValue>>[old_slots.Length * 2];
             _count = 0;
 
             for (int slot = 0; slot < old_slots.Length; slot++)
@@ -151,7 +151,7 @@ namespace CinemaBooking.DataStructures
 
                     if (_slots[new_slot] == null)
                     {
-                        _slots[new_slot] = new LinkedList<HashTableEntry<TKey, TValue>>();
+                        _slots[new_slot] = new ChainList<HashTableEntry<TKey, TValue>>();
                     }
 
                     _slots[new_slot].Add(entry);
