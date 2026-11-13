@@ -22,6 +22,8 @@ namespace CinemaBooking.DataStructures
         private LinkedList<HashTableEntry<TKey, TValue>>[] _slots;
         private int _count;
 
+        private const double RESIZE_AT = 0.75;
+
         public int Count
         {
             get { return _count; }
@@ -68,6 +70,11 @@ namespace CinemaBooking.DataStructures
             _slots[slot].Add(new_entry);
             _count++;
 
+            if (needs_resizing())
+            {
+                resize();
+            }
+
             return true;
         }
 
@@ -109,6 +116,48 @@ namespace CinemaBooking.DataStructures
             }
 
             return removed;
+        }
+
+        // checks whether the hash table is more than 75 percent full
+        private bool needs_resizing()
+        {
+            double load_factor = (double)_count / _slots.Length;
+
+            return load_factor > RESIZE_AT;
+        }
+
+        // makes a bigger hash table and moves every entry into its new slot
+        private void resize()
+        {
+            LinkedList<HashTableEntry<TKey, TValue>>[] old_slots = _slots;
+
+            _slots = new LinkedList<HashTableEntry<TKey, TValue>>[old_slots.Length * 2];
+            _count = 0;
+
+            for (int slot = 0; slot < old_slots.Length; slot++)
+            {
+                if (old_slots[slot] == null)
+                {
+                    continue;
+                }
+
+                HashTableEntry<TKey, TValue>[] entries = old_slots[slot].ListAll();
+
+                for (int entry_index = 0; entry_index < entries.Length; entry_index++)
+                {
+                    HashTableEntry<TKey, TValue> entry = entries[entry_index];
+
+                    int new_slot = calculate_slot(entry.Key);
+
+                    if (_slots[new_slot] == null)
+                    {
+                        _slots[new_slot] = new LinkedList<HashTableEntry<TKey, TValue>>();
+                    }
+
+                    _slots[new_slot].Add(entry);
+                    _count++;
+                }
+            }
         }
 
         // returns every value in a plain array, without using a built-in collection
