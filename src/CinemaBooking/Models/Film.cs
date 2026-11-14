@@ -90,7 +90,7 @@ namespace CinemaBooking.Models
         {
             if (duration_minutes <= 0 || duration_minutes > MAX_DURATION_IN_MINS)
             {
-                error_message = "duration must be between 1 and " + MAX_DURATION_IN_MINS + " minutes ";
+                error_message = "duration must be between 1 and " + MAX_DURATION_IN_MINS + " minutes";
                 return false;
             }
             error_message = "";
@@ -130,7 +130,7 @@ namespace CinemaBooking.Models
             //file name is stored not the path
             if (poster_file.Length > MAX_POSTER_FILE_LENGTH || poster_file != System.IO.Path.GetFileName(poster_file))
             {
-                error_message = "poster must be a file made only, up of " + MAX_POSTER_FILE_LENGTH + " characters";
+                error_message = "poster must be a file name only, up to " + MAX_POSTER_FILE_LENGTH + " characters";
                 return false;
             }
             error_message = "";
