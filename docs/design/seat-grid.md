@@ -109,8 +109,12 @@ FREE_SEATS(grid, seat_codes)
 
         IF row_number AND seat_index ARE INSIDE THE GRID
             SET grid[row_number][seat_index] TO FREE
+        ELSE
+            RETURN FALSE
         END IF
     END FOR
+
+    RETURN TRUE
 END
 ```
 
