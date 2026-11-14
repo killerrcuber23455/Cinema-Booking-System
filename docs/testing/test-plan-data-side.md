@@ -2,50 +2,56 @@
 
 Author: Irwin Chinathoo (Tester 2)
 Card: 354 (AB#354), data-side section for Akilesh to merge into `test-plan.md`
-Status: draft 2, 12 Nov 2026. Hash table rows updated with results from card 356. Rows marked TBC wait for an answer from Kushal.
+Status: draft 3, 15 Nov 2026. Hash table rows (card 356) all run and passing. Old card numbers replaced, showing-table IDs renamed to SHOWDS so they do not clash with Akilesh. Rows marked TBC wait for an answer from Kushal or Shankar.
 
 This section covers Kushal's code: our own hash tables and linked list, the seat grid, search, the file loader and the database. It uses the same columns as the main plan. The last two columns stay empty until the tests are run.
 
 Default sizes used below come from the AI context file (section 6 and 8): seats are rows A to H and seats 1 to 12 (96 seats), and the hash table grows at about 75% full.
 
-## 1. Hash table (films by ID)
+## 1. Hash table (films by ID, card 356)
 
 | ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
 |---|---|---|---|---|---|---|
-| HASH-01 | Hash table | Empty table | New table | Count is 0, list all is empty | Not run yet: needs Count / list all from Kushal | Not run |
+| HASH-01 | Hash table | Empty table | New table | Count is 0, list all is empty | Count 0, list all empty | Pass |
 | HASH-02 | Hash table | Find on an empty table | Find ID 1 | Not found, no crash | Returns null, no crash | Pass |
 | HASH-03 | Hash table | Add then find | Add film ID 1, find ID 1 | Same film comes back | Same film returned | Pass |
-| HASH-04 | Hash table | Count goes up | Add 3 films | Count is 3 | Not run yet: needs Count / list all from Kushal | Not run |
+| HASH-04 | Hash table | Count goes up | Add 3 films | Count is 3 | Count is 3 | Pass |
 | HASH-05 | Hash table | Find a missing ID | Table has IDs 1 to 3, find ID 99 | Not found, no crash | Returns null, no crash | Pass |
-| HASH-06 | Hash table | Two films in the same slot | Two IDs that land in the same slot (picked from Kushal's hash function) | Both can be found, count is 2 | Both found (count not checked yet) | Pass |
-| HASH-07 | Hash table | Remove the first item in a chain | Three films in one slot, remove the first | Other two still found, count goes down by 1 | Other two found (count not checked yet) | Pass |
+| HASH-06 | Hash table | Two films in the same slot | Two IDs that land in the same slot (picked from Kushal's hash function) | Both can be found, count is 2 | Both found, count is 2 | Pass |
+| HASH-07 | Hash table | Remove the first item in a chain | Three films in one slot, remove the first | Other two still found, count goes down by 1 | Other two found, count is 2 | Pass |
 | HASH-08 | Hash table | Remove from the middle of a chain | Three films in one slot, remove the middle one | Other two still found | Other two found | Pass |
 | HASH-09 | Hash table | Remove the last item in a chain | Three films in one slot, remove the last | Other two still found | Other two found | Pass |
-| HASH-10 | Hash table | Remove a missing ID | Remove ID 99 | Refused or returns false, count unchanged, no crash | Returns false, film 1 still there | Pass |
+| HASH-10 | Hash table | Remove a missing ID | Remove ID 99 | Refused or returns false, count unchanged, no crash | Returns false, count still 1 | Pass |
 | HASH-11 | Hash table | Remove then find | Add ID 1, remove ID 1, find ID 1 | Not found | Removed film not found (checked in the three remove tests) | Pass |
-| HASH-12 | Hash table | Add the same ID twice | Add ID 1 twice | Second is refused (AddFilm returns false), first film kept | Second add refused, first film kept | Pass |
-| HASH-13 | Hash table | List all | Add 5 films | List all returns exactly those 5, no repeats | Not run yet: needs Count / list all from Kushal | Not run |
-| HASH-14 | Hash table | List all after remove | Add 5, remove 2 | List all returns the other 3 | Not run yet: needs Count / list all from Kushal | Not run |
-| HASH-15 | Hash table | Negative ID | Add film ID -1 | Refused, no crash | Crashes: -1 % 16 is -1, so the slot index is outside the array. Reported to Kushal | Fail |
+| HASH-12 | Hash table | Add the same ID twice | Add ID 1 twice | Second is refused (Add returns false), first film kept | Second add refused, first film kept, count 1 | Pass |
+| HASH-13 | Hash table | List all | Add 5 films | List all returns exactly those 5, no repeats | 5 films, each ID once | Pass |
+| HASH-14 | Hash table | List all after remove | Add 5, remove 2 | List all returns the other 3 | 3 films left, 2 and 4 not in the list | Pass |
+| HASH-15 | Hash table | Negative ID | Add film ID -1 | No crash, film can be found. (Refusing a negative film ID is the Film class's job: IsValidId, tested by Akilesh) | Added and found, no crash. The old FilmHashTable crashed here; Kushal's new table moves a negative slot back into range | Pass |
 
 ### Hash table tests in code (card 356)
 
-Run on 12 Nov 2026 against Kushal's `FilmHashTable` (branch `feature/kushal`). File: `tests/CinemaBooking.Tests/HashTableTests.cs`. Result: 10 tests, 9 passed, 1 failed (HASH-15, a real bug).
+Run on 15 Nov 2026 against Kushal's `HashTable<int, Film>` (branch `feature/kushal`) with Shankar's `Film` from `CinemaBooking.Models`. File: `tests/CinemaBooking.Tests/HashTableTests.cs`. Result: 14 tests, 14 passed.
+
+History: on 12 Nov the old `FilmHashTable` crashed on a negative ID (HASH-15). Kushal replaced it with the generic table, and the test now passes.
 
 | Row | Test method |
 |---|---|
-| HASH-02 | FindFilm_EmptyTable_ReturnsNull |
-| HASH-03 | AddFilm_ThenFind_ReturnsSameFilm |
-| HASH-05 | FindFilm_MissingId_ReturnsNull |
-| HASH-06 | AddFilm_TwoIdsInSameSlot_BothFound |
-| HASH-07 | RemoveFilm_FirstInChain_OthersStillFound |
-| HASH-08 | RemoveFilm_MiddleOfChain_OthersStillFound |
-| HASH-09 | RemoveFilm_LastInChain_OthersStillFound |
-| HASH-10 | RemoveFilm_MissingId_ReturnsFalse |
-| HASH-12 | AddFilm_SameIdTwice_SecondIsRefused |
-| HASH-15 | AddFilm_NegativeId_IsRefused |
+| HASH-01 | NewTable_IsEmpty_CountIsZero |
+| HASH-02 | Find_EmptyTable_ReturnsNull |
+| HASH-03 | Add_ThenFind_ReturnsSameFilm |
+| HASH-04 | Add_ThreeFilms_CountIsThree |
+| HASH-05 | Find_MissingId_ReturnsNull |
+| HASH-06 | Add_TwoIdsInSameSlot_BothFound |
+| HASH-07 | Remove_FirstInChain_OthersStillFound |
+| HASH-08 | Remove_MiddleOfChain_OthersStillFound |
+| HASH-09 | Remove_LastInChain_OthersStillFound |
+| HASH-10 | Remove_MissingId_ReturnsFalse |
+| HASH-12 | Add_SameIdTwice_SecondIsRefused |
+| HASH-13 | ListAll_FiveFilms_ReturnsAllFive |
+| HASH-14 | ListAll_AfterRemovingTwo_ReturnsOtherThree |
+| HASH-15 | Add_NegativeId_DoesNotCrash |
 
-## 2. Resize
+## 2. Resize (card 409)
 
 | ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
 |---|---|---|---|---|---|---|
@@ -59,16 +65,16 @@ Run on 12 Nov 2026 against Kushal's `FilmHashTable` (branch `feature/kushal`). F
 
 | ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
 |---|---|---|---|---|---|---|
-| SHOW-01 | Showings | Add then find a showing | Add showing ID 10, find ID 10 | Same showing comes back | | |
-| SHOW-02 | Showings | Showings for one film | Film 1 has 3 showings, film 2 has 1 | Asking for film 1 gives exactly its 3 showings | | |
-| SHOW-03 | Showings | Film with no showings | Ask for showings of a film with none | Empty result, no crash | | |
+| SHOWDS-01 | Showings | Add then find a showing | Add showing ID 10, find ID 10 | Same showing comes back | | |
+| SHOWDS-02 | Showings | Showings for one film | Film 1 has 3 showings, film 2 has 1 | Asking for film 1 gives exactly its 3 showings | | |
+| SHOWDS-03 | Showings | Film with no showings | Ask for showings of a film with none | Empty result, no crash | | |
 | MEMB-01 | Members | Add then find by email | Add member "priya@example.com", find it | Same member comes back | | |
 | MEMB-02 | Members | Email in a different case | Find "PRIYA@example.com" | TBC with Kushal: found (we suggest yes, email is not case sensitive) | | |
 | MEMB-03 | Members | Email not in the table | Find "nobody@example.com" | Not found, no crash | | |
 | MEMB-04 | Members | Two members with the same email | Add "priya@example.com" twice | Second is refused | | |
 | MEMB-05 | Members | Empty email | Find "" | Not found or refused, no crash | | |
 
-## 4. Seat grid (one per showing)
+## 4. Seat grid (one per showing, card 361)
 
 | ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
 |---|---|---|---|---|---|---|
@@ -87,7 +93,7 @@ Run on 12 Nov 2026 against Kushal's `FilmHashTable` (branch `feature/kushal`). F
 | SEAT-13 | Seat grid | Full grid | Book all 96 seats, then book any seat | Last booking refused, 0 free | | |
 | SEAT-14 | Seat grid | List taken seats | Book B2, C5, H12 | Taken list is exactly B2, C5, H12 | | |
 
-## 5. Search
+## 5. Search (card 409)
 
 | ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
 |---|---|---|---|---|---|---|
@@ -116,8 +122,8 @@ Sample files are kept in the test folder. The format is the CSV from the AI cont
 | LOAD-06 | File loader | Header only | File with the header and no films | Loaded 0, skipped 0, no crash | | |
 | LOAD-07 | File loader | Empty file | 0 bytes | Clear message, no crash | | |
 | LOAD-08 | File loader | File does not exist | Name of a missing file | Clear message, no crash | | |
-| LOAD-09 | File loader | Same ID twice in the file | Two lines with ID 5 | Second one skipped and counted | | |
-| LOAD-10 | File loader | Comma inside the description | Description with a comma | TBC with Kushal: how commas in text are handled | | |
+| LOAD-09 | File loader | Same ID twice in the file | Two lines with ID 5 | Second one skipped and counted (confirmed: Kushal's loader refuses a duplicate ID) | | |
+| LOAD-10 | File loader | Comma inside the description | Description with a comma | Line skipped and counted (how Kushal's loader works now; TBC if this changes) | | |
 | LOAD-11 | File loader | Very long title | 500-character title | Skipped or cut, no crash | | |
 
 ## 7. Database
@@ -140,7 +146,7 @@ All database tests use a separate test database, never the real one.
 | DB-12 | Database | Database down | Stop SQL Server, then load | Clear message, no crash | | |
 | DB-13 | Database | Restart keeps data | Save, close, reopen, load | Data is still there | | |
 
-## 8. Users and audit log (card 131)
+## 8. Users and audit log (card 337)
 
 | ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
 |---|---|---|---|---|---|---|
@@ -152,7 +158,7 @@ All database tests use a separate test database, never the real one.
 | AUD-01 | Audit log | Write an audit row | Write "admin added film 5" | Row saved with who, what and when | | |
 | AUD-02 | Audit log | Rows come back in order | Write 3 rows | Read back oldest to newest (or newest first, TBC) | | |
 
-## 9. Manual tests: full journeys (cards 147 and 38)
+## 9. Manual tests: full journeys (cards 363 and 364)
 
 Run on the app from `main`. For each step, also try bad input: blank boxes, letters in number boxes, very long text. Log every problem as a Bug card with steps, expected and actual, and a screenshot.
 
@@ -193,15 +199,5 @@ Run on the app from `main`. For each step, also try bad input: blank boxes, lett
 1. Log in as admin.
 2. Add a film with a poster. Remove the poster file, then reopen the film. A placeholder should show, with no crash.
 3. Add a showing. Type letters in the price box. A clear message should appear.
-4. Try two showings on the same screen at the same time. The second should be refused.
+4. Try two showings on the same screen at the same time. TBC with Shankar: this rule is not decided yet (same as Akilesh's SHOW-07).
 5. Load a film file with some bad lines. A message like "Loaded 8, skipped 2" should appear.
-
-## 10. Questions for Kushal
-
-1. What are the method names for the hash table and the seat grid? (I will write the tests against them.)
-2. Adding the same key twice: refused, or replaced? (HASH-12)
-3. Is member email looked up without caring about case? (MEMB-02)
-4. Is "c5" the same seat as "C5"? (SEAT-12)
-5. What does an empty search return? (SRCH-07)
-6. How does the loader handle a comma inside the description? (LOAD-10)
-7. Which hash function do you use? I need two IDs that land in the same slot for HASH-06.
