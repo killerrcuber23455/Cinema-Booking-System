@@ -1,4 +1,4 @@
-﻿// our own hash table that uses separate chaining and our linked list (owner: kushal)
+﻿//our own hash table that uses separate chaining and our linked list (owner: kushal)
 // it stores a key and a value in each slot. it does not use List, Dictionary,
 // HashSet, Queue or LinkedList from .NET.
 namespace CinemaBooking.DataStructures
