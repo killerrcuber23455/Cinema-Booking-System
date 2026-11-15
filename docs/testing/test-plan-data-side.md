@@ -2,7 +2,7 @@
 
 Author: Irwin Chinathoo (Tester 2)
 Card: 354 (AB#354), data-side section for Akilesh to merge into `test-plan.md`
-Status: draft 3, 15 Nov 2026. Hash table rows (card 356) all run and passing. Old card numbers replaced, showing-table IDs renamed to SHOWDS so they do not clash with Akilesh. Rows marked TBC wait for an answer from Kushal or Shankar.
+Status: draft 4, 15 Nov 2026. File loader and database rows updated from Kushal's answers (cards 307 and 313). Hash table rows (card 356) all run and passing. Old card numbers replaced, showing-table IDs renamed to SHOWDS so they do not clash with Akilesh. Rows marked TBC wait for an answer from Kushal or Shankar.
 
 This section covers Kushal's code: our own hash tables and linked list, the seat grid, search, the file loader and the database. It uses the same columns as the main plan. The last two columns stay empty until the tests are run.
 
@@ -115,15 +115,15 @@ Sample files are kept in the test folder. The format is the CSV from the AI cont
 | ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
 |---|---|---|---|---|---|---|
 | LOAD-01 | File loader | Good file | 10 good lines | Loaded 10, skipped 0 | | |
-| LOAD-02 | File loader | Some bad lines | 8 good lines, 2 bad | Loaded 8, skipped 2 | | |
+| LOAD-02 | File loader | Some bad lines | `data/films_sample.csv`: 10 good lines, 2 bad (letters in the year, extra commas) | Loaded 10, skipped 2 | | |
 | LOAD-03 | File loader | Letters in a number column | Year "20x0" | That line skipped, others loaded | | |
 | LOAD-04 | File loader | Missing columns | A line with only 3 values | That line skipped | | |
 | LOAD-05 | File loader | Blank line | An empty line in the middle | Skipped or ignored, no crash | | |
 | LOAD-06 | File loader | Header only | File with the header and no films | Loaded 0, skipped 0, no crash | | |
-| LOAD-07 | File loader | Empty file | 0 bytes | Clear message, no crash | | |
-| LOAD-08 | File loader | File does not exist | Name of a missing file | Clear message, no crash | | |
+| LOAD-07 | File loader | Empty file | 0 bytes | Loaded 0, skipped 0, no crash (the window should then say no films were loaded) | | |
+| LOAD-08 | File loader | File does not exist | Name of a missing file | Loader throws FileNotFoundException; the window catches it and shows a clear message, no crash | | |
 | LOAD-09 | File loader | Same ID twice in the file | Two lines with ID 5 | Second one skipped and counted (confirmed: Kushal's loader refuses a duplicate ID) | | |
-| LOAD-10 | File loader | Comma inside the description | Description with a comma | Line skipped and counted (how Kushal's loader works now; TBC if this changes) | | |
+| LOAD-10 | File loader | Comma inside the description | Description with a comma | Line skipped and counted (decided: descriptions cannot contain commas) | | |
 | LOAD-11 | File loader | Very long title | 500-character title | Skipped or cut, no crash | | |
 
 ## 7. Database
@@ -137,7 +137,7 @@ All database tests use a separate test database, never the real one.
 | DB-03 | Database | Delete a film | Delete Inception, load all | Inception is gone | | |
 | DB-04 | Database | Save and read back a showing | Save a showing, load it | Same film, screen, time and price | | |
 | DB-05 | Database | Save and read back a member | Save a member with tier and points | Same tier and points | | |
-| DB-06 | Database | Same seat booked twice | Save C5 for showing 10, then save C5 for showing 10 again | Second save refused by the unique key, plain message, no crash | | |
+| DB-06 | Database | Same seat booked twice | Save C5 for showing 10, then save C5 for showing 10 again | Second save refused by the unique key `uq_booked_seats_showing_seat` (showing_id, seat_code), plain message, no crash | | |
 | DB-07 | Database | Same seat, different showing | Save C5 for showing 10 and C5 for showing 11 | Both saved | | |
 | DB-08 | Database | Guest booking | Booking with no member (member ID empty) | Saved, read back with member ID still empty | | |
 | DB-09 | Database | Booking total | Booking with total 475.50 | Reads back as 475.50 exactly | | |
@@ -150,11 +150,11 @@ All database tests use a separate test database, never the real one.
 
 | ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
 |---|---|---|---|---|---|---|
-| USER-01 | Users | Save and read back a user | User with email and role | Same email and role | | |
+| USER-01 | Users | Save and read back a user | User with username and role | Same username and role | | |
 | USER-02 | Users | No plain password stored | Save a user with password "abc123" | The password column holds a hash, not "abc123" | | |
 | USER-03 | Users | Update failed attempts | Set failed attempts to 2 | Reads back as 2 | | |
 | USER-04 | Users | Locked-until saved | Set a lock time | Reads back the same time | | |
-| USER-05 | Users | Two users with the same email | Save the same email twice | Second is refused | | |
+| USER-05 | Users | Two users with the same username | Save the same username twice | Second is refused by the unique key `uq_users_username` | | |
 | AUD-01 | Audit log | Write an audit row | Write "admin added film 5" | Row saved with who, what and when | | |
 | AUD-02 | Audit log | Rows come back in order | Write 3 rows | Read back oldest to newest (or newest first, TBC) | | |
 
@@ -199,5 +199,5 @@ Run on the app from `main`. For each step, also try bad input: blank boxes, lett
 1. Log in as admin.
 2. Add a film with a poster. Remove the poster file, then reopen the film. A placeholder should show, with no crash.
 3. Add a showing. Type letters in the price box. A clear message should appear.
-4. Try two showings on the same screen at the same time. TBC with Shankar: this rule is not decided yet (same as Akilesh's SHOW-07).
+4. Try two showings on the same screen at the same time. The database refuses the exact same start time (unique key on screen_id, starts_at). Whether overlapping times are refused is TBC with Shankar (same as Akilesh's SHOW-07).
 5. Load a film file with some bad lines. A message like "Loaded 8, skipped 2" should appear.
