@@ -1,6 +1,8 @@
-﻿//our own hash table that uses separate chaining and our linked list (owner: kushal)
+﻿// our own hash table that uses separate chaining and our linked list (owner: kushal)
 // it stores a key and a value in each slot. it does not use List, Dictionary,
 // HashSet, Queue or LinkedList from .NET.
+using System;
+
 namespace CinemaBooking.DataStructures
 {
     // holds one key and one value inside the hash table
@@ -17,9 +19,9 @@ namespace CinemaBooking.DataStructures
     }
 
     // custom hash table that uses our own linked list for chaining
-    public class HashTable<TKey, TValue>
+    public class HashTable<TKey, TValue> where TKey : notnull
     {
-        private ChainList<HashTableEntry<TKey, TValue>>[] _slots;
+        private ChainList<HashTableEntry<TKey, TValue>>?[] _slots;
         private int _count;
 
         private const double RESIZE_AT = 0.75;
@@ -31,7 +33,7 @@ namespace CinemaBooking.DataStructures
 
         public HashTable(int initial_slots = 16)
         {
-            _slots = new ChainList<HashTableEntry<TKey, TValue>>[initial_slots];
+            _slots = new ChainList<HashTableEntry<TKey, TValue>>?[initial_slots];
             _count = 0;
         }
 
@@ -49,17 +51,25 @@ namespace CinemaBooking.DataStructures
             return slot;
         }
 
-        // adds a new key and value. returns false if the key already exists.
+        // adds a new key and value. returns false if the key already exists or the key is null.
         public bool Add(TKey key, TValue value)
         {
-            int slot = CalculateSlot(key);
-
-            if (_slots[slot] == null)
+            if (key == null)
             {
-                _slots[slot] = new ChainList<HashTableEntry<TKey, TValue>>();
+                return false;
             }
 
-            HashTableEntry<TKey, TValue>? existing_entry = _slots[slot].Find(entry => entry.Key.Equals(key));
+            int slot = CalculateSlot(key);
+
+            ChainList<HashTableEntry<TKey, TValue>>? chain = _slots[slot];
+
+            if (chain == null)
+            {
+                chain = new ChainList<HashTableEntry<TKey, TValue>>();
+                _slots[slot] = chain;
+            }
+
+            HashTableEntry<TKey, TValue>? existing_entry = chain.Find(entry => entry.Key.Equals(key));
 
             if (existing_entry != null)
             {
@@ -67,7 +77,7 @@ namespace CinemaBooking.DataStructures
             }
 
             HashTableEntry<TKey, TValue> new_entry = new HashTableEntry<TKey, TValue>(key, value);
-            _slots[slot].Add(new_entry);
+            chain.Add(new_entry);
             _count++;
 
             if (NeedsResizing())
@@ -81,14 +91,21 @@ namespace CinemaBooking.DataStructures
         // finds a value using its key. returns the value or the default value.
         public TValue? Find(TKey key)
         {
-            int slot = CalculateSlot(key);
-
-            if (_slots[slot] == null)
+            if (key == null)
             {
                 return default;
             }
 
-            HashTableEntry<TKey, TValue>? found_entry = _slots[slot].Find(entry => entry.Key.Equals(key));
+            int slot = CalculateSlot(key);
+
+            ChainList<HashTableEntry<TKey, TValue>>? chain = _slots[slot];
+
+            if (chain == null)
+            {
+                return default;
+            }
+
+            HashTableEntry<TKey, TValue>? found_entry = chain.Find(entry => entry.Key.Equals(key));
 
             if (found_entry == null)
             {
@@ -101,21 +118,28 @@ namespace CinemaBooking.DataStructures
         // removes a key and its value. returns true if the key was found.
         public bool Remove(TKey key)
         {
-            int slot = CalculateSlot(key);
-
-            if (_slots[slot] == null)
+            if (key == null)
             {
                 return false;
             }
 
-            bool removed = _slots[slot].Remove(entry => entry.Key.Equals(key));
+            int slot = CalculateSlot(key);
 
-            if (removed)
+            ChainList<HashTableEntry<TKey, TValue>>? chain = _slots[slot];
+
+            if (chain == null)
+            {
+                return false;
+            }
+
+            bool is_removed = chain.Remove(entry => entry.Key.Equals(key));
+
+            if (is_removed)
             {
                 _count--;
             }
 
-            return removed;
+            return is_removed;
         }
 
         // checks whether the hash table is more than 75 percent full
@@ -129,19 +153,21 @@ namespace CinemaBooking.DataStructures
         // makes a bigger hash table and moves every entry into its new slot
         private void Resize()
         {
-            ChainList<HashTableEntry<TKey, TValue>>[] old_slots = _slots;
+            ChainList<HashTableEntry<TKey, TValue>>?[] old_slots = _slots;
 
-            _slots = new ChainList<HashTableEntry<TKey, TValue>>[old_slots.Length * 2];
+            _slots = new ChainList<HashTableEntry<TKey, TValue>>?[old_slots.Length * 2];
             _count = 0;
 
             for (int slot = 0; slot < old_slots.Length; slot++)
             {
-                if (old_slots[slot] == null)
+                ChainList<HashTableEntry<TKey, TValue>>? old_chain = old_slots[slot];
+
+                if (old_chain == null)
                 {
                     continue;
                 }
 
-                HashTableEntry<TKey, TValue>[] entries = old_slots[slot].ListAll();
+                HashTableEntry<TKey, TValue>[] entries = old_chain.ListAll();
 
                 for (int entry_index = 0; entry_index < entries.Length; entry_index++)
                 {
@@ -149,12 +175,15 @@ namespace CinemaBooking.DataStructures
 
                     int new_slot = CalculateSlot(entry.Key);
 
-                    if (_slots[new_slot] == null)
+                    ChainList<HashTableEntry<TKey, TValue>>? new_chain = _slots[new_slot];
+
+                    if (new_chain == null)
                     {
-                        _slots[new_slot] = new ChainList<HashTableEntry<TKey, TValue>>();
+                        new_chain = new ChainList<HashTableEntry<TKey, TValue>>();
+                        _slots[new_slot] = new_chain;
                     }
 
-                    _slots[new_slot].Add(entry);
+                    new_chain.Add(entry);
                     _count++;
                 }
             }
@@ -168,12 +197,14 @@ namespace CinemaBooking.DataStructures
 
             for (int slot = 0; slot < _slots.Length; slot++)
             {
-                if (_slots[slot] == null)
+                ChainList<HashTableEntry<TKey, TValue>>? chain = _slots[slot];
+
+                if (chain == null)
                 {
                     continue;
                 }
 
-                HashTableEntry<TKey, TValue>[] entries = _slots[slot].ListAll();
+                HashTableEntry<TKey, TValue>[] entries = chain.ListAll();
 
                 for (int entry_index = 0; entry_index < entries.Length; entry_index++)
                 {
