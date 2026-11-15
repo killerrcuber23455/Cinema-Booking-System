@@ -1,0 +1,13 @@
+id,title,genre,year,duration_minutes,age_rating,description,poster_file
+1,The Last Voyage,Adventure,2023,128,12,A crew sails to the edge of the map,last_voyage.jpg
+2,Midnight Kitchen,Comedy,2022,98,0,A chef runs a secret late night diner,midnight_kitchen.jpg
+3,Iron Harbour,Action,2024,115,15,A dockworker uncovers a smuggling ring,iron_harbour.jpg
+4,Paper Moon,Drama,2021,104,12,Two siblings restore their late father's theatre,paper_moon.jpg
+5,Silent Orbit,Sci-Fi,2025,132,15,An astronaut hears a signal from deep space,silent_orbit.jpg
+6,Cane Fields,Drama,2020,110,12,A family fights to keep their sugar farm,cane_fields.jpg
+7,Dark Corridor,Horror,2023,92,18,A night guard discovers a hidden floor,dark_corridor.jpg
+8,Tiny Explorers,Animation,2024,85,0,Four toy robots set off on a big adventure,tiny_explorers.jpg
+9,Last Train Home,Romance,2019,118,12,Two strangers meet on a midnight journey,last_train_home.jpg
+10,Rooftop Heist,Thriller,2022,121,15,A crew plans one final job above the city,rooftop_heist.jpg
+11,Broken Line,Drama,abc,100,12,This line has a bad year so it is skipped,broken_line.jpg
+12,Too, Many, Commas,Comedy,2023,90,0,This line has extra commas so it is skipped,commas.jpg
