@@ -1,4 +1,4 @@
-﻿//rules to add and remove films with a role check first (owner: shankar)
+﻿//rules to add remove and search films with a role check first (owner: shankar)
 using CinemaBooking.DataStructures;
 using CinemaBooking.Models;
 
@@ -9,9 +9,10 @@ namespace CinemaBooking.Services
         //each film is stored by its id in the hashtable
         private HashTable<int, Film> _films;
 
-        public FilmService()
+        //uses the table it is given so everyone shares the same films
+        public FilmService(HashTable<int, Film> films)
         {
-            _films = new HashTable<int, Film>();
+            _films = films;
         }
 
         //adding a film but only an admin can add
@@ -67,6 +68,51 @@ namespace CinemaBooking.Services
             }
             error_message = "";
             return true;
+        }
+
+        //search by title, partial and any case
+        //hash only works with id so every film is checked
+        public Film[] SearchByTitle(string search_text)
+        {
+            ChainList<Film> results = new ChainList<Film>();
+
+            if (search_text == null)
+            {
+                search_text = "";
+            }
+            string text_lower = search_text.ToLower();
+            Film[] all_films = _films.ListAll();
+
+            for (int film_index = 0; film_index < all_films.Length; film_index++)
+            {
+                if (all_films[film_index].Title.ToLower().Contains(text_lower))
+                {
+                    results.Add(all_films[film_index]);
+                }
+            }
+            return results.ListAll();
+        }
+
+        //searching by genre, partial and any case
+        public Film[] SearchByGenre(string genre) 
+        {
+            ChainList<Film> results = new ChainList<Film>();
+
+            if (genre == null)
+            {
+                genre = "";
+            }
+            string genre_lower = genre.ToLower();
+            Film[] all_films = _films.ListAll();
+
+            for (int film_index = 0; film_index < all_films.Length; film_index++)
+            {
+                if (all_films[film_index].Genre.ToLower().Contains(genre_lower))
+                {
+                    results.Add(all_films[film_index]);
+                }
+            }
+            return results.ListAll();
         }
     }
 }
