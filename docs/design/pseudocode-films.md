@@ -1,5 +1,5 @@
 ﻿// pseudocode for our own hash table and the film searches (owner: shankar)
-//// FilmService.AddFilm and RemoveFilm check the role (and the film, for add), then call this table's Add and Remove (card 304)
+// FilmService.AddFilm and RemoveFilm check the role (and the film, for add), then call this table's Add and Remove (card 304)
 
 Constant RESIZE_AT ← 0.75
 Constant INITIAL_SLOTS ← 16
@@ -131,10 +131,14 @@ end procedure
 // film searches (in FilmService, they use the table's ListAll)
 // films is the HashTable with the film id as key
 
-Procedure SearchByTitle(ByVal films : HashTable, ByVal search_text : string, ByRef results : ChainList)
+Procedure SearchByTitle(ByVal films : HashTable, ByVal search_text : string, ByRef result_array : array of Film)
     Declare all_films : array of Film
     Declare text_lower : string
     Declare film_index : integer
+    Declare results : ChainList
+    If search_text = null then
+        search_text ← ""
+    endif
     text_lower ← LOWER(search_text)
     results ← new ChainList()
     // the hash only works with an id, so every film is checked
@@ -144,18 +148,24 @@ Procedure SearchByTitle(ByVal films : HashTable, ByVal search_text : string, ByR
             call results.Add(all_films[film_index])
         endif
     Next film_index
+    call results.ListAll(result_array)
 end procedure
 
-Procedure SearchByGenre(ByVal films : HashTable, ByVal genre : string, ByRef results : ChainList)
+Procedure SearchByGenre(ByVal films : HashTable, ByVal genre : string, ByRef result_array : array of Film)
     Declare all_films : array of Film
     Declare genre_lower : string
     Declare film_index : integer
+    Declare results : ChainList
+    If genre = null then
+        genre ← ""
+    endif
     genre_lower ← LOWER(genre)
     results ← new ChainList()
     call films.ListAll(all_films)
     For film_index ← 0 to LENGTH(all_films) - 1
-        If LOWER(all_films[film_index].Genre) = genre_lower then
+        If CONTAINS(LOWER(all_films[film_index].Genre), genre_lower) then
             call results.Add(all_films[film_index])
         endif
     Next film_index
+    call results.ListAll(result_array)
 end procedure
