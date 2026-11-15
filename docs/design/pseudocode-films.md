@@ -1,15 +1,17 @@
 ﻿// pseudocode for our own hash table and the film searches (owner: shankar)
+//// FilmService.AddFilm and RemoveFilm check the role (and the film, for add), then call this table's Add and Remove (card 304)
 
 Constant RESIZE_AT ← 0.75
+Constant INITIAL_SLOTS ← 16
 
 // the table stores key and value pairs where the key is the film id and the value is the Film
 // each slot holds a chain (ChainList, our own linked list) and stays null until its first entry
 // the chain has Add (puts the new item at the front), Find, Remove and ListAll
 
 Declare slots : array of ChainList
-Declare count : integer
+Declare count : integer //count gives back the number of items stored in the table
 
-Procedure CreateTable(ByVal initial_slots : integer)    // 16 by default
+Procedure CreateTable(ByVal initial_slots : integer)    // starts as INITIAL_SLOTS unless caller gives another number
     slots ← new array of ChainList with initial_slots slots, all null
     count ← 0
 end procedure
@@ -68,6 +70,19 @@ Procedure Remove(ByVal key : TKey, ByRef is_removed : boolean)
         call slots[slot].Remove(entry.Key = key, is_removed)
         If is_removed = true then
             count ← count - 1
+        endif
+    endif
+end procedure
+
+Procedure Find(ByVal key : TKey, ByRef found_value : TValue)
+    Declare slot : integer
+    Declare found_entry : HashTableEntry
+    call CalculateSlot(key, slot)
+    found_value ← null     // stays null if the slot is empty or the key is not found
+    If slots[slot] <> null then
+        call slots[slot].Find(entry.Key = key, found_entry)
+        If found_entry <> null then
+            found_value ← found_entry.Value
         endif
     endif
 end procedure
