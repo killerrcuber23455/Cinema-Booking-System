@@ -56,7 +56,7 @@ CREATE TABLE showings (
     CONSTRAINT fk_showings_film FOREIGN KEY (film_id) REFERENCES films (id),
     CONSTRAINT fk_showings_screen FOREIGN KEY (screen_id) REFERENCES screens (id),
     CONSTRAINT uq_showings_screen_time UNIQUE (screen_id, starts_at),
-    CONSTRAINT ck_showings_price CHECK (price >= 0)
+    CONSTRAINT ck_showings_price CHECK (price > 0)
 );
 GO
 
@@ -110,6 +110,8 @@ GO
 
 -- stores every seat booked for a showing
 -- the unique rule stops the same seat being booked twice for one showing
+-- cancelling a booking deletes its rows from this table, so the seat can be booked again
+-- (the unique rule would block a new booking of that seat if the old rows stayed)
 CREATE TABLE booked_seats (
     id INT IDENTITY(1, 1) NOT NULL,
     booking_id INT NOT NULL,
@@ -132,7 +134,7 @@ CREATE TABLE users (
     CONSTRAINT pk_users PRIMARY KEY (id),
     CONSTRAINT uq_users_username UNIQUE (username),
     CONSTRAINT fk_users_member FOREIGN KEY (member_id) REFERENCES members (id),
-    CONSTRAINT ck_users_role CHECK (role IN ('member', 'staff', 'admin'))
+    CONSTRAINT ck_users_role CHECK (role IN ('Customer', 'Staff', 'Admin'))
 );
 GO
 
