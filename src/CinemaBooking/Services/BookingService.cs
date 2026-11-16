@@ -1,4 +1,4 @@
-﻿//booking rules: book seats, make reference and work out the total(owner shankar)
+﻿//booking rules: book seats, make reference and work out the total(owner: shankar)
 using CinemaBooking.Models;
 using CinemaBooking.Data;
 using CinemaBooking.DataStructures;
@@ -9,7 +9,7 @@ namespace CinemaBooking.Services
     public class BookingService
     {
         //screen size from row A to H and seats 1 to 12
-        private const char FIRST_ROW_LETTER= 'A';
+        private const char FIRST_ROW_LETTER = 'A';
         private const char LAST_ROW_LETTER = 'H';
         private const int SEATS_PER_ROW = 12;
 
@@ -19,7 +19,7 @@ namespace CinemaBooking.Services
         private const string REFERENCE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         private const int MAX_REFERENCE_TRIES = 20;
 
-        //random generator for whole seervice
+        //random generator for whole service
         private static readonly Random _random = new Random();
 
         //the database and the showings table are given to us, we do not create them here
@@ -36,7 +36,7 @@ namespace CinemaBooking.Services
         //true with the booking, false with a message
         public bool BookSeats(Role role, int? member_id, string guest_name, string guest_email,
             string guest_phone, int showing_id, string[] seat_codes, int points_to_use,
-            out Booking booking, out string error_message)
+            out Booking? booking, out string error_message)
         {
             booking = null;
             error_message = "";
@@ -142,7 +142,33 @@ namespace CinemaBooking.Services
                 int new_points = current_points + points_earned;
                 int new_lifetime_points = current_lifetime_points + points_earned;
                 Tier new_tier = LoyaltyService.TierForLifetimePoints(new_lifetime_points);
-                _database.UpdateMemberPoints(member_id.Value, new_points, new_lifetime_points, new_tier);
+
+                bool is_points_saved = false;
+                try
+                {
+                    is_points_saved = _database.UpdateMemberPoints(member_id.Value, new_points, new_lifetime_points, new_tier);
+                }
+                catch
+                {
+                    //an exception counts the same as a false result, the points were not saved
+                    is_points_saved = false;
+                }
+
+                if (!is_points_saved)
+                {
+                    //undo the booking: give the seats back first, then cancel it in the database
+                    grid.FreeSeats(seat_codes);
+                    try
+                    {
+                        _database.CancelBooking(new_booking.Id);
+                    }
+                    catch
+                    {
+                        //if the database is down we cannot cancel from here, the seats are already free again
+                    }
+                    error_message = "the booking could not be completed, please try again";
+                    return false;
+                }
             }
 
             booking = new_booking;
@@ -190,7 +216,7 @@ namespace CinemaBooking.Services
             if (!int.TryParse(seat_code.Substring(1), out seat_number) || seat_number < 1 || seat_number > SEATS_PER_ROW)
             {
                 error_message = "seat " + seat_code + ": seat number must be 1 to " + SEATS_PER_ROW;
-                return false;
+                return false; 
             }
             error_message = "";
             return true;
@@ -211,7 +237,7 @@ namespace CinemaBooking.Services
                 if (!IsSeatOnScreen(seat_codes[index], out error_message)) return false;
             }
 
-            //-----using points to pay is card 330, so for now only 0 is accepted
+            //using points to pay is card 330, so for now only 0 is accepted
             if (points_to_use != 0 )
             {
                 error_message = "Using points to pay is not available yet";
@@ -233,6 +259,7 @@ namespace CinemaBooking.Services
             return REFERENCE_PREFIX + random_part;
         }
 
+        //keeps making references until one is not used yet, gives up after MAX_REFERENCE_TRIES
         private bool TryMakeUniqueReference(out string reference, out string error_message)
         {
             for (int attempt = 0; attempt < MAX_REFERENCE_TRIES; attempt++)
