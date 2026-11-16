@@ -63,7 +63,7 @@ GO
 -- stores cinema members, columns match Member.cs
 -- points are spendable points, lifetime_points are all points ever earned
 -- loyalty rules are checked in the services layer, not here, because Admin can change tier rules:
--- 1 point per Rs 10, silver from 100 lifetime points, gold from 300
+-- 1 point per Rs 10, silver from 100 lifetime points (5% off, 1.25x points), gold from 300 (10% off, 1.5x points)
 -- 100 points = Rs 50 off, and a member cannot use more points than they have
 CREATE TABLE members (
     id INT IDENTITY(1, 1) NOT NULL,
