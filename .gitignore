@@ -481,5 +481,19 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
+
 # real config with the connection string and ai key, never commit it
 appsettings.json
+
+# ---- add these lines at the very end of .gitignore ----
+
+# real config with the SQL connection string and the AI key: NEVER commit
+appsettings.json
+**/appsettings.json
+# the example file with FAKE values is allowed
+!appsettings.example.json
+
+# local database files
+*.mdf
+*.ldf
+
