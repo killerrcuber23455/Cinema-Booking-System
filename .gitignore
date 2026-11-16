@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# real config with the connection string and ai key, never commit it
+appsettings.json
