@@ -1,10 +1,12 @@
 ﻿//booking rules: book seats, make reference and work out the total(owner shankar)
 using CinemaBooking.Models;
+using CinemaBooking.Data;
+using CinemaBooking.DataStructures;
 using System;
 
 namespace CinemaBooking.Services
 {
-    public static class BookingService
+    public class BookingService
     {
         //screen size from row A to H and seats 1 to 12
         private const char FIRST_ROW_LETTER= 'A';
@@ -20,69 +22,25 @@ namespace CinemaBooking.Services
         //random generator for whole seervice
         private static readonly Random _random = new Random();
 
-        //--- temporary stubs for other people's code, replace with the real calls after the merge ---
+        //the database and the showings table are given to us, we do not create them here
+        private readonly Database _database;
+        private readonly ShowingTable _showing_table;
 
-        //todo: replace with SeatGrid.IsSeatFree (card 310)
-        private static bool StubIsSeatFree(int showing_id, string seat_code)
+        public BookingService(Database database, ShowingTable showing_table)
         {
-            return true;
-        }
-
-        //todo: replace with SeatGrid.BookSeats, all or nothing (card 310)
-        private static bool StubBookSeatsInGrid(int showing_id, string[] seat_codes)
-        {
-            return true;
-        }
-
-        //todo: replace with SeatGrid.FreeSeats (card 310)
-        private static bool StubFreeSeatsInGrid(int showing_id, string[] seat_codes)
-        {
-            return true;
-        }
-
-        //todo: replace with Database.SaveBooking (card 397), the real one returns -1 if a seat is taken
-        private static int StubSaveBooking(Booking booking)
-        {
-            return 1;
-        }
-
-        //todo: replace with Database.ReferenceExists (card 397)
-        private static bool StubReferenceExists(string reference)
-        {
-            return false;
-        }
-
-        //todo: replace with the real showing lookup, false means the showing does not exist
-        private static bool StubGetShowingPrice(int showing_id, out decimal price)
-        {
-            price = 100m;
-            return true;
-        }
-
-        //todo: replace with a member lookup using GetAllMembers, false means no such member
-        private static bool StubGetMemberLoyalty(int member_id, out Tier tier, out int points, out int lifetime_points)
-        {
-            tier = Tier.Standard;
-            points = 0;
-            lifetime_points = 0;
-            return true;
-        }
-
-        //todo: replace with Database.UpdateMemberPoints (card 397)
-        private static bool StubUpdateMemberPoints(int member_id, int points, int lifetime_points, Tier tier)
-        {
-            return true;
+            _database = database;
+            _showing_table = showing_table;
         }
 
         //book seats
         //true with the booking, false with a message
-        public static bool BookSeats(Role role, int? member_id, string guest_name, string guest_email,
+        public bool BookSeats(Role role, int? member_id, string guest_name, string guest_email,
             string guest_phone, int showing_id, string[] seat_codes, int points_to_use,
             out Booking booking, out string error_message)
         {
             booking = null;
             error_message = "";
-            
+
             //role check
             if (!CanBook(role))
             {
@@ -97,18 +55,19 @@ namespace CinemaBooking.Services
                 return false;
             }
 
-            //the showing must exist, we need its price
-            decimal showing_price;
-            if (!StubGetShowingPrice(showing_id, out showing_price))
+            //the showing must exist, it holds the price and the seat grid
+            Showing? showing = _showing_table.FindShowing(showing_id);
+            if (showing == null)
             {
                 error_message = "this showing does not exist";
                 return false;
             }
+            SeatGrid grid = showing.SeatGrid;
 
             //check every seat before booking any, so a taken seat refuses the whole booking
             for (int index = 0; index < seat_codes.Length; index++)
             {
-                if (!StubIsSeatFree(showing_id, seat_codes[index]))
+                if (!grid.IsSeatFree(seat_codes[index]))
                 {
                     error_message = "seat " + seat_codes[index] + " is already taken";
                     return false;
@@ -120,17 +79,21 @@ namespace CinemaBooking.Services
             Tier tier = Tier.Standard;
             int current_points = 0;
             int current_lifetime_points = 0;
-            if (!is_guest)
+            if (member_id.HasValue)
             {
-                if (!StubGetMemberLoyalty(member_id.Value, out tier, out current_points, out current_lifetime_points))
+                Member? member = FindMember(member_id.Value);
+                if (member == null)
                 {
                     error_message = "member not found";
                     return false;
                 }
+                tier = member.Tier;
+                current_points = member.Points;
+                current_lifetime_points = member.LifetimePoints;
             }
 
             //money and points
-            decimal amount_paid = AmountPaid(showing_price, seat_codes.Length, tier);
+            decimal amount_paid = AmountPaid(showing.Price, seat_codes.Length, tier);
             int points_earned = PointsForBooking(is_guest, amount_paid, tier);
 
             //the reference
@@ -146,38 +109,61 @@ namespace CinemaBooking.Services
                 BookingStatus.Confirmed, DateTime.Now);
 
             //book the seats in the grid, all or nothing
-            if (!StubBookSeatsInGrid(showing_id, seat_codes))
+            if (!grid.BookSeats(seat_codes))
             {
                 error_message = "one of the seats was just taken, please choose again";
                 return false;
             }
 
-            //save, the database is the last guard against a double booking, -1 or less means it refused
-            int new_id = StubSaveBooking(new_booking);
+            //save, the database is the last guard against a double booking, -1 means a seat is taken
+            int new_id;
+            try
+            {
+                new_id = _database.SaveBooking(new_booking);
+            }
+            catch
+            {
+                //the database failed, give the seats back and pass the error on
+                grid.FreeSeats(seat_codes);
+                throw;
+            }
+
             if (new_id <= 0)
             {
-                //give the seats back so they are not blocked for nothing
-                StubFreeSeatsInGrid(showing_id, seat_codes);
+                grid.FreeSeats(seat_codes);
                 error_message = "one of the seats was just taken, please choose again";
                 return false;
             }
             new_booking.Id = new_id;
 
             //a member gets the points and may reach a new tier
-            if (!is_guest)
+            if (member_id.HasValue)
             {
                 int new_points = current_points + points_earned;
                 int new_lifetime_points = current_lifetime_points + points_earned;
                 Tier new_tier = LoyaltyService.TierForLifetimePoints(new_lifetime_points);
-                StubUpdateMemberPoints(member_id.Value, new_points, new_lifetime_points, new_tier);
+                _database.UpdateMemberPoints(member_id.Value, new_points, new_lifetime_points, new_tier);
             }
 
             booking = new_booking;
             error_message = "";
             return true;
-
         }
-        //----------------------------------------------------------------------
+
+        //looks for one member by id, null if there is none
+        private Member? FindMember(int member_id)
+        {
+            Member[] members = _database.GetAllMembers();
+            for (int index = 0; index < members.Length; index++)
+            {
+                if (members[index].Id == member_id)
+                {
+                    return members[index];
+                }
+            }
+            return null;
+        }
+
 
 
         //all roles can book
@@ -247,13 +233,13 @@ namespace CinemaBooking.Services
             return REFERENCE_PREFIX + random_part;
         }
 
-        private static bool TryMakeUniqueReference(out string reference, out string error_message)
+        private bool TryMakeUniqueReference(out string reference, out string error_message)
         {
             for (int attempt = 0; attempt < MAX_REFERENCE_TRIES; attempt++)
             {
                 string new_reference = GenerateReference();
                 string check_message;
-                if (Booking.IsValidReference(new_reference, out check_message) && !StubReferenceExists(new_reference)) //---stud here
+                if (Booking.IsValidReference(new_reference, out check_message) && !_database.ReferenceExists(new_reference))
                 {
                     reference = new_reference;
                     error_message = "";
