@@ -237,7 +237,7 @@ public class MemberBookingTests
 
         Assert.IsFalse(result);
         Assert.AreEqual("a booking needs at least 1 seat", error_message);
-        Assert.IsFalse(Booking.IsValidSeats(null, out _));
+        Assert.IsFalse(Booking.IsValidSeats(null!, out _));
     }
 
     [TestMethod]
