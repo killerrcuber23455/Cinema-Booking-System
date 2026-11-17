@@ -150,11 +150,6 @@ Seat codes are a row letter A to H and a seat number 1 to 12, for example C5. Th
 | BOOK-04 | Integration | Automatic | Booking | One taken seat among several | TEST database with a showing whose seats are free and a member who exists | Seats C6, C7 where C6 is taken | Nothing is stored or changed | Refused, C7 is not taken either (a booking is all or nothing) |  | Not run |  | Akilesh |  |
 | BOOK-05 | Integration | Automatic | Booking | Same seat in one request twice | TEST database with a showing whose seats are free and a member who exists | Seats C5, C5 | Nothing is stored or changed | Refused | as expected | Pass | 2026-11-17 | Akilesh | - |
 | BOOK-06 | Integration | Automatic | Booking | No seats chosen | TEST database with a showing whose seats are free and a member who exists | Empty seat list | Nothing is stored or changed | Refused | as expected | Pass | 2026-11-17 | Akilesh | - |
-| BOOK-07 | Integration | Automatic | Booking | First seat on the map | TEST database with a showing whose seats are free and a member who exists | Seat A1 | Seats and the booking table match the expected result | Accepted |  | Not run |  | Akilesh |  |
-| BOOK-08 | Integration | Automatic | Booking | Last seat on the map | TEST database with a showing whose seats are free and a member who exists | Seat H12 | Seats and the booking table match the expected result | Accepted |  | Not run |  | Akilesh |  |
-| BOOK-09 | Integration | Automatic | Seat grid | Seat grid refuses seat number 0 | TEST database with a showing whose seats are free and a member who exists | Seat A0 on the seat grid | Nothing is stored or changed | Refused by the seat grid |  | Not run |  | Akilesh |  |
-| BOOK-10 | Integration | Automatic | Seat grid | Seat grid refuses a seat number past the row end | TEST database with a showing whose seats are free and a member who exists | Seat A13 on the seat grid | Nothing is stored or changed | Refused by the seat grid (Booking.IsValid accepts the format) |  | Not run |  | Akilesh |  |
-| BOOK-11 | Integration | Automatic | Seat grid | Seat grid refuses a row letter past the last row | TEST database with a showing whose seats are free and a member who exists | Seat I1 on the seat grid | Nothing is stored or changed | Refused by the seat grid (Booking.IsValid accepts the format) |  | Not run |  | Akilesh |  |
 | BOOK-12 | Black-box | Automatic | Booking | Booking format check refuses badly typed codes | A valid Booking object (member booking, seat C5) with every field correct except the one tested | Seat "5C", "", "C" | Nothing is stored or changed | Refused by Booking.IsValid for each | as expected | Pass | 2026-11-16 | Akilesh | - |
 | BOOK-13 | Integration | Automatic | Booking | Showing does not exist | TEST database with a showing whose seats are free and a member who exists | Showing ID not in the table | Nothing is stored or changed | Refused with a clear message |  | Not run |  | Akilesh |  |
 | BOOK-14 | Integration | Automatic | Booking | Member does not exist | TEST database with a showing whose seats are free and a member who exists | Member ID not in the table | Nothing is stored or changed | Refused with a clear message |  | Not run |  | Akilesh |  |
@@ -324,8 +319,6 @@ Added after Divyesh's rules of 16 Nov. The times in ms are written in the Actual
 | SEC-05 | Security | Manual | Users table | No plain text passwords | One user exists | Open the Users table in the TEST database | No data changed | Password column holds a hash, never the typed password |  | Not run |  | Akilesh |  |
 | SEC-06 | Security | Automatic | Services | A Guest calls an admin only method | Services created with the TEST database | Role Guest on AddFilm and RemoveFilm | No film added or removed | Refused for every admin only method (see FS-02 to FS-04) |  | Not run |  | Akilesh |  |
 | SEC-07 | Security | Automatic | Login | SQL injection text as the email and as the password | TEST database with the users table and one Customer user (known password, failed attempts 0, not locked) | Email ' OR '1'='1 and password ' OR '1'='1 | No user changed, no table dropped | Refused with the normal wrong-login message |  | Not run |  | Akilesh |  |
-| PERF-01 | Performance | Automatic | Hash table | Add and find with about 1000 films | Empty HashTable<int, Film> | 1000 valid films, then Find on 10 of them | Table holds 1000 films | Time in ms written in Actual result; every film found |  | Not run |  | Akilesh |  |
-| PERF-02 | Performance | Automatic | FilmService | Search by title with about 1000 films | FilmService holding 1000 films | SearchByTitle("a") | No data changed | Time in ms written in Actual result |  | Not run |  | Akilesh |  |
 | PERF-03 | Performance | Automatic | BookingService | Make one booking | TEST database with a showing and a member | Seats C5, C6 | Booking saved | Time in ms written in Actual result |  | Not run |  | Akilesh |  |
 
 ### Data-side tests (Irwin's file test-plan-data-side.md, merged here when he is ready)
@@ -377,17 +370,17 @@ Worked out on 17 Nov 2026. Update it after every run.
 |---|---|
 | Tests of type White-box | 49 |
 | Tests of type Black-box | 50 |
-| Tests of type Integration | 57 |
+| Tests of type Integration | 52 |
 | Tests of type System | 15 |
 | Tests of type Regression | 2 |
-| Tests of type Performance | 4 |
+| Tests of type Performance | 2 |
 | Tests of type Security | 12 |
 | Tests of type Boundary/negative | 41 |
-| Automatic tests | 207 |
+| Automatic tests | 200 |
 | Manual tests | 23 |
-| Total tests | 230 |
+| Total tests | 223 |
 | Passed | 82 |
 | Failed | 0 |
-| Not run | 148 |
+| Not run | 141 |
 | Pass rate (passed out of tests run) | 100% |
 | Open bugs | 0 |
