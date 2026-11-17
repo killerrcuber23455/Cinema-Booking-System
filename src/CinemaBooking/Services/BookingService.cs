@@ -193,7 +193,7 @@ namespace CinemaBooking.Services
 
         //cancel a booking, free the seats and fix the member's points
         //true when cancelled, false with a message
-        public bool CancelBooking(Role role, int? acting_member_id, string reference,
+        public bool CancelBooking(Role role, int? acting_member_id, string guest_email, string reference,
             out string error_message)
         {
             error_message = "";
