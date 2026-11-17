@@ -472,5 +472,136 @@ namespace CinemaBooking.Data
                 }
             }
         }
+        // returns the seat codes of the confirmed bookings of one showing
+        public string[] GetTakenSeats(int showing_id)
+        {
+            using (SqlConnection connection = OpenConnection())
+            {
+                return ReadTakenSeats(connection, showing_id);
+            }
+        }
+
+        // reads the taken seats using a connection that is already open
+        private string[] ReadTakenSeats(SqlConnection connection, int showing_id)
+        {
+            string[] seats = new string[16];
+            int count = 0;
+
+            using (SqlCommand command = new SqlCommand(
+                "SELECT bs.seat_code FROM booked_seats bs " +
+                "INNER JOIN bookings b ON b.id = bs.booking_id " +
+                "WHERE bs.showing_id = @showing_id AND b.status = 'Confirmed' " +
+                "ORDER BY bs.seat_code",
+                connection))
+            {
+                command.Parameters.AddWithValue("@showing_id", showing_id);
+
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if (count == seats.Length)
+                        {
+                            seats = Grow(seats);
+                        }
+
+                        seats[count] = reader.GetString(0);
+                        count++;
+                    }
+                }
+            }
+
+            return Trim(seats, count);
+        }
+
+        // saves a showing. returns false if the id already exists or the screen is already
+        // used at that time. the film and screen must exist.
+        public bool SaveShowing(Showing showing)
+        {
+            using (SqlConnection connection = OpenConnection())
+            using (SqlCommand command = new SqlCommand(
+                "INSERT INTO showings (id, film_id, screen_id, starts_at, price) " +
+                "VALUES (@id, @film_id, @screen_id, @starts_at, @price)",
+                connection))
+            {
+                command.Parameters.AddWithValue("@id", showing.Id);
+                command.Parameters.AddWithValue("@film_id", showing.FilmId);
+                command.Parameters.AddWithValue("@screen_id", showing.ScreenId);
+                command.Parameters.AddWithValue("@starts_at", showing.StartsAt);
+                command.Parameters.AddWithValue("@price", showing.Price);
+
+                try
+                {
+                    command.ExecuteNonQuery();
+                    return true;
+                }
+                catch (SqlException error)
+                {
+                    if (IsUniqueError(error))
+                    {
+                        return false;
+                    }
+
+                    throw;
+                }
+            }
+        }
+
+        // loads every showing into the table, each with a seat grid that already
+        // has its booked seats marked as taken. returns how many showings were added.
+        public int LoadShowings(ShowingTable showing_table)
+        {
+            Showing[] showings = new Showing[8];
+            int count = 0;
+            int added = 0;
+
+            using (SqlConnection connection = OpenConnection())
+            {
+                // read all the showings first, because one connection cannot run a second query while a reader is open
+                using (SqlCommand command = new SqlCommand(
+                    "SELECT s.id, s.film_id, s.screen_id, s.starts_at, s.price, sc.row_count, sc.seats_per_row " +
+                    "FROM showings s INNER JOIN screens sc ON sc.id = s.screen_id",
+                    connection))
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if (count == showings.Length)
+                        {
+                            showings = Grow(showings);
+                        }
+
+                        SeatGrid grid = new SeatGrid(reader.GetInt32(5), reader.GetInt32(6));
+
+                        showings[count] = new Showing(
+                            reader.GetInt32(0),
+                            reader.GetInt32(1),
+                            reader.GetInt32(2),
+                            reader.GetDateTime(3),
+                            reader.GetDecimal(4),
+                            grid);
+                        count++;
+                    }
+                }
+
+                // now mark the taken seats in each grid
+                for (int i = 0; i < count; i++)
+                {
+                    string[] taken = ReadTakenSeats(connection, showings[i].Id);
+
+                    if (taken.Length > 0)
+                    {
+                        showings[i].SeatGrid.BookSeats(taken);
+                    }
+
+                    if (showing_table.AddShowing(showings[i]))
+                    {
+                        added++;
+                    }
+                }
+            }
+
+            return added;
+        }
     }
 }
