@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/CinemaBooking/CinemaBooking.csproj" />
+     <Project Path="tests/CinemaBooking.Tests/CinemaBooking.Tests.csproj" />
+</Solution>
