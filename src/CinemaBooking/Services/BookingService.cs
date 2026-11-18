@@ -218,9 +218,12 @@ namespace CinemaBooking.Services
                 return false;
             }
 
-            if (!MayCancelThisBooking(role, acting_member_id, booking))
+            if (!MayCancelThisBooking(role, acting_member_id, guest_email, booking))
             {
-                error_message = "you can only cancel your own booking";
+                //a guest gets the same message as not found...
+                error_message = role == Role.Guest
+                    ? "no booking found with this reference"
+                    : "you can only cancel your own booking";
                 return false;
             }
 
@@ -261,7 +264,7 @@ namespace CinemaBooking.Services
             //take back the points earned give back the points used(guest has no points)
             if (member != null)
             {
-                int new_points = member.Points = booking.PointsEarned + booking.PointsUsed;
+                int new_points = member.Points - booking.PointsEarned + booking.PointsUsed;
                 int new_lifetime_points = member.LifetimePoints - booking.PointsEarned;
 
                 //points cannot go below 0
@@ -280,13 +283,11 @@ namespace CinemaBooking.Services
                     is_points_saved = false;
                 }
 
-                if (is_points_saved)
+                if (!is_points_saved)
                 {
                     error_message = "the booking was cancelled but the points could not be updated, please tell staff";
                 }
             }
-
-            error_message = "";
             return true;
         }
 
@@ -317,12 +318,17 @@ namespace CinemaBooking.Services
         }
 
 
-        //staff and admin can cancel any booking, a customer only their own, a guest only a guest booking
-        private static bool MayCancelThisBooking(Role role, int? acting_member_id, Booking booking)
+        //staff and admin can cancel any booking, a customer only their own,
+        //a guest only a guest booking whose saved email matches (capital letters ignored)
+        private static bool MayCancelThisBooking(Role role, int? acting_member_id, string guest_email, Booking booking)
         {
             if (role == Role.Staff || role == Role.Admin) return true;
             if (role == Role.Customer) return acting_member_id.HasValue && booking.MemberId == acting_member_id;
-            return booking.IsGuest;
+
+            //an empty email never matches
+            if (string.IsNullOrWhiteSpace(guest_email)) return false;
+            return booking.IsGuest
+                && string.Equals(booking.GuestEmail, guest_email.Trim(), StringComparison.OrdinalIgnoreCase);
         }
 
         //checks one seat is on our screens, rows A to H and seats 1 to 12
