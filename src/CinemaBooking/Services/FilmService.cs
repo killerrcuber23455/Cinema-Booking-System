@@ -1,4 +1,5 @@
 ﻿//rules to add remove and search films with a role check first (owner: shankar)
+using System;
 using CinemaBooking.DataStructures;
 using CinemaBooking.Models;
 
@@ -94,7 +95,7 @@ namespace CinemaBooking.Services
         }
 
         //searching by genre, partial and any case
-        public Film[] SearchByGenre(string genre) 
+        public Film[] SearchByGenre(string genre)
         {
             ChainList<Film> results = new ChainList<Film>();
 
@@ -113,6 +114,22 @@ namespace CinemaBooking.Services
                 }
             }
             return results.ListAll();
+        }
+
+        //stubs for card 347, the real code comes in the green step
+        public Film[] Search(string title_text, string genre)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string[] ListGenres()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool LoadFromFile(string file_path, out string message)
+        {
+            throw new NotImplementedException();
         }
     }
 }
