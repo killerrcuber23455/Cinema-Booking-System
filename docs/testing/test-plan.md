@@ -321,6 +321,30 @@ Added after Divyesh's rules of 16 Nov. The times in ms are written in the Actual
 | SEC-07 | Security | Automatic | Login | SQL injection text as the email and as the password | TEST database with the users table and one Customer user (known password, failed attempts 0, not locked) | Email ' OR '1'='1 and password ' OR '1'='1 | No user changed, no table dropped | Refused with the normal wrong-login message |  | Not run |  | Akilesh |  |
 | PERF-03 | Performance | Automatic | BookingService | Make one booking | TEST database with a showing and a member | Seats C5, C6 | Booking saved | Time in ms written in Actual result |  | Not run |  | Akilesh |  |
 
+### Cancel a booking (card 399, red first)
+
+Written first, before the CancelBooking rules were right. They run on the TEST database only. When a row fails, it gets a Bug ID here and a row in docs/testing/bug-log.md.
+
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CANCEL-01 | Integration | Automatic | Cancel booking | Customer cancels own booking | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Customer (acting member id = owner), own reference | Booking status Cancelled | Accepted, true, empty message | Accepted: true, empty message, status Cancelled | Pass | 2026-11-18 | Akilesh | - |
+| CANCEL-02 | Integration | Automatic | Cancel booking | Customer cancels someone else's booking | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Customer with another member's id, the owner's reference | Booking still Confirmed | Refused, false, a message | Refused: false with a message, booking still Confirmed | Pass | 2026-11-18 | Akilesh | - |
+| CANCEL-03 | Integration | Automatic | Cancel booking | Guest with the matching email | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Guest, booking email, booking reference | Booking status Cancelled | Accepted, true | Accepted: true, status Cancelled | Pass | 2026-11-18 | Akilesh | - |
+| CANCEL-04 | Integration | Automatic | Cancel booking | Guest email in other capitals and with spaces | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Guest, "  EMAIL  " in capitals | Booking status Cancelled | Accepted, true | Accepted: true | Pass | 2026-11-18 | Akilesh | - |
+| CANCEL-05 | Integration | Automatic | Cancel booking | Guest with the wrong email | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Guest, another email, the booking reference | Booking still Confirmed | Refused with the same message as an unknown reference (does not reveal the reference exists) | Cancel went through: returned true, expected false (Assert.IsFalse failed) | Fail | 2026-11-18 | Akilesh | BUG-01 |
+| CANCEL-06 | Integration | Automatic | Cancel booking | Guest with an empty email | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Guest, email "" | Booking still Confirmed | Refused, a message | Cancel went through: returned true, expected false (Assert.IsFalse failed) | Fail | 2026-11-18 | Akilesh | BUG-01 |
+| CANCEL-07 | Integration | Automatic | Cancel booking | Guest tries to cancel a member's booking | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Guest, any email, a member booking reference | Booking still Confirmed | Refused, a message | Refused: false with a message, booking still Confirmed | Pass | 2026-11-18 | Akilesh | - |
+| CANCEL-08 | Integration | Automatic | Cancel booking | Staff and Admin cancel any booking | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Staff, then Admin, a member's reference | Booking status Cancelled | Accepted for both | Accepted for Staff and for Admin, status Cancelled | Pass | 2026-11-18 | Akilesh | - |
+| CANCEL-09 | Integration | Automatic | Cancel booking | Unknown reference | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Admin, a well-formed reference that does not exist | No booking changed | Refused, a message | Refused: false with a message | Pass | 2026-11-18 | Akilesh | - |
+| CANCEL-10 | Integration | Automatic | Cancel booking | Bad reference format | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Admin, "", spaces, "not a reference", "CB-12" | No booking changed | Refused, a message each time | Refused with a message for all four references | Pass | 2026-11-18 | Akilesh | - |
+| CANCEL-11 | Integration | Automatic | Cancel booking | Cancelling twice | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | The same cancel a second time | Booking stays Cancelled, points unchanged by the second call | Second one refused, a message | Second cancel refused: false with a message | Pass | 2026-11-18 | Akilesh | - |
+| CANCEL-12 | Integration | Automatic | Cancel booking | Seats are free again | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Book B11, then cancel it | Seat B11 free in the seat grid, no seat rows left for the booking | Seat grid free and no seats saved | Seat B11 free in the seat grid, 0 seats saved for the booking | Pass | 2026-11-18 | Akilesh | - |
+| CANCEL-13 | Integration | Automatic | Cancel booking | Points maths: 80 points, earned 10, used 0 | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Member 80 points and 80 lifetime points, booking earned 10 | Points 70, lifetime points 70 | Points are exactly 70, lifetime 70 | Points = 10 (expected 70) | Fail | 2026-11-18 | Akilesh | BUG-02 |
+| CANCEL-14 | Integration | Automatic | Cancel booking | Points used come back | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Member 80 points, booking earned 10 and used 20 | Points 90, lifetime points 70 | Points are 90 (80 - 10 + 20), lifetime 70 | Points = 30 (expected 90) | Fail | 2026-11-18 | Akilesh | BUG-02 |
+| CANCEL-15 | Integration | Automatic | Cancel booking | Points never go below 0 | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Member 5 points and 5 lifetime, booking earned 10 | Points 0, lifetime points 0 | Points 0 and lifetime 0, never negative | Points = 5 (expected 0) | Fail | 2026-11-18 | Akilesh | BUG-02 |
+| CANCEL-16 | Integration | Automatic | Cancel booking | Tier is worked out again after a cancel | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Silver member, 105 lifetime points, booking earned 10 | Lifetime points 95, tier Standard | Tier goes back to Standard | Lifetime points 95, tier Standard | Pass | 2026-11-18 | Akilesh | - |
+| CANCEL-17 | Integration | Automatic | Cancel booking | Points cannot be saved | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Booking for a member that does not exist, cancelled by Admin | Booking status Cancelled | true with the message: the booking was cancelled but the points could not be updated, please tell staff | Message was not the expected one (expected 80 characters). Replace with the exact text shown in Test Explorer | Fail | 2026-11-18 | Akilesh | BUG-03 |
+
 ### Data-side tests (Irwin's file test-plan-data-side.md, merged here when he is ready)
 
 These are ideas for Irwin's section. They are not final rows.
@@ -364,23 +388,23 @@ Written first (red), before the agent code exists. They use a fake AI client wit
 
 ## 3. Summary
 
-Worked out on 17 Nov 2026. Update it after every run.
+Worked out on 18 Nov 2026. Update it after every run.
 
 | Item | Count |
 |---|---|
 | Tests of type White-box | 49 |
 | Tests of type Black-box | 50 |
-| Tests of type Integration | 52 |
+| Tests of type Integration | 69 |
 | Tests of type System | 15 |
 | Tests of type Regression | 2 |
 | Tests of type Performance | 2 |
 | Tests of type Security | 12 |
 | Tests of type Boundary/negative | 41 |
-| Automatic tests | 200 |
+| Automatic tests | 217 |
 | Manual tests | 23 |
-| Total tests | 223 |
-| Passed | 82 |
-| Failed | 0 |
+| Total tests | 240 |
+| Passed | 93 |
+| Failed | 6 |
 | Not run | 141 |
-| Pass rate (passed out of tests run) | 100% |
-| Open bugs | 0 |
+| Pass rate (passed out of tests run) | 94% |
+| Open bugs | 3 |
