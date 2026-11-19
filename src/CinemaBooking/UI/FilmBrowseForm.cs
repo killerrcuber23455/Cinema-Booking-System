@@ -259,7 +259,7 @@ namespace CinemaBooking.UI
         }
 
         // reads the poster image if the file is there, otherwise null so the card shows the title
-        private static Image? LoadPoster(string poster_file)
+        internal static Image? LoadPoster(string poster_file)
         {
             if (string.IsNullOrWhiteSpace(poster_file))
             {
