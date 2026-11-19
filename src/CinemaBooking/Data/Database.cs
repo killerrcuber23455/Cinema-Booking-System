@@ -8,7 +8,7 @@ using System.Data;
 namespace CinemaBooking.Data
 {
     // the only class that talks to sql server. every query uses parameters, never text joining.
-    public class Database
+    public class Database : IDatabase
     {
         // sql server error numbers for a unique rule being broken
         private const int UNIQUE_KEY_ERROR = 2627;
