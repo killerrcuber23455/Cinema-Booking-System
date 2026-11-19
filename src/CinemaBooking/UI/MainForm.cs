@@ -2,6 +2,9 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using CinemaBooking.DataStructures;
+using CinemaBooking.Models;
+using CinemaBooking.Services;
 
 namespace CinemaBooking.UI
 {
@@ -13,7 +16,6 @@ namespace CinemaBooking.UI
         private readonly Panel pnlHost = new Panel();
         private readonly RoundedPanel pnlContent = new RoundedPanel();
         private readonly Label lblPageTitle = new Label();
-        private readonly Label lblPageText = new Label();
 
         // the menu buttons, in the order they appear
         private readonly Button btnFilms = new Button();
@@ -26,12 +28,21 @@ namespace CinemaBooking.UI
         // the button that is open now, it is shown in red
         private Button? _selected_button;
 
+        // the page under the title now, it is taken out when another page opens
+        private Control? _current_page;
+
+        // every page shares one film table, so films loaded once are seen on every page
+        private readonly HashTable<int, Film> _films = new HashTable<int, Film>();
+        private readonly FilmService _film_service;
+
         public MainForm()
         {
+            _film_service = new FilmService(_films);
+
             BuildWindow();
             BuildSideMenu();
             BuildContentArea();
-            ShowPage(btnFilms, "Films", "The film list will be shown here.");
+            ShowPage(btnFilms, "Films", MakeFilmsPage());
         }
 
         // sets up the window itself
@@ -44,6 +55,7 @@ namespace CinemaBooking.UI
             BackColor = UiTheme.BACKGROUND;
             ForeColor = UiTheme.TEXT;
             Font = UiTheme.BODY_FONT;
+            DoubleBuffered = true;
         }
 
         // builds the menu on the left with the app name and the buttons
@@ -60,11 +72,11 @@ namespace CinemaBooking.UI
             pnlSideMenu.Controls.Add(lblAppName);
 
             // each menu item shows its page when it is clicked
-            AddMenuButton(btnFilms, "Films", 90, "Films", "The film list will be shown here.");
-            AddMenuButton(btnShowings, "Showings", 138, "Showings", "The showings for each screen will be shown here.");
-            AddMenuButton(btnBookSeats, "Book seats", 186, "Book seats", "Choosing a showing and seats will be done here.");
-            AddMenuButton(btnMembers, "Members", 234, "Members", "Members and their loyalty points will be shown here.");
-            AddMenuButton(btnAccount, "My account", 282, "My account", "Login and account details will be shown here.");
+            AddMenuButton(btnFilms, "Films", 90, MakeFilmsPage);
+            AddMenuButton(btnShowings, "Showings", 138, () => MakePlaceholderPage("The showings for each screen will be shown here."));
+            AddMenuButton(btnBookSeats, "Book seats", 186, () => MakePlaceholderPage("Choosing a showing and seats will be done here."));
+            AddMenuButton(btnMembers, "Members", 234, () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
+            AddMenuButton(btnAccount, "My account", 282, () => MakePlaceholderPage("Login and account details will be shown here."));
 
             // exit sits at the bottom of the menu
             StyleMenuButton(btnExit, "Exit");
@@ -92,13 +104,7 @@ namespace CinemaBooking.UI
             lblPageTitle.ForeColor = UiTheme.TEXT;
             lblPageTitle.BackColor = Color.Transparent;
 
-            lblPageText.Dock = DockStyle.Fill;
-            lblPageText.Font = UiTheme.BODY_FONT;
-            lblPageText.ForeColor = UiTheme.TEXT_MUTED;
-            lblPageText.BackColor = Color.Transparent;
-
-            // fill goes in first, then the title on top of it
-            pnlContent.Controls.Add(lblPageText);
+            // the title sits on top, each page is added under it by ShowPage
             pnlContent.Controls.Add(lblPageTitle);
             pnlHost.Controls.Add(pnlContent);
             Controls.Add(pnlHost);
@@ -107,13 +113,30 @@ namespace CinemaBooking.UI
             pnlHost.BringToFront();
         }
 
-        // places one menu button and says which page it opens
-        private void AddMenuButton(Button button, string text, int top, string page_title, string page_text)
+        // places one menu button. make_page builds a new page each time, so it always shows fresh data
+        private void AddMenuButton(Button button, string text, int top, Func<Control> make_page)
         {
             StyleMenuButton(button, text);
             button.SetBounds(0, top, UiTheme.SIDE_MENU_WIDTH, UiTheme.MENU_BUTTON_HEIGHT);
-            button.Click += (sender, e) => ShowPage(button, page_title, page_text);
+            button.Click += (sender, e) => ShowPage(button, text, make_page());
             pnlSideMenu.Controls.Add(button);
+        }
+
+        // the films page, it only gets the film service, never the hash table (card 347)
+        private Control MakeFilmsPage()
+        {
+            return new FilmBrowseForm(_film_service);
+        }
+
+        // a text page for the parts that are not built yet
+        private static Control MakePlaceholderPage(string page_text)
+        {
+            Label lblPageText = new Label();
+            lblPageText.Text = page_text;
+            lblPageText.Font = UiTheme.BODY_FONT;
+            lblPageText.ForeColor = UiTheme.TEXT_MUTED;
+            lblPageText.BackColor = Color.Transparent;
+            return lblPageText;
         }
 
         // gives a menu button the theme look
@@ -132,7 +155,7 @@ namespace CinemaBooking.UI
         }
 
         // shows a page in the content area and turns the clicked button red
-        private void ShowPage(Button clicked_button, string page_title, string page_text)
+        private void ShowPage(Button clicked_button, string page_title, Control page)
         {
             if (_selected_button != null)
             {
@@ -143,7 +166,26 @@ namespace CinemaBooking.UI
             _selected_button.BackColor = UiTheme.ACCENT_RED_DARK;
 
             lblPageTitle.Text = page_title;
-            lblPageText.Text = page_text;
+
+            // the new page goes in before the old one comes out, so the area is never blank
+            pnlContent.SuspendLayout();
+            Control? old_page = _current_page;
+
+            _current_page = page;
+            page.Dock = DockStyle.Fill;
+            pnlContent.Controls.Add(page);
+
+            // front of the list is laid out last, so the page fills the space under the title
+            page.BringToFront();
+
+            if (old_page != null)
+            {
+                // free the old page so its posters do not stay in memory
+                pnlContent.Controls.Remove(old_page);
+                old_page.Dispose();
+            }
+
+            pnlContent.ResumeLayout();
         }
     }
 }

@@ -14,11 +14,15 @@ namespace CinemaBooking.UI
         public static readonly Color MENU_HOVER = Color.FromArgb(45, 45, 54);
         public static readonly Color TEXT = Color.FromArgb(240, 240, 240);
         public static readonly Color TEXT_MUTED = Color.FromArgb(160, 160, 170);
+        public static readonly Color CARD = Color.FromArgb(40, 40, 48);
+        public static readonly Color INPUT = Color.FromArgb(44, 44, 52);
 
         // fonts
         public static readonly Font TITLE_FONT = new Font("Segoe UI", 20F, FontStyle.Bold);
         public static readonly Font MENU_FONT = new Font("Segoe UI", 11F, FontStyle.Regular);
         public static readonly Font BODY_FONT = new Font("Segoe UI", 10.5F, FontStyle.Regular);
+        public static readonly Font CARD_TITLE_FONT = new Font("Segoe UI", 11F, FontStyle.Bold);
+        public static readonly Font SMALL_FONT = new Font("Segoe UI", 9F, FontStyle.Regular);
 
         // sizes
         public const int PANEL_RADIUS = 16;
