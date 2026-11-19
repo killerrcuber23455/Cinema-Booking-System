@@ -22,6 +22,8 @@ namespace CinemaBooking.UI
         private readonly Button btnShowings = new Button();
         private readonly Button btnBookSeats = new Button();
         private readonly Button btnMembers = new Button();
+        private readonly Button btnCancel = new Button();
+        private readonly Button btnAdmin = new Button();
         private readonly Button btnAccount = new Button();
         private readonly Button btnExit = new Button();
 
@@ -75,13 +77,16 @@ namespace CinemaBooking.UI
             AddMenuButton(btnFilms, "Films", 90, MakeFilmsPage);
             AddMenuButton(btnShowings, "Showings", 138, () => MakePlaceholderPage("The showings for each screen will be shown here."));
             AddMenuButton(btnBookSeats, "Book seats", 186, () => MakePlaceholderPage("Choosing a showing and seats will be done here."));
-            AddMenuButton(btnMembers, "Members", 234, () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
-            AddMenuButton(btnAccount, "My account", 282, () => MakePlaceholderPage("Login and account details will be shown here."));
+            AddMenuButton(btnCancel, "Cancel booking", 234, () => MakePlaceholderPage("A booking is cancelled here with its reference."));
+            AddMenuButton(btnMembers, "Members", 282, () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
+            AddMenuButton(btnAdmin, "Admin", 330, () => MakePlaceholderPage("Admins add and remove films and showings here."));
+            AddMenuButton(btnAccount, "My account", 378, () => MakePlaceholderPage("Login and account details will be shown here."));
 
             // exit sits at the bottom of the menu
             StyleMenuButton(btnExit, "Exit");
-            btnExit.SetBounds(0, 560, UiTheme.SIDE_MENU_WIDTH, UiTheme.MENU_BUTTON_HEIGHT);
-            btnExit.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            // docked to the bottom of the menu, so it stays there at any window height
+            btnExit.Dock = DockStyle.Bottom;
+            btnExit.Height = UiTheme.MENU_BUTTON_HEIGHT;
             btnExit.Click += (sender, e) => Close();
             pnlSideMenu.Controls.Add(btnExit);
 
