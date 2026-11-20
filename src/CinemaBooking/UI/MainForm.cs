@@ -140,15 +140,28 @@ namespace CinemaBooking.UI
             FilmDetailForm detail_page = new FilmDetailForm(
                 film,
                 () => ShowPage(btnFilms, "Films", MakeFilmsPage()),
-                OpenSeatMap);
+                showing => OpenSeatMap(film, showing));
 
             ShowPage(btnFilms, "Film details", detail_page);
         }
 
-        // the seat map is a later card, so for now the chosen showing is only named
-        private void OpenSeatMap(Showing showing)
+        // the seat map of the chosen showing (card 348), back goes to the film's detail page
+        private void OpenSeatMap(Film film, Showing showing)
         {
-            ShowPage(btnFilms, "Seat map", MakePlaceholderPage("The seat map for showing " + showing.Id + " will be shown here."));
+            SeatMapForm seat_page = new SeatMapForm(
+                film,
+                showing,
+                () => OpenFilmDetail(film),
+                seat_codes => OpenBookingSummary(showing, seat_codes));
+
+            ShowPage(btnFilms, "Choose seats", seat_page);
+        }
+
+        // the booking summary is the next card (403), for now the chosen seats are only named
+        private void OpenBookingSummary(Showing showing, string[] seat_codes)
+        {
+            ShowPage(btnFilms, "Booking", MakePlaceholderPage(
+                "Seats " + string.Join(", ", seat_codes) + " for showing " + showing.Id + ". The booking summary is built in the next card."));
         }
 
         // a text page for the parts that are not built yet
