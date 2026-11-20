@@ -2,31 +2,31 @@
 
 Author: Irwin Chinathoo (Tester 2)
 Card: 354 (AB#354), data-side section for Akilesh to merge into `test-plan.md`
-Status: draft 5, 20 Nov 2026. Resize and search sections (card 409) use the new table columns and are run. File loader and database rows updated from Kushal's answers (cards 307 and 313). Hash table rows (card 356) all run and passing. Old card numbers replaced, showing-table IDs renamed to SHOWDS so they do not clash with Akilesh. Rows marked TBC wait for an answer from Kushal or Shankar.
+Status: draft 6, 20 Nov 2026. Every table now uses the new columns. Cards 356, 409, 361 and 432 run and passing. Section 11 has the extra test types (card 418) and the summary of the whole file.
 
-This section covers Kushal's code: our own hash tables and linked list, the seat grid, search, the file loader and the database. It uses the same columns as the main plan. The last two columns stay empty until the tests are run.
+This section covers Kushal's code: our own hash tables and linked list, the seat grid, search, the file loader and the database. All tables use the columns agreed on 18 Nov: Test ID, Test type, Mode, Area, What is tested, Preconditions, Test data, Post-conditions, Expected result, Actual result, Pass/Fail, Executed date, Tester, Bug ID. Rows that cannot run yet say why in Actual result and are marked Not run.
 
 Default sizes used below come from the AI context file (section 6 and 8): seats are rows A to H and seats 1 to 12 (96 seats), and the hash table grows at about 75% full.
 
 ## 1. Hash table (films by ID, card 356)
 
-| ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
-|---|---|---|---|---|---|---|
-| HASH-01 | Hash table | Empty table | New table | Count is 0, list all is empty | Count 0, list all empty | Pass |
-| HASH-02 | Hash table | Find on an empty table | Find ID 1 | Not found, no crash | Returns null, no crash | Pass |
-| HASH-03 | Hash table | Add then find | Add film ID 1, find ID 1 | Same film comes back | Same film returned | Pass |
-| HASH-04 | Hash table | Count goes up | Add 3 films | Count is 3 | Count is 3 | Pass |
-| HASH-05 | Hash table | Find a missing ID | Table has IDs 1 to 3, find ID 99 | Not found, no crash | Returns null, no crash | Pass |
-| HASH-06 | Hash table | Two films in the same slot | Two IDs that land in the same slot (picked from Kushal's hash function) | Both can be found, count is 2 | Both found, count is 2 | Pass |
-| HASH-07 | Hash table | Remove the first item in a chain | Three films in one slot, remove the first | Other two still found, count goes down by 1 | Other two found, count is 2 | Pass |
-| HASH-08 | Hash table | Remove from the middle of a chain | Three films in one slot, remove the middle one | Other two still found | Other two found | Pass |
-| HASH-09 | Hash table | Remove the last item in a chain | Three films in one slot, remove the last | Other two still found | Other two found | Pass |
-| HASH-10 | Hash table | Remove a missing ID | Remove ID 99 | Refused or returns false, count unchanged, no crash | Returns false, count still 1 | Pass |
-| HASH-11 | Hash table | Remove then find | Add ID 1, remove ID 1, find ID 1 | Not found | Removed film not found (checked in the three remove tests) | Pass |
-| HASH-12 | Hash table | Add the same ID twice | Add ID 1 twice | Second is refused (Add returns false), first film kept | Second add refused, first film kept, count 1 | Pass |
-| HASH-13 | Hash table | List all | Add 5 films | List all returns exactly those 5, no repeats | 5 films, each ID once | Pass |
-| HASH-14 | Hash table | List all after remove | Add 5, remove 2 | List all returns the other 3 | 3 films left, 2 and 4 not in the list | Pass |
-| HASH-15 | Hash table | Negative ID | Add film ID -1 | No crash, film can be found. (Refusing a negative film ID is the Film class's job: IsValidId, tested by Akilesh) | Added and found, no crash. The old FilmHashTable crashed here; Kushal's new table moves a negative slot back into range | Pass |
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| HASH-01 | Boundary/negative | Automatic | Hash table | Empty table | Empty HashTable<int, Film> (16 slots) | New table | - | Count is 0, list all is empty | Count 0, list all empty | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-02 | Boundary/negative | Automatic | Hash table | Find on an empty table | Empty HashTable<int, Film> (16 slots) | Find ID 1 | - | Not found, no crash | Returns null, no crash | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-03 | White-box | Automatic | Hash table | Add then find | Empty HashTable<int, Film> (16 slots) | Add film ID 1, find ID 1 | - | Same film comes back | Same film returned | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-04 | White-box | Automatic | Hash table | Count goes up | Empty HashTable<int, Film> (16 slots) | Add 3 films | - | Count is 3 | Count is 3 | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-05 | Boundary/negative | Automatic | Hash table | Find a missing ID | Empty HashTable<int, Film> (16 slots) | Table has IDs 1 to 3, find ID 99 | - | Not found, no crash | Returns null, no crash | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-06 | White-box | Automatic | Hash table | Two films in the same slot | Empty HashTable<int, Film> (16 slots) | Two IDs that land in the same slot (picked from Kushal's hash function) | - | Both can be found, count is 2 | Both found, count is 2 | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-07 | White-box | Automatic | Hash table | Remove the first item in a chain | Empty HashTable<int, Film> (16 slots) | Three films in one slot, remove the first | - | Other two still found, count goes down by 1 | Other two found, count is 2 | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-08 | White-box | Automatic | Hash table | Remove from the middle of a chain | Empty HashTable<int, Film> (16 slots) | Three films in one slot, remove the middle one | - | Other two still found | Other two found | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-09 | White-box | Automatic | Hash table | Remove the last item in a chain | Empty HashTable<int, Film> (16 slots) | Three films in one slot, remove the last | - | Other two still found | Other two found | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-10 | Boundary/negative | Automatic | Hash table | Remove a missing ID | Empty HashTable<int, Film> (16 slots) | Remove ID 99 | - | Refused or returns false, count unchanged, no crash | Returns false, count still 1 | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-11 | White-box | Automatic | Hash table | Remove then find | Empty HashTable<int, Film> (16 slots) | Add ID 1, remove ID 1, find ID 1 | - | Not found | Removed film not found (checked in the three remove tests) | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-12 | Boundary/negative | Automatic | Hash table | Add the same ID twice | Empty HashTable<int, Film> (16 slots) | Add ID 1 twice | - | Second is refused (Add returns false), first film kept | Second add refused, first film kept, count 1 | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-13 | White-box | Automatic | Hash table | List all | Empty HashTable<int, Film> (16 slots) | Add 5 films | - | List all returns exactly those 5, no repeats | 5 films, each ID once | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-14 | White-box | Automatic | Hash table | List all after remove | Empty HashTable<int, Film> (16 slots) | Add 5, remove 2 | - | List all returns the other 3 | 3 films left, 2 and 4 not in the list | Pass | 15 Nov 2026 | Irwin | - |
+| HASH-15 | Boundary/negative | Automatic | Hash table | Negative ID | Empty HashTable<int, Film> (16 slots) | Add film ID -1 | - | No crash, film can be found. (Refusing a negative film ID is the Film class's job: IsValidId, tested by Akilesh) | Added and found, no crash. The old FilmHashTable crashed here; Kushal's new table moves a negative slot back into range | Pass | 15 Nov 2026 | Irwin | BUG-04 (closed) |
 
 ### Hash table tests in code (card 356)
 
@@ -69,37 +69,51 @@ MSTest file: `tests/CinemaBooking.Tests/ResizeSearchTests.cs`. The table starts 
 
 RES-02 (nothing lost after one resize) is covered by RES-01.
 
-## 3. Other hash tables (showings by ID, members by email)
+## 3. Showings table and members by email (card 361)
 
-| ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
-|---|---|---|---|---|---|---|
-| SHOWDS-01 | Showings | Add then find a showing | Add showing ID 10, find ID 10 | Same showing comes back | | |
-| SHOWDS-02 | Showings | Showings for one film | Film 1 has 3 showings, film 2 has 1 | Asking for film 1 gives exactly its 3 showings | | |
-| SHOWDS-03 | Showings | Film with no showings | Ask for showings of a film with none | Empty result, no crash | | |
-| MEMB-01 | Members | Add then find by email | Add member "priya@example.com", find it | Same member comes back | | |
-| MEMB-02 | Members | Email in a different case | Find "PRIYA@example.com" | TBC with Kushal: found (we suggest yes, email is not case sensitive) | | |
-| MEMB-03 | Members | Email not in the table | Find "nobody@example.com" | Not found, no crash | | |
-| MEMB-04 | Members | Two members with the same email | Add "priya@example.com" twice | Second is refused | | |
-| MEMB-05 | Members | Empty email | Find "" | Not found or refused, no crash | | |
+MSTest file: `tests/CinemaBooking.Tests/SeatGridTests.cs` (same file as the seat grid). The tests cover every branch of `ShowingTable` and `MemberTable`. SHOWDS-02 is now "each showing has its own grid"; the old "showings for one film" row was dropped because `ShowingTable` has no such method (the services do that).
+
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SHOWDS-01 | White-box | Automatic | Showings | Create then find (CreateShowing_ThenFind_ReturnsShowing) | Empty ShowingTable | Showing 10, 8 x 12 | 1 showing | Found, empty grid | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SHOWDS-02 | White-box | Automatic | Showings | Each showing has its own grid (BookSeat_InOneShowing_OtherShowingStillFree) | Showings 10 and 11 | Book C5 in 10 | C5 taken in 10 only | C5 taken in 10, free in 11 | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SHOWDS-03 | Boundary/negative | Automatic | Showings | Missing showing (FindShowing_MissingId_ReturnsNull) | Empty ShowingTable | ID 99 | No change | Null showing and null grid | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SHOWDS-04 | Boundary/negative | Automatic | Showings | Same ID twice (CreateShowing_SameIdTwice_SecondRefused) | Showing 10 exists | Showing 10 again | Still 1 showing | False, count 1 | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| MEMB-01 | White-box | Automatic | Members | Find by email (AddMember_ThenFindByEmail_ReturnsMember) | Empty MemberTable | priya@example.com | 1 member | Member 1 found | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| MEMB-02 | White-box | Automatic | Members | Capitals and spaces ignored (FindByEmail_OtherCaseAndSpaces_FindsMember) | priya@example.com added | "  PRIYA@Example.com " | No change | Found (the table trims and lowercases) | Found | Pass | 20 Nov 2026 | Irwin | - |
+| MEMB-03 | Boundary/negative | Automatic | Members | Email not in the table (FindByEmail_Missing_ReturnsNull) | priya@example.com added | nobody@example.com | No change | Null | Null | Pass | 20 Nov 2026 | Irwin | - |
+| MEMB-04 | Boundary/negative | Automatic | Members | Same email, other capitals (AddMember_SameEmailOtherCase_SecondRefused) | priya@example.com added | PRIYA@example.com | Still 1 member | False, count 1 | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| MEMB-05 | Boundary/negative | Automatic | Members | Empty email (FindByEmail_EmptyText_ReturnsNull) | priya@example.com added | "" | No change | Null, no crash | Null | Pass | 20 Nov 2026 | Irwin | - |
+| MEMB-06 | Boundary/negative | Automatic | Members | Adding nothing (AddMember_Null_IsRefused) | Empty MemberTable | null | No change | False, count 0 | As expected | Pass | 20 Nov 2026 | Irwin | - |
 
 ## 4. Seat grid (one per showing, card 361)
 
-| ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
-|---|---|---|---|---|---|---|
-| SEAT-01 | Seat grid | New grid is all free | New grid 8 rows by 12 seats | All 96 seats free, taken list is empty | | |
-| SEAT-02 | Seat grid | Book one seat | Book C5 | C5 is taken, 95 free | | |
-| SEAT-03 | Seat grid | Book several seats | Book C5 and C6 | Both taken, 94 free | | |
-| SEAT-04 | Seat grid | Book a taken seat | C5 is taken, book C5 again | Refused, still 95 free | | |
-| SEAT-05 | Seat grid | One taken seat in a group | C6 is taken, book C5 and C6 | Whole booking refused, C5 stays free | | |
-| SEAT-06 | Seat grid | Free a seat | C5 is taken, free C5 | C5 is free again | | |
-| SEAT-07 | Seat grid | Free a seat that is already free | Free D1 when it is free | Refused or no change, no crash | | |
-| SEAT-08 | Seat grid | Corner seats | Book A1, A12, H1, H12 | All four taken | | |
-| SEAT-09 | Seat grid | Row outside the grid | Book I1 | Refused, no crash | | |
-| SEAT-10 | Seat grid | Seat number outside the grid | Book A13 and A0 | Both refused, no crash | | |
-| SEAT-11 | Seat grid | Bad seat code | Book "", "5C", "ZZ" | Refused, no crash | | |
-| SEAT-12 | Seat grid | Lower case code | Book "c5" | TBC with Kushal: same as C5, or refused | | |
-| SEAT-13 | Seat grid | Full grid | Book all 96 seats, then book any seat | Last booking refused, 0 free | | |
-| SEAT-14 | Seat grid | List taken seats | Book B2, C5, H12 | Taken list is exactly B2, C5, H12 | | |
+MSTest file: `tests/CinemaBooking.Tests/SeatGridTests.cs`. The grid is a plain 8 x 12 bool array. The tests cover every branch of `SeatGrid`: free and taken seats, all or nothing booking and freeing, codes outside the grid and badly written codes.
+
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SEAT-01 | White-box | Automatic | Seat grid | New grid is all free (NewGrid_AllSeatsFree) | Empty 8 x 12 SeatGrid | - | No change | No taken seats, A1 and H12 free | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-02 | White-box | Automatic | Seat grid | Book one seat (BookSeats_OneSeat_SeatIsTaken) | Empty 8 x 12 SeatGrid | C5 | C5 taken | True, C5 taken, 1 taken seat | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-03 | White-box | Automatic | Seat grid | Book two seats (BookSeats_TwoSeats_BothTaken) | Empty 8 x 12 SeatGrid | C5, C6 | Both taken | True, both taken | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-04 | Boundary/negative | Automatic | Seat grid | Taken seat refused (BookSeats_TakenSeat_IsRefused) | C5 taken | C5 | No change | False, still 1 taken seat | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-05 | Boundary/negative | Automatic | Seat grid | All or nothing (BookSeats_OneTakenInGroup_NoneBooked) | C6 taken | C5, C6 | No change | False, C5 still free | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-06 | White-box | Automatic | Seat grid | Free a taken seat (FreeSeats_TakenSeat_IsFreeAgain) | C5 taken | Free C5 | C5 free | True, C5 free | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-07 | Boundary/negative | Automatic | Seat grid | Free a seat that is already free (FreeSeats_AlreadyFree_NoChange) | Empty 8 x 12 SeatGrid | Free D1 | No change | True (no change), D1 free | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-08 | Boundary/negative | Automatic | Seat grid | Corner seats (BookSeats_FourCorners_AllTaken) | Empty 8 x 12 SeatGrid | A1, A12, H1, H12 | 4 taken | True, 4 taken | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-09 | Boundary/negative | Automatic | Seat grid | Row outside the grid (BookSeats_RowOutsideGrid_IsRefused) | Empty 8 x 12 SeatGrid | I1 | No change | False | False | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-10 | Boundary/negative | Automatic | Seat grid | Seat number outside the grid (BookSeats_SeatNumberOutsideGrid_IsRefused, 2 inputs) | Empty 8 x 12 SeatGrid | A13, A0 | No change | False for both | False for both | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-11 | Boundary/negative | Automatic | Seat grid | Bad seat codes (BookSeats_BadCode_IsRefused, 4 inputs) | Empty 8 x 12 SeatGrid | "", "5C", "ZZ", "C" | No change | False, no crash | False for all 4 | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-12 | Boundary/negative | Automatic | Seat grid | Lower case code (BookSeats_LowerCaseCode_IsRefused) | Empty 8 x 12 SeatGrid | "c5" | No change | False (only capital row letters, answered from the code) | False | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-13 | Boundary/negative | Automatic | Seat grid | Full grid (BookSeats_FullGrid_NextSeatRefused) | Empty 8 x 12 SeatGrid | All 96 seats, then D6 | 96 taken | 96 taken, D6 refused | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-14 | White-box | Automatic | Seat grid | Taken list in order (ListTakenSeats_ThreeBooked_ReturnsThemInOrder) | Empty 8 x 12 SeatGrid | H12, B2, C5 | 3 taken | B2, C5, H12 in that order | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-15 | Boundary/negative | Automatic | Seat grid | Same seat twice in one request (BookSeats_SameSeatTwiceInRequest_IsRefused) | Empty 8 x 12 SeatGrid | C5, C5 | No change | False, C5 still free | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-16 | Boundary/negative | Automatic | Seat grid | Empty list (BookSeats_EmptyList_IsRefused) | Empty 8 x 12 SeatGrid | No seats | No change | False | False | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-17 | Boundary/negative | Automatic | Seat grid | Free with one bad code (FreeSeats_OneBadCode_NoneFreed) | C5 taken | C5, Z99 | No change | False, C5 still taken | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-18 | Boundary/negative | Automatic | Seat grid | Free an empty list (FreeSeats_EmptyList_IsRefused) | Empty 8 x 12 SeatGrid | No seats | No change | False | False | Pass | 20 Nov 2026 | Irwin | - |
+| SEAT-19 | Boundary/negative | Automatic | Seat grid | Is a bad code free (IsSeatFree_BadCode_ReturnsFalse, 3 inputs) | Empty 8 x 12 SeatGrid | "", I1, A13 | No change | False, no crash | False for all 3 | Pass | 20 Nov 2026 | Irwin | - |
+| DB-06b | Integration | Automatic | Database | Same seat booked twice, real database (card 361) | Local CinemaBookingTest database with showing 10 | C5 for showing 10, twice | 1 booking | Second save returns -1 (unique key uq_booked_seats_showing_seat) | Not run yet: waits for the CinemaBookingTest database. Covered in memory by SEAT-04 and in the fake by FAKE-08 | Not run | - | Irwin | - |
+
+Summary (card 361, run on 20 Nov 2026): 29 test methods (35 runs, because SEAT-10, SEAT-11 and SEAT-19 have several inputs), all automatic. White-box 9, Boundary/negative 20. Passed 29, failed 0. DB-06b (real database) not run yet. Pass rate 100% of what was run. Open bugs: none. Screenshot: `361-seat-grid-tests-green.png`.
 
 ## 5. Search (card 409)
 
@@ -121,55 +135,67 @@ Search is in Shankar's `FilmService` (card 305). It checks every film, because t
 | SRCH-12 | White-box | Automatic | Search | Title search after resize (SearchByTitle_AfterResize_FindsFilm) | 1000 plain films plus Inception (ID 1001) | "incep" | No change | Inception only | Inception only | Pass | 20 Nov 2026 | Irwin | - |
 | SRCH-13 | White-box | Automatic | Search | Genre search after resize (SearchByGenre_AfterResize_FindsAllThousand) | 1000 Drama films | "drama" | No change | All 1000 films | 1000 films | Pass | 20 Nov 2026 | Irwin | - |
 
+Summary (card 409, run on 20 Nov 2026):
+
+| Test type | Tests | Passed | Failed | Not run |
+|---|---|---|---|---|
+| White-box | 15 | 15 | 0 | 0 |
+| Boundary/negative | 5 | 5 | 0 | 0 |
+| Security | 1 | 1 | 0 | 0 |
+| Performance | 1 | 1 | 0 | 0 |
+| **Total** | **22** | **22** | **0** | **0** |
+
+All 22 are automatic (MSTest). Pass rate 100%. Open bugs: none. Screenshot: `docs/testing/screenshots/409-resize-search-tests-green.png`.
+
 ## 6. File loader
 
 Sample files are kept in the test folder. The format is the CSV from the AI context file: `id,title,genre,year,duration_minutes,age_rating,description,poster_file`.
 
-| ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
-|---|---|---|---|---|---|---|
-| LOAD-01 | File loader | Good file | 10 good lines | Loaded 10, skipped 0 | | |
-| LOAD-02 | File loader | Some bad lines | `data/films_sample.csv`: 10 good lines, 2 bad (letters in the year, extra commas) | Loaded 10, skipped 2 | | |
-| LOAD-03 | File loader | Letters in a number column | Year "20x0" | That line skipped, others loaded | | |
-| LOAD-04 | File loader | Missing columns | A line with only 3 values | That line skipped | | |
-| LOAD-05 | File loader | Blank line | An empty line in the middle | Skipped or ignored, no crash | | |
-| LOAD-06 | File loader | Header only | File with the header and no films | Loaded 0, skipped 0, no crash | | |
-| LOAD-07 | File loader | Empty file | 0 bytes | Loaded 0, skipped 0, no crash (the window should then say no films were loaded) | | |
-| LOAD-08 | File loader | File does not exist | Name of a missing file | Loader throws FileNotFoundException; the window catches it and shows a clear message, no crash | | |
-| LOAD-09 | File loader | Same ID twice in the file | Two lines with ID 5 | Second one skipped and counted (confirmed: Kushal's loader refuses a duplicate ID) | | |
-| LOAD-10 | File loader | Comma inside the description | Description with a comma | Line skipped and counted (decided: descriptions cannot contain commas) | | |
-| LOAD-11 | File loader | Very long title | 500-character title | Skipped or cut, no crash | | |
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| LOAD-01 | White-box | Automatic | File loader | Good file | FileLoader, a CSV file the test makes | 10 good lines | - | Loaded 10, skipped 0 | Not run yet: FileLoaderTests.cs is the next file to write | Not run | - | Irwin | - |
+| LOAD-02 | White-box | Automatic | File loader | Some bad lines | FileLoader, a CSV file the test makes | `data/films_sample.csv`: 10 good lines, 2 bad (letters in the year, extra commas) | - | Loaded 10, skipped 2 | Not run yet: FileLoaderTests.cs is the next file to write | Not run | - | Irwin | - |
+| LOAD-03 | Boundary/negative | Automatic | File loader | Letters in a number column | FileLoader, a CSV file the test makes | Year "20x0" | - | That line skipped, others loaded | Not run yet: FileLoaderTests.cs is the next file to write | Not run | - | Irwin | - |
+| LOAD-04 | Boundary/negative | Automatic | File loader | Missing columns | FileLoader, a CSV file the test makes | A line with only 3 values | - | That line skipped | Not run yet: FileLoaderTests.cs is the next file to write | Not run | - | Irwin | - |
+| LOAD-05 | Boundary/negative | Automatic | File loader | Blank line | FileLoader, a CSV file the test makes | An empty line in the middle | - | Skipped or ignored, no crash | Not run yet: FileLoaderTests.cs is the next file to write | Not run | - | Irwin | - |
+| LOAD-06 | Boundary/negative | Automatic | File loader | Header only | FileLoader, a CSV file the test makes | File with the header and no films | - | Loaded 0, skipped 0, no crash | Not run yet: FileLoaderTests.cs is the next file to write | Not run | - | Irwin | - |
+| LOAD-07 | Boundary/negative | Automatic | File loader | Empty file | FileLoader, a CSV file the test makes | 0 bytes | - | Loaded 0, skipped 0, no crash (the window should then say no films were loaded) | Not run yet: FileLoaderTests.cs is the next file to write | Not run | - | Irwin | - |
+| LOAD-08 | Boundary/negative | Automatic | File loader | File does not exist | FileLoader, a CSV file the test makes | Name of a missing file | - | Loader throws FileNotFoundException; the window catches it and shows a clear message, no crash | Not run yet: FileLoaderTests.cs is the next file to write | Not run | - | Irwin | - |
+| LOAD-09 | Boundary/negative | Automatic | File loader | Same ID twice in the file | FileLoader, a CSV file the test makes | Two lines with ID 5 | - | Second one skipped and counted (confirmed: Kushal's loader refuses a duplicate ID) | Not run yet: FileLoaderTests.cs is the next file to write | Not run | - | Irwin | - |
+| LOAD-10 | Boundary/negative | Automatic | File loader | Comma inside the description | FileLoader, a CSV file the test makes | Description with a comma | - | Line skipped and counted (decided: descriptions cannot contain commas) | Not run yet: FileLoaderTests.cs is the next file to write | Not run | - | Irwin | - |
+| LOAD-11 | Boundary/negative | Automatic | File loader | Very long title | FileLoader, a CSV file the test makes | 500-character title | - | Skipped or cut, no crash | Not run yet: FileLoaderTests.cs is the next file to write | Not run | - | Irwin | - |
 
 ## 7. Database
 
 All database tests use a separate test database, never the real one.
 
-| ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
-|---|---|---|---|---|---|---|
-| DB-01 | Database | Script builds from nothing | Run `cinema.sql` on an empty database | All tables created, no errors | | |
-| DB-02 | Database | Save then read back a film | Save Inception, load all | Same film, every field equal | | |
-| DB-03 | Database | Delete a film | Delete Inception, load all | Inception is gone | | |
-| DB-04 | Database | Save and read back a showing | Save a showing, load it | Same film, screen, time and price | | |
-| DB-05 | Database | Save and read back a member | Save a member with tier and points | Same tier and points | | |
-| DB-06 | Database | Same seat booked twice | Save C5 for showing 10, then save C5 for showing 10 again | Second save refused by the unique key `uq_booked_seats_showing_seat` (showing_id, seat_code), plain message, no crash | | |
-| DB-07 | Database | Same seat, different showing | Save C5 for showing 10 and C5 for showing 11 | Both saved | | |
-| DB-08 | Database | Guest booking | Booking with no member (member ID empty) | Saved, read back with member ID still empty | | |
-| DB-09 | Database | Booking total | Booking with total 475.50 | Reads back as 475.50 exactly | | |
-| DB-10 | Database | SQL injection text | Title `x'); DROP TABLE films;--` | Stored and read back as plain text, films table still there | | |
-| DB-11 | Database | Apostrophe in text | Title "Ocean's Eleven" | Saved and read back correctly | | |
-| DB-12 | Database | Database down | Stop SQL Server, then load | Clear message, no crash | | |
-| DB-13 | Database | Restart keeps data | Save, close, reopen, load | Data is still there | | |
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| DB-01 | Integration | Automatic | Database | Script builds from nothing | Local CinemaBookingTest database built from cinema.sql | Run `cinema.sql` on an empty database | - | All tables created, no errors | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| DB-02 | Integration | Automatic | Database | Save then read back a film | Local CinemaBookingTest database built from cinema.sql | Save Inception, load all | - | Same film, every field equal | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| DB-03 | Integration | Automatic | Database | Delete a film | Local CinemaBookingTest database built from cinema.sql | Delete Inception, load all | - | Inception is gone | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| DB-04 | Integration | Automatic | Database | Save and read back a showing | Local CinemaBookingTest database built from cinema.sql | Save a showing, load it | - | Same film, screen, time and price | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| DB-05 | Integration | Automatic | Database | Save and read back a member | Local CinemaBookingTest database built from cinema.sql | Save a member with tier and points | - | Same tier and points | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| DB-06 | Integration | Automatic | Database | Same seat booked twice | Local CinemaBookingTest database built from cinema.sql | Save C5 for showing 10, then save C5 for showing 10 again | - | Second save refused by the unique key `uq_booked_seats_showing_seat` (showing_id, seat_code), plain message, no crash | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| DB-07 | Integration | Automatic | Database | Same seat, different showing | Local CinemaBookingTest database built from cinema.sql | Save C5 for showing 10 and C5 for showing 11 | - | Both saved | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| DB-08 | Integration | Automatic | Database | Guest booking | Local CinemaBookingTest database built from cinema.sql | Booking with no member (member ID empty) | - | Saved, read back with member ID still empty | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| DB-09 | Integration | Automatic | Database | Booking total | Local CinemaBookingTest database built from cinema.sql | Booking with total 475.50 | - | Reads back as 475.50 exactly | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| DB-10 | Security | Automatic | Database | SQL injection text | Local CinemaBookingTest database built from cinema.sql | Title `x'); DROP TABLE films;--` | - | Stored and read back as plain text, films table still there | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| DB-11 | Security | Automatic | Database | Apostrophe in text | Local CinemaBookingTest database built from cinema.sql | Title "Ocean's Eleven" | - | Saved and read back correctly | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| DB-12 | Integration | Automatic | Database | Database down | Local CinemaBookingTest database built from cinema.sql | Stop SQL Server, then load | - | Clear message, no crash | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| DB-13 | Integration | Automatic | Database | Restart keeps data | Local CinemaBookingTest database built from cinema.sql | Save, close, reopen, load | - | Data is still there | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
 
 ## 8. Users and audit log (card 337)
 
-| ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
-|---|---|---|---|---|---|---|
-| USER-01 | Users | Save and read back a user | User with username and role | Same username and role | | |
-| USER-02 | Users | No plain password stored | Save a user with password "abc123" | The password column holds a hash, not "abc123" | | |
-| USER-03 | Users | Update failed attempts | Set failed attempts to 2 | Reads back as 2 | | |
-| USER-04 | Users | Locked-until saved | Set a lock time | Reads back the same time | | |
-| USER-05 | Users | Two users with the same username | Save the same username twice | Second is refused by the unique key `uq_users_username` | | |
-| AUD-01 | Audit log | Write an audit row | Write "admin added film 5" | Row saved with who, what and when | | |
-| AUD-02 | Audit log | Rows come back in order | Write 3 rows | Read back oldest to newest (or newest first, TBC) | | |
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| USER-01 | Integration | Automatic | Users | Save and read back a user | Local CinemaBookingTest database built from cinema.sql | User with username and role | - | Same username and role | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| USER-02 | Security | Automatic | Users | No plain password stored | Local CinemaBookingTest database built from cinema.sql | Save a user with password "abc123" | - | The password column holds a hash, not "abc123" | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| USER-03 | Integration | Automatic | Users | Update failed attempts | Local CinemaBookingTest database built from cinema.sql | Set failed attempts to 2 | - | Reads back as 2 | Not run yet: the users table has no failed_attempts or locked_until column, waits for Kushal's card 318 | Not run | - | Irwin | - |
+| USER-04 | Integration | Automatic | Users | Locked-until saved | Local CinemaBookingTest database built from cinema.sql | Set a lock time | - | Reads back the same time | Not run yet: the users table has no failed_attempts or locked_until column, waits for Kushal's card 318 | Not run | - | Irwin | - |
+| USER-05 | Security | Automatic | Users | Two users with the same username | Local CinemaBookingTest database built from cinema.sql | Save the same username twice | - | Second is refused by the unique key `uq_users_username` | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| AUD-01 | Integration | Automatic | Audit log | Write an audit row | Local CinemaBookingTest database built from cinema.sql | Write "admin added film 5" | - | Row saved with who, what and when | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| AUD-02 | Integration | Automatic | Audit log | Rows come back in order | Local CinemaBookingTest database built from cinema.sql | Write 3 rows | - | Read back oldest to newest (or newest first, TBC) | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
 
 ## 9. Manual tests: full journeys (cards 363 and 364)
 
@@ -212,20 +238,8 @@ Run on the app from `main`. For each step, also try bad input: blank boxes, lett
 1. Log in as admin.
 2. Add a film with a poster. Remove the poster file, then reopen the film. A placeholder should show, with no crash.
 3. Add a showing. Type letters in the price box. A clear message should appear.
-4. Try two showings on the same screen at the same time. The database refuses the exact same start time (unique key on screen_id, starts_at). Whether overlapping times are refused is TBC with Shankar (same as Akilesh's SHOW-07).
+4. Try two showings on the same screen at the same time. The second must be refused (decided 16 Nov; the database also has the unique key on screen_id, starts_at).
 5. Load a film file with some bad lines. A message like "Loaded 8, skipped 2" should appear.
-
-## Summary (card 409, run on 20 Nov 2026)
-
-| Test type | Tests | Passed | Failed | Not run |
-|---|---|---|---|---|
-| White-box | 15 | 15 | 0 | 0 |
-| Boundary/negative | 5 | 5 | 0 | 0 |
-| Security | 1 | 1 | 0 | 0 |
-| Performance | 1 | 1 | 0 | 0 |
-| **Total** | **22** | **22** | **0** | **0** |
-
-All 22 are automatic (MSTest). Pass rate 100%. Open bugs: none. Screenshot: `docs/testing/screenshots/409-resize-search-tests-green.png`.
 
 ## 10. Fake database (card 432)
 
@@ -257,3 +271,57 @@ MSTest files: `tests/CinemaBooking.Tests/Fakes/FakeDatabase.cs` and `tests/Cinem
 Not run yet: the same 20 tests on the real `Database` with the local CinemaBookingTest database (Integration). They wait until the test database is set up. Known differences, by design: the fake does not sort `GetTakenSeats` or `GetBookingsForMember` (the real database does), and it does not check that the film and screen of a showing exist (the real database uses foreign keys).
 
 Summary (card 432, run on 20 Nov 2026): 20 tests, all automatic. White-box 11, Boundary/negative 8, Integration 1. Passed 20, failed 0, not run 0 (plus the real-database run still to do). Pass rate 100%. Open bugs: none. Screenshots: `432-fake-database-red.png` and `432-fake-database-green.png`.
+
+## 11. Extra test types (card 418) and summary
+
+### Regression: the whole suite after every merge
+
+| Date | What changed | Command | Result |
+|---|---|---|---|
+| 15 Nov 2026 | Merged Kushal's generic HashTable, moved the hash table tests to it | Test Explorer, Run All | 15 tests, 15 passed |
+| 17 Nov 2026 | Merged `dev` (all branches) | `dotnet test CinemaBooking.slnx` | 161 tests, 161 passed |
+| 20 Nov 2026 | Merged Kushal's IDatabase (card 413), added resize and search tests (409) | Test Explorer, Run All | 187 tests, 187 passed |
+| 20 Nov 2026 | Added FakeDatabase (432), red step | Test Explorer, Run All | 207 tests, 187 passed, 20 failed on purpose (red) |
+| 20 Nov 2026 | FakeDatabase green step | Test Explorer, Run All | 207 tests, 207 passed |
+| 20 Nov 2026 | Added seat grid, showing and member tests (361) | Test Explorer, Run All | 242 tests, 242 passed |
+
+Retest of HASH-15 (BUG-04): failed on 12 Nov on the old `FilmHashTable`, passed on 15 Nov on the new `HashTable<int, Film>` and in every run since.
+
+### Performance
+
+| Test ID | What | Measured | Note |
+|---|---|---|---|
+| PERF-01 | Add 1000 films and find each one | 1 ms | Section 2 |
+| RES-03 | Add 1000 films (many resizes), find all | Part of the 22 resize and search tests, 31 to 100 ms for the whole class | Test Explorer duration |
+| SEAT-13 | Book all 96 seats one by one | Part of the seat grid class, 1 ms for all 35 runs | Test Explorer duration |
+| Not run yet | Database queries and a full booking on SQL Server | - | Waits for the CinemaBookingTest database |
+| Not run yet | Sort and search at 1,000, 10,000 and 100,000 films | - | Card 425, waits for Kushal's sort code (424) |
+
+### Security
+
+| Test ID | What | Result |
+|---|---|---|
+| SRCH-10 | Apostrophe in the search text ("Ocean's") | Pass |
+| DB-10 | SQL injection text stored as plain text | Not run, waits for the test database |
+| DB-11 | Apostrophe saved and read back from SQL Server | Not run, waits for the test database |
+| USER-02 | No plain password in the users table | Not run, waits for the test database |
+| USER-05 | Same username refused | Not run, waits for the test database |
+| USER-03, USER-04 | Lock-out columns | Not run, the columns are missing (Kushal's card 318) |
+| Windows | SQL injection text typed in every text box | Not run, part of the hand tests (card 363) once the windows exist |
+
+### Boundary and negative
+
+Marked Boundary/negative in the tables above: empty tables, missing IDs and emails, the same ID or email twice, negative ID, the 75% resize line (12 then 13 films), seats outside the grid (I1, A13, A0), badly written seat codes, a full grid, empty lists, null, and the taken seat and double cancel cases on the fake.
+
+### Summary of this file (20 Nov 2026)
+
+| Test type | Tests | Passed | Failed | Not run |
+|---|---|---|---|---|
+| White-box | 46 | 44 | 0 | 2 |
+| Boundary/negative | 48 | 39 | 0 | 9 |
+| Integration | 18 | 1 | 0 | 17 |
+| Security | 5 | 1 | 0 | 4 |
+| Performance | 1 | 1 | 0 | 0 |
+| **Total** | **118** | **86** | **0** | **32** |
+
+Mode: 118 automatic, 0 manual (the journeys J1 to J6 in section 9 are manual and are run in Sprint 4). Pass rate of the tests that were run: 100%. Open bugs: none (BUG-04 is closed).
