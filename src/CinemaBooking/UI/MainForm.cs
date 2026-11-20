@@ -130,7 +130,25 @@ namespace CinemaBooking.UI
         // the films page, it only gets the film service, never the hash table (card 347)
         private Control MakeFilmsPage()
         {
-            return new FilmBrowseForm(_film_service);
+            return new FilmBrowseForm(_film_service, OpenFilmDetail);
+        }
+
+        // the detail page of the film that was clicked (card 402)
+        // the showings list stays empty until the ShowingService has GetShowingsForFilm
+        private void OpenFilmDetail(Film film)
+        {
+            FilmDetailForm detail_page = new FilmDetailForm(
+                film,
+                () => ShowPage(btnFilms, "Films", MakeFilmsPage()),
+                OpenSeatMap);
+
+            ShowPage(btnFilms, "Film details", detail_page);
+        }
+
+        // the seat map is a later card, so for now the chosen showing is only named
+        private void OpenSeatMap(Showing showing)
+        {
+            ShowPage(btnFilms, "Seat map", MakePlaceholderPage("The seat map for showing " + showing.Id + " will be shown here."));
         }
 
         // a text page for the parts that are not built yet
