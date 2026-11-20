@@ -2,7 +2,7 @@
 
 Author: Irwin Chinathoo (Tester 2)
 Card: 354 (AB#354), data-side section for Akilesh to merge into `test-plan.md`
-Status: draft 4, 15 Nov 2026. File loader and database rows updated from Kushal's answers (cards 307 and 313). Hash table rows (card 356) all run and passing. Old card numbers replaced, showing-table IDs renamed to SHOWDS so they do not clash with Akilesh. Rows marked TBC wait for an answer from Kushal or Shankar.
+Status: draft 5, 20 Nov 2026. Resize and search sections (card 409) use the new table columns and are run. File loader and database rows updated from Kushal's answers (cards 307 and 313). Hash table rows (card 356) all run and passing. Old card numbers replaced, showing-table IDs renamed to SHOWDS so they do not clash with Akilesh. Rows marked TBC wait for an answer from Kushal or Shankar.
 
 This section covers Kushal's code: our own hash tables and linked list, the seat grid, search, the file loader and the database. It uses the same columns as the main plan. The last two columns stay empty until the tests are run.
 
@@ -53,13 +53,21 @@ History: on 12 Nov the old `FilmHashTable` crashed on a negative ID (HASH-15). K
 
 ## 2. Resize (card 409)
 
-| ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
-|---|---|---|---|---|---|---|
-| RES-01 | Resize | Table grows at about 75% full | Add films until the count passes 75% of the slots | Number of slots goes up | | |
-| RES-02 | Resize | Nothing lost after one resize | Add enough films to force one resize, then find each | Every film is found | | |
-| RES-03 | Resize | Large load | Add 1000 films, then find each one | All 1000 found, count is 1000 | | |
-| RES-04 | Resize | No repeats after resize | Add 1000 films, list all | 1000 items, each ID once | | |
-| RES-05 | Resize | Remove still works after resize | Add 1000, remove 500, find all | Removed ones not found, other 500 found | | |
+MSTest file: `tests/CinemaBooking.Tests/ResizeSearchTests.cs`. The table starts with 16 slots and doubles when it is more than 75% full. The slot count is private, so the tests check the result of a resize: every film is still found and the count is right.
+
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| RES-01 | White-box | Automatic | Resize | One resize keeps every film (method Add_ThirteenFilms_AllFoundAfterOneResize) | Empty table, 16 slots | Films 1 to 13 | Table has grown to 32 slots | Count 13, all 13 found | Count 13, all found | Pass | 20 Nov 2026 | Irwin | - |
+| RES-03 | White-box | Automatic | Resize | Large load (Add_ThousandFilms_AllFound) | Empty table, 16 slots | Films 1 to 1000 | Table has grown to 2048 slots | Count 1000, all 1000 found | Count 1000, all found | Pass | 20 Nov 2026 | Irwin | - |
+| RES-04 | White-box | Automatic | Resize | No copies after resize (ListAll_ThousandFilms_EachIdOnce) | 1000 films added | List all | No change | 1000 films, each ID once | 1000 films, each once | Pass | 20 Nov 2026 | Irwin | - |
+| RES-05 | White-box | Automatic | Resize | Remove after resize (Remove_HalfOfThousand_OtherHalfStillFound) | 1000 films added | Remove every even ID | 500 films left | Count 500, odd IDs found, even IDs not found | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| RES-06 | Boundary/negative | Automatic | Resize | The 75% line: 12 films is exactly 75%, the 13th triggers the resize (Add_TwelveThenThirteen_CountStaysRight) | Empty table, 16 slots | Films 1 to 12, then film 13 | Table has grown | Count 12, then 13, film 13 found | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| RES-07 | White-box | Automatic | Resize | Add after resize (Add_AfterResize_NewFilmFound) | 100 films added | Film 101 | 101 films | Added and found, count 101 | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| RES-08 | Boundary/negative | Automatic | Resize | Same ID after resize is refused (Add_SameIdAfterResize_IsRefused) | 100 films added | Film 50 again | No change | Refused, count stays 100 | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| RES-09 | White-box | Automatic | Resize | Remove everything after resize (Remove_AllThousand_TableIsEmpty) | 1000 films added | Remove IDs 1 to 1000 | Table empty | Count 0, list all empty | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| PERF-01 | Performance | Automatic | Resize | Add 1000 films and find each one (AddAndFind_ThousandFilms_UnderOneSecond) | Empty table, 16 slots | Films 1 to 1000 | 1000 films | Under 1 second (safety limit) | 1 ms | Pass | 20 Nov 2026 | Irwin | - |
+
+RES-02 (nothing lost after one resize) is covered by RES-01.
 
 ## 3. Other hash tables (showings by ID, members by email)
 
@@ -95,18 +103,23 @@ History: on 12 Nov the old `FilmHashTable` crashed on a negative ID (HASH-15). K
 
 ## 5. Search (card 409)
 
-| ID | Area | What is tested | Input | Expected result | Actual | Pass/Fail |
-|---|---|---|---|---|---|---|
-| SRCH-01 | Search | Full title | "Inception" | Inception only | | |
-| SRCH-02 | Search | Part of a title | "incep" | Inception | | |
-| SRCH-03 | Search | Different case | "INCEPTION" | Inception | | |
-| SRCH-04 | Search | Text inside the title | "part" | Dune: Part Two | | |
-| SRCH-05 | Search | Several matches | "the" | Every film with "the" in the title, no repeats | | |
-| SRCH-06 | Search | No match | "zzzz" | Empty result, no crash | | |
-| SRCH-07 | Search | Empty search text | "" | TBC with Kushal: all films, or refused | | |
-| SRCH-08 | Search | By genre | "Sci-Fi" | Exactly the Sci-Fi films | | |
-| SRCH-09 | Search | Genre with no films | "Western" | Empty result, no crash | | |
-| SRCH-10 | Search | Title with an apostrophe | "Ocean's" | Ocean's Eleven | | |
+Search is in Shankar's `FilmService` (card 305). It checks every film, because the hash table can only look up by ID.
+
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SRCH-01 | White-box | Automatic | Search | Full title (SearchByTitle_FullTitle_FindsOneFilm) | FilmService with 6 films: Inception, Dune: Part Two (Sci-Fi); The Dark Knight (Action); The Lion King (Animation); Ocean's Eleven (Crime); Paddington (Family) | "Inception" | No change | Inception only | Inception only | Pass | 20 Nov 2026 | Irwin | - |
+| SRCH-02 | White-box | Automatic | Search | Part of a title (SearchByTitle_PartOfTitle_FindsFilm) | FilmService with 6 films: Inception, Dune: Part Two (Sci-Fi); The Dark Knight (Action); The Lion King (Animation); Ocean's Eleven (Crime); Paddington (Family) | "incep" | No change | Inception | Inception | Pass | 20 Nov 2026 | Irwin | - |
+| SRCH-03 | White-box | Automatic | Search | Different case (SearchByTitle_DifferentCase_FindsFilm) | FilmService with 6 films: Inception, Dune: Part Two (Sci-Fi); The Dark Knight (Action); The Lion King (Animation); Ocean's Eleven (Crime); Paddington (Family) | "INCEPTION" | No change | Inception | Inception | Pass | 20 Nov 2026 | Irwin | - |
+| SRCH-04 | White-box | Automatic | Search | Text inside the title (SearchByTitle_TextInsideTitle_FindsFilm) | FilmService with 6 films: Inception, Dune: Part Two (Sci-Fi); The Dark Knight (Action); The Lion King (Animation); Ocean's Eleven (Crime); Paddington (Family) | "part" | No change | Dune: Part Two only | Dune: Part Two only | Pass | 20 Nov 2026 | Irwin | - |
+| SRCH-05 | White-box | Automatic | Search | Several matches (SearchByTitle_SeveralMatches_FindsAll) | FilmService with 6 films: Inception, Dune: Part Two (Sci-Fi); The Dark Knight (Action); The Lion King (Animation); Ocean's Eleven (Crime); Paddington (Family) | "the" | No change | The Dark Knight and The Lion King | Both, no repeats | Pass | 20 Nov 2026 | Irwin | - |
+| SRCH-06 | Boundary/negative | Automatic | Search | No match (SearchByTitle_NoMatch_ReturnsEmpty) | FilmService with 6 films: Inception, Dune: Part Two (Sci-Fi); The Dark Knight (Action); The Lion King (Animation); Ocean's Eleven (Crime); Paddington (Family) | "zzzz" | No change | Empty result, no crash | Empty result | Pass | 20 Nov 2026 | Irwin | - |
+| SRCH-07 | Boundary/negative | Automatic | Search | Empty search text (SearchByTitle_EmptyText_ReturnsAllFilms) | FilmService with 6 films: Inception, Dune: Part Two (Sci-Fi); The Dark Knight (Action); The Lion King (Animation); Ocean's Eleven (Crime); Paddington (Family) | "" | No change | All 6 films (every title contains empty text) | All 6 films | Pass | 20 Nov 2026 | Irwin | - |
+| SRCH-08 | White-box | Automatic | Search | By genre (SearchByGenre_SciFi_FindsBothSciFiFilms) | FilmService with 6 films: Inception, Dune: Part Two (Sci-Fi); The Dark Knight (Action); The Lion King (Animation); Ocean's Eleven (Crime); Paddington (Family) | "Sci-Fi" | No change | Inception and Dune: Part Two | Both | Pass | 20 Nov 2026 | Irwin | - |
+| SRCH-09 | Boundary/negative | Automatic | Search | Genre with no films (SearchByGenre_NoFilms_ReturnsEmpty) | FilmService with 6 films: Inception, Dune: Part Two (Sci-Fi); The Dark Knight (Action); The Lion King (Animation); Ocean's Eleven (Crime); Paddington (Family) | "Western" | No change | Empty result, no crash | Empty result | Pass | 20 Nov 2026 | Irwin | - |
+| SRCH-10 | Security | Automatic | Search | Apostrophe in the search text (SearchByTitle_Apostrophe_FindsFilm) | FilmService with 6 films: Inception, Dune: Part Two (Sci-Fi); The Dark Knight (Action); The Lion King (Animation); Ocean's Eleven (Crime); Paddington (Family) | "Ocean's" | No change | Ocean's Eleven, no crash | Ocean's Eleven | Pass | 20 Nov 2026 | Irwin | - |
+| SRCH-11 | White-box | Automatic | Search | Genre in lower case (SearchByGenre_LowerCase_FindsFilms) | FilmService with 6 films: Inception, Dune: Part Two (Sci-Fi); The Dark Knight (Action); The Lion King (Animation); Ocean's Eleven (Crime); Paddington (Family) | "sci-fi" | No change | 2 films | 2 films | Pass | 20 Nov 2026 | Irwin | - |
+| SRCH-12 | White-box | Automatic | Search | Title search after resize (SearchByTitle_AfterResize_FindsFilm) | 1000 plain films plus Inception (ID 1001) | "incep" | No change | Inception only | Inception only | Pass | 20 Nov 2026 | Irwin | - |
+| SRCH-13 | White-box | Automatic | Search | Genre search after resize (SearchByGenre_AfterResize_FindsAllThousand) | 1000 Drama films | "drama" | No change | All 1000 films | 1000 films | Pass | 20 Nov 2026 | Irwin | - |
 
 ## 6. File loader
 
@@ -201,3 +214,16 @@ Run on the app from `main`. For each step, also try bad input: blank boxes, lett
 3. Add a showing. Type letters in the price box. A clear message should appear.
 4. Try two showings on the same screen at the same time. The database refuses the exact same start time (unique key on screen_id, starts_at). Whether overlapping times are refused is TBC with Shankar (same as Akilesh's SHOW-07).
 5. Load a film file with some bad lines. A message like "Loaded 8, skipped 2" should appear.
+
+## Summary (card 409, run on 20 Nov 2026)
+
+| Test type | Tests | Passed | Failed | Not run |
+|---|---|---|---|---|
+| White-box | 15 | 15 | 0 | 0 |
+| Boundary/negative | 5 | 5 | 0 | 0 |
+| Security | 1 | 1 | 0 | 0 |
+| Performance | 1 | 1 | 0 | 0 |
+| **Total** | **22** | **22** | **0** | **0** |
+
+All 22 are automatic (MSTest). Pass rate 100%. Open bugs: none. Screenshot: `docs/testing/screenshots/409-resize-search-tests-green.png`.
+
