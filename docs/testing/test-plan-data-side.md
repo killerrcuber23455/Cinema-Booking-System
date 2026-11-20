@@ -2,7 +2,7 @@
 
 Author: Irwin Chinathoo (Tester 2)
 Card: 354 (AB#354), data-side section for Akilesh to merge into `test-plan.md`
-Status: draft 6, 20 Nov 2026. Every table now uses the new columns. Cards 356, 409, 361 and 432 run and passing. Section 11 has the extra test types (card 418) and the summary of the whole file.
+Status: draft 7, 20 Nov 2026. Every table uses the new columns. Cards 356, 409, 361 and 432 run and passing. Section 11 is card 418: performance, security and boundary tests that run without SQL Server, the regression log, and the summary of the whole file. The SQL Server and window parts of 418 wait for the test database and the windows.
 
 This section covers Kushal's code: our own hash tables and linked list, the seat grid, search, the file loader and the database. All tables use the columns agreed on 18 Nov: Test ID, Test type, Mode, Area, What is tested, Preconditions, Test data, Post-conditions, Expected result, Actual result, Pass/Fail, Executed date, Tester, Bug ID. Rows that cannot run yet say why in Actual result and are marked Not run.
 
@@ -274,7 +274,20 @@ Summary (card 432, run on 20 Nov 2026): 20 tests, all automatic. White-box 11, B
 
 ## 11. Extra test types (card 418) and summary
 
-### Regression: the whole suite after every merge
+MSTest file: `tests/CinemaBooking.Tests/PerformanceSecurityTests.cs`. These run without SQL Server (the booking tests use the FakeDatabase from card 432). The times are printed by the tests and shown in Test Explorer under Standard Output.
+
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| PERF-02 | Performance | Automatic | Search | Search by title through 1000 films (SearchByTitle_ThousandFilms_UnderOneSecond) | FilmService with 1000 films | "film 99" | No change | 11 films, under 1 second | 11 films, 2 ms (Stopwatch) | Pass | 20 Nov 2026 | Irwin | - |
+| PERF-03 | Performance | Automatic | Booking | One guest booking of 2 seats (BookSeats_OneBooking_UnderOneSecond) | BookingService with FakeDatabase, showing 1 (8 x 12) | Guest Kevin, C5 and C6 | 2 seats taken | Booked, under 1 second | Booked, 0 ms (under 1 ms, Stopwatch) | Pass | 20 Nov 2026 | Irwin | - |
+| SEC-01 | Security | Automatic | Search | SQL injection text in the search box (SearchByTitle_SqlInjectionText_NothingFoundNothingChanged) | FilmService with 1000 films | x'); DROP TABLE films;-- | Still 1000 films | No match, all 1000 films still there | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| SEC-02 | Security | Automatic | Booking | SQL injection text as the guest name (BookSeats_SqlInjectionGuestName_NoCrash) | BookingService with FakeDatabase, showing 1 (8 x 12) | Name x'); DROP TABLE films;-- | - | Refused with a message, or saved as plain text; never a crash | No crash | Pass | 20 Nov 2026 | Irwin | - |
+| BND-01 | Boundary/negative | Automatic | Search | Very long search text (SearchByTitle_VeryLongText_ReturnsEmpty) | FilmService with 10 films | 10,000 letters "a" | No change | Empty result, no crash | Empty | Pass | 20 Nov 2026 | Irwin | - |
+| BND-02 | Boundary/negative | Automatic | Search | Null search text (SearchByTitle_NullText_ReturnsAllFilms) | FilmService with 10 films | null | No change | Treated as empty: all 10 films | 10 films | Pass | 20 Nov 2026 | Irwin | - |
+| BND-03 | Boundary/negative | Automatic | Booking | Showing that does not exist (BookSeats_MissingShowing_IsRefused) | BookingService with FakeDatabase, showing 1 (8 x 12) | Showing 99, C5 | No change | False, "this showing does not exist" | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| BND-04 | Boundary/negative | Automatic | Booking | Taken seat through the service (BookSeats_TakenSeat_IsRefused) | BookingService with FakeDatabase, showing 1 (8 x 12), C5 already booked | Second guest, C5 | Still 1 seat taken | False, "seat C5 is already taken", 1 seat taken | As expected | Pass | 20 Nov 2026 | Irwin | - |
+
+### Regression: the whole suite after every merge and fix
 
 | Date | What changed | Command | Result |
 |---|---|---|---|
@@ -284,44 +297,44 @@ Summary (card 432, run on 20 Nov 2026): 20 tests, all automatic. White-box 11, B
 | 20 Nov 2026 | Added FakeDatabase (432), red step | Test Explorer, Run All | 207 tests, 187 passed, 20 failed on purpose (red) |
 | 20 Nov 2026 | FakeDatabase green step | Test Explorer, Run All | 207 tests, 207 passed |
 | 20 Nov 2026 | Added seat grid, showing and member tests (361) | Test Explorer, Run All | 242 tests, 242 passed |
+| 20 Nov 2026 | Added performance, security and boundary tests (418) | Test Explorer, Run All | 250 tests, 250 passed |
 
-Retest of HASH-15 (BUG-04): failed on 12 Nov on the old `FilmHashTable`, passed on 15 Nov on the new `HashTable<int, Film>` and in every run since.
+Retest after a bug fix: HASH-15 (BUG-04) failed on 12 Nov on the old `FilmHashTable`, passed on 15 Nov on the new `HashTable<int, Film>` and in every run since.
 
 ### Performance
 
-| Test ID | What | Measured | Note |
-|---|---|---|---|
-| PERF-01 | Add 1000 films and find each one | 1 ms | Section 2 |
-| RES-03 | Add 1000 films (many resizes), find all | Part of the 22 resize and search tests, 31 to 100 ms for the whole class | Test Explorer duration |
-| SEAT-13 | Book all 96 seats one by one | Part of the seat grid class, 1 ms for all 35 runs | Test Explorer duration |
-| Not run yet | Database queries and a full booking on SQL Server | - | Waits for the CinemaBookingTest database |
-| Not run yet | Sort and search at 1,000, 10,000 and 100,000 films | - | Card 425, waits for Kushal's sort code (424) |
+| Test ID | What | Measured |
+|---|---|---|
+| PERF-01 | Add 1000 films (many resizes) and find each one | 1 ms |
+| PERF-02 | Search by title through 1000 films | 2 ms |
+| PERF-03 | One booking through BookingService (fake database) | 0 ms (under 1 ms) |
+| Not run yet | Database queries and a booking on SQL Server | Waits for the CinemaBookingTest database |
+| Not run yet | Sort and search at 1,000, 10,000 and 100,000 films | Card 425, waits for Kushal's sort code (424) |
 
 ### Security
 
-| Test ID | What | Result |
+| What the card asks | Where it is tested | Result |
 |---|---|---|
-| SRCH-10 | Apostrophe in the search text ("Ocean's") | Pass |
-| DB-10 | SQL injection text stored as plain text | Not run, waits for the test database |
-| DB-11 | Apostrophe saved and read back from SQL Server | Not run, waits for the test database |
-| USER-02 | No plain password in the users table | Not run, waits for the test database |
-| USER-05 | Same username refused | Not run, waits for the test database |
-| USER-03, USER-04 | Lock-out columns | Not run, the columns are missing (Kushal's card 318) |
-| Windows | SQL injection text typed in every text box | Not run, part of the hand tests (card 363) once the windows exist |
+| SQL injection text | SEC-01 (search box), SEC-02 (guest name); DB-10 on SQL Server | SEC-01 and SEC-02 pass; DB-10 not run, waits for the test database |
+| SQL injection in every text box | Hand tests, card 363 | Not run, waits for the windows |
+| Role checks | Akilesh's ServiceTests (for example `AddFilm_NotAnAdmin_IsRefused`, also for remove) | Pass (Akilesh's tests, card 359) |
+| Lock-out after 3 wrong passwords | USER-03, USER-04 and Akilesh's card 336 | Not run, waits for Kushal's card 318 and Shankar's card 400 |
+| No plain text passwords | USER-02 | Not run, waits for Shankar's PasswordHasher (card 333) and the test database |
+| Apostrophes in text | SRCH-10 (pass); DB-11 on SQL Server (not run) | |
 
 ### Boundary and negative
 
-Marked Boundary/negative in the tables above: empty tables, missing IDs and emails, the same ID or email twice, negative ID, the 75% resize line (12 then 13 films), seats outside the grid (I1, A13, A0), badly written seat codes, a full grid, empty lists, null, and the taken seat and double cancel cases on the fake.
+In the code: every row marked Boundary/negative above (empty tables, missing IDs and emails, the same ID or email twice, negative ID, the 75% resize line, seats outside the grid, bad seat codes, a full grid, empty lists, null, very long text, a missing showing, a taken seat through the service). In the Database class: the DB rows in section 7 (not run, wait for the test database). In the windows: the hand tests in section 9 (cards 363 and 364).
 
 ### Summary of this file (20 Nov 2026)
 
 | Test type | Tests | Passed | Failed | Not run |
 |---|---|---|---|---|
 | White-box | 46 | 44 | 0 | 2 |
-| Boundary/negative | 48 | 39 | 0 | 9 |
+| Boundary/negative | 52 | 43 | 0 | 9 |
 | Integration | 18 | 1 | 0 | 17 |
-| Security | 5 | 1 | 0 | 4 |
-| Performance | 1 | 1 | 0 | 0 |
-| **Total** | **118** | **86** | **0** | **32** |
+| Security | 7 | 3 | 0 | 4 |
+| Performance | 3 | 3 | 0 | 0 |
+| **Total** | **126** | **94** | **0** | **32** |
 
-Mode: 118 automatic, 0 manual (the journeys J1 to J6 in section 9 are manual and are run in Sprint 4). Pass rate of the tests that were run: 100%. Open bugs: none (BUG-04 is closed).
+Mode: 126 automatic (MSTest); the journeys J1 to J6 in section 9 are manual and are run in Sprint 4. Pass rate of the tests that were run: 100%. Open bugs: none (BUG-04 is closed). Screenshot for card 418: `418-performance-security-tests-green.png`.
