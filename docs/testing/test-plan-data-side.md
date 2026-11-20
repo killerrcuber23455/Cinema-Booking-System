@@ -227,3 +227,33 @@ Run on the app from `main`. For each step, also try bad input: blank boxes, lett
 
 All 22 are automatic (MSTest). Pass rate 100%. Open bugs: none. Screenshot: `docs/testing/screenshots/409-resize-search-tests-green.png`.
 
+## 10. Fake database (card 432)
+
+MSTest files: `tests/CinemaBooking.Tests/Fakes/FakeDatabase.cs` and `tests/CinemaBooking.Tests/FakeDatabaseTests.cs`. The fake implements `IDatabase` and keeps everything in memory with our own `HashTable` and `MemberTable`, so service tests run without SQL Server. It copies the return values of the real `Database` class (for example -1 for a taken seat, false for a double cancel) and has no business rules. Written test first: red commit, then green.
+
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| FAKE-01 | White-box | Automatic | Films | Save and load a film (LoadFilms_AfterAddFilm_FilmIsLoaded) | Empty FakeDatabase | Inception, ID 1 | Film in the table | Loaded 1, Inception found | Loaded 1, found | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-02 | White-box | Automatic | Members | New member gets an ID (SaveMember_NewEmail_ReturnsNewId) | Empty FakeDatabase | ann@mail.com | 1 member | ID above 0 | ID 1 | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-03 | Boundary/negative | Automatic | Members | Same email, other case and spaces (SaveMember_SameEmailOtherCaseAndSpaces_ReturnsMinusOne) | ann@mail.com saved | " ANN@mail.com " | Still 1 member | -1 | -1 | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-04 | White-box | Automatic | Members | Saved member is listed (GetAllMembers_AfterSave_HasMemberWithId) | ann@mail.com saved | GetAllMembers | No change | 1 member with the new ID | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-05 | White-box | Automatic | Members | Points and tier saved (UpdateMemberPoints_ExistingMember_SavesPoints) | ann@mail.com saved | 120 points, Silver | Member has 120 points, Silver | True, values saved | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-06 | Boundary/negative | Automatic | Members | Update a missing member (UpdateMemberPoints_MissingMember_ReturnsFalse) | Empty FakeDatabase | Member ID 99 | No change | False | False | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-07 | White-box | Automatic | Bookings | Save on free seats (SaveBooking_FreeSeats_ReturnsIdAndReferenceExists) | Empty FakeDatabase | CB-AAAAAA, showing 1, C5 and C6 | Booking saved | ID above 0, reference exists | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-08 | Boundary/negative | Automatic | Bookings | Taken seat refused, all or nothing (SaveBooking_TakenSeat_ReturnsMinusOne) | C5 booked for showing 1 | CB-BBBBBB, C4 and C5 | No change | -1, CB-BBBBBB not saved, C4 still free | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-09 | White-box | Automatic | Bookings | Same seat, other showing (SaveBooking_SameSeatOtherShowing_IsSaved) | C5 booked for showing 1 | C5 for showing 2 | 2 bookings | ID above 0 | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-10 | White-box | Automatic | Bookings | Taken seats after a save (GetTakenSeats_AfterSave_ReturnsSeats) | C5 and C6 booked for showing 1 | GetTakenSeats(1) | No change | C5 and C6 | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-11 | White-box | Automatic | Bookings | Cancel frees the seats (CancelBooking_Confirmed_FreesSeats) | C5 booked | Cancel, then book C5 again | Booking Cancelled | True, no taken seats, C5 can be booked again | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-12 | Boundary/negative | Automatic | Bookings | No double cancel (CancelBooking_Twice_SecondReturnsFalse) | Booking already cancelled | Cancel again | No change | False | False | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-13 | Boundary/negative | Automatic | Bookings | Cancel a missing booking (CancelBooking_MissingId_ReturnsFalse) | Empty FakeDatabase | Booking ID 99 | No change | False | False | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-14 | White-box | Automatic | Bookings | Find by reference (FindBooking_Saved_HasSeatsAndStatus) | CB-AAAAAA with C5 and C6 | "CB-AAAAAA" | No change | Booking with 2 seats, Confirmed | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-15 | Boundary/negative | Automatic | Bookings | Missing reference (FindBooking_MissingReference_ReturnsNull) | Empty FakeDatabase | "CB-ZZZZZZ" | No change | Null | Null | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-16 | White-box | Automatic | Bookings | Bookings per member (GetBookingsForMember_TwoMembers_OnlyTheirOwn) | Member 1 has 2 bookings, member 2 has 1 | Member 1 | No change | 2 bookings | 2 bookings | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-17 | Boundary/negative | Automatic | Showings | Same showing ID twice (SaveShowing_SameIdTwice_SecondReturnsFalse) | Showing 1 saved | Showing 1 again | Still 1 showing | False | False | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-18 | Boundary/negative | Automatic | Showings | Same screen, same time (SaveShowing_SameScreenSameTime_SecondReturnsFalse) | Showing 1 on screen 1 at 20:30 | Showing 2 on screen 1 at 20:30 | Still 1 showing | False | False | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-19 | White-box | Automatic | Showings | Load marks booked seats (LoadShowings_WithBooking_SeatIsTakenInGrid) | Showing 1 with C5 booked | LoadShowings | Table has showing 1 | 1 added, C5 taken, C6 free | As expected | Pass | 20 Nov 2026 | Irwin | - |
+| FAKE-20 | Integration | Automatic | Service | BookingService runs with the fake, no SQL Server (BookingService_WithFake_GuestBookingIsSaved) | Showing 1 loaded into the table | Guest Kevin books C5 and C6 | 2 seats taken in the fake | True, booking returned, 2 seats taken | As expected | Pass | 20 Nov 2026 | Irwin | - |
+
+Not run yet: the same 20 tests on the real `Database` with the local CinemaBookingTest database (Integration). They wait until the test database is set up. Known differences, by design: the fake does not sort `GetTakenSeats` or `GetBookingsForMember` (the real database does), and it does not check that the film and screen of a showing exist (the real database uses foreign keys).
+
+Summary (card 432, run on 20 Nov 2026): 20 tests, all automatic. White-box 11, Boundary/negative 8, Integration 1. Passed 20, failed 0, not run 0 (plus the real-database run still to do). Pass rate 100%. Open bugs: none. Screenshots: `432-fake-database-red.png` and `432-fake-database-green.png`.
