@@ -1,200 +1,111 @@
-\# Pseudocode: sort and search films (owner: kushal)
+﻿# Pseudocode: sort and search films
 
+Owner: Kushal. Week 8. Own arrays only: no List, no Array.Sort, no LINQ OrderBy, no built-in BinarySearch.
 
+## Merge sort (films by title, year or rating)
 
-Week 8. Own arrays only. No List, no Array.Sort, no LINQ OrderBy, no built-in BinarySearch.
+```text
+MERGE_SORT(films, sort_by)
+    IF films HAS 0 OR 1 ITEMS
+        RETURN A COPY OF films
+    END IF
 
+    middle = films.length / 2
+    left = COPY OF films FROM 0 TO middle - 1
+    right = COPY OF films FROM middle TO THE END
 
+    sorted_left = MERGE_SORT(left, sort_by)
+    sorted_right = MERGE_SORT(right, sort_by)
 
-\## Merge sort (films by title, year or rating)
-
-
-
-MERGE\_SORT(films, sort\_by)
-
-&#x20;   IF films HAS 0 OR 1 ITEMS
-
-&#x20;       RETURN A COPY OF films
-
-&#x20;   END IF
-
-
-
-&#x20;   middle = films.length / 2
-
-&#x20;   left = COPY OF films FROM 0 TO middle - 1
-
-&#x20;   right = COPY OF films FROM middle TO END
-
-
-
-&#x20;   sorted\_left = MERGE\_SORT(left, sort\_by)
-
-&#x20;   sorted\_right = MERGE\_SORT(right, sort\_by)
-
-
-
-&#x20;   RETURN MERGE(sorted\_left, sorted\_right, sort\_by)
-
+    RETURN MERGE(sorted_left, sorted_right, sort_by)
 END
 
+MERGE(left, right, sort_by)
+    result = NEW ARRAY OF SIZE left.length + right.length
+    left_index = 0
+    right_index = 0
+    result_index = 0
 
+    WHILE left_index < left.length AND right_index < right.length
+        // take from the left when equal, so equal films keep their order (stable)
+        IF COMPARE(left[left_index], right[right_index], sort_by) <= 0
+            result[result_index] = left[left_index]
+            left_index = left_index + 1
+        ELSE
+            result[result_index] = right[right_index]
+            right_index = right_index + 1
+        END IF
+        result_index = result_index + 1
+    END WHILE
 
-MERGE(left, right, sort\_by)
+    WHILE left_index < left.length
+        result[result_index] = left[left_index]
+        left_index = left_index + 1
+        result_index = result_index + 1
+    END WHILE
 
-&#x20;   result = NEW ARRAY OF SIZE left.length + right.length
+    WHILE right_index < right.length
+        result[result_index] = right[right_index]
+        right_index = right_index + 1
+        result_index = result_index + 1
+    END WHILE
 
-&#x20;   left\_index = 0
-
-&#x20;   right\_index = 0
-
-&#x20;   result\_index = 0
-
-
-
-&#x20;   WHILE left\_index < left.length AND right\_index < right.length
-
-&#x20;       // take from the left when equal, so equal films keep their order (stable)
-
-&#x20;       IF COMPARE(left\[left\_index], right\[right\_index], sort\_by) <= 0
-
-&#x20;           result\[result\_index] = left\[left\_index]
-
-&#x20;           left\_index = left\_index + 1
-
-&#x20;       ELSE
-
-&#x20;           result\[result\_index] = right\[right\_index]
-
-&#x20;           right\_index = right\_index + 1
-
-&#x20;       END IF
-
-&#x20;       result\_index = result\_index + 1
-
-&#x20;   END WHILE
-
-
-
-&#x20;   WHILE left\_index < left.length
-
-&#x20;       COPY left\[left\_index] INTO result\[result\_index]
-
-&#x20;       MOVE BOTH INDEXES ON BY 1
-
-&#x20;   END WHILE
-
-
-
-&#x20;   WHILE right\_index < right.length
-
-&#x20;       COPY right\[right\_index] INTO result\[result\_index]
-
-&#x20;       MOVE BOTH INDEXES ON BY 1
-
-&#x20;   END WHILE
-
-
-
-&#x20;   RETURN result
-
+    RETURN result
 END
 
-
-
-COMPARE(film\_a, film\_b, sort\_by)
-
-&#x20;   IF sort\_by IS "title"
-
-&#x20;       COMPARE film\_a.title WITH film\_b.title, IGNORING CASE
-
-&#x20;   ELSE IF sort\_by IS "year"
-
-&#x20;       COMPARE film\_a.year WITH film\_b.year
-
-&#x20;   ELSE IF sort\_by IS "rating"
-
-&#x20;       COMPARE film\_a.age\_rating WITH film\_b.age\_rating
-
-&#x20;   END IF
-
-&#x20;   RETURN A NEGATIVE NUMBER, 0, OR A POSITIVE NUMBER
-
+COMPARE(film_a, film_b, sort_by)
+    IF sort_by IS "title"
+        RETURN COMPARISON OF film_a.title AND film_b.title, IGNORING CASE
+    ELSE IF sort_by IS "year"
+        RETURN COMPARISON OF film_a.year AND film_b.year
+    ELSE IF sort_by IS "rating"
+        RETURN COMPARISON OF film_a.age_rating AND film_b.age_rating
+    END IF
 END
+```
 
+The comparison gives a negative number, 0, or a positive number.
 
+## Binary search (exact title on an array sorted by title)
 
-\## Binary search (exact title on a array sorted by title)
+If two films have the same title, binary search returns the index of one of them, not always the first. Films are unique by id, so the Films screen uses the id when it needs one exact film.
 
+```text
+BINARY_SEARCH(sorted_films, title)
+    low = 0
+    high = sorted_films.length - 1
 
+    WHILE low <= high
+        middle = (low + high) / 2
+        result = COMPARISON OF title AND sorted_films[middle].title, IGNORING CASE
 
-BINARY\_SEARCH(sorted\_films, title)
+        IF result IS 0
+            RETURN middle
+        ELSE IF result < 0
+            high = middle - 1
+        ELSE
+            low = middle + 1
+        END IF
+    END WHILE
 
-&#x20;   low = 0
-
-&#x20;   high = sorted\_films.length - 1
-
-
-
-&#x20;   WHILE low <= high
-
-&#x20;       middle = (low + high) / 2
-
-&#x20;       result = COMPARE title WITH sorted\_films\[middle].title, IGNORING CASE
-
-
-
-&#x20;       IF result IS 0
-
-&#x20;           RETURN middle
-
-&#x20;       ELSE IF result < 0
-
-&#x20;           high = middle - 1
-
-&#x20;       ELSE
-
-&#x20;           low = middle + 1
-
-&#x20;       END IF
-
-&#x20;   END WHILE
-
-
-
-&#x20;   RETURN -1
-
+    RETURN -1
 END
+```
 
+## Linear contains search (partial title, any case)
 
+```text
+LINEAR_SEARCH(films, text)
+    matches = NEW ARRAY OF SIZE films.length
+    count = 0
 
-\## Linear contains search (partial title, any case)
+    FOR EACH film IN films
+        IF film.title CONTAINS text, IGNORING CASE
+            matches[count] = film
+            count = count + 1
+        END IF
+    END FOR
 
-
-
-LINEAR\_SEARCH(films, text)
-
-&#x20;   matches = NEW ARRAY OF SIZE films.length
-
-&#x20;   count = 0
-
-
-
-&#x20;   FOR EACH film IN films
-
-&#x20;       IF film.title CONTAINS text, IGNORING CASE
-
-&#x20;           matches\[count] = film
-
-&#x20;           count = count + 1
-
-&#x20;       END IF
-
-&#x20;   END FOR
-
-
-
-&#x20;   RETURN THE FIRST count ITEMS OF matches
-
+    RETURN THE FIRST count ITEMS OF matches
 END
-
+```
