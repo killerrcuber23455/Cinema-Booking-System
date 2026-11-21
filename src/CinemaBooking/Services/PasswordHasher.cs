@@ -7,6 +7,8 @@ namespace CinemaBooking.Services
     {
         private const int SALT_SIZE = 16;
         private const int HASH_SIZE = 32;
+        // 100000 rounds makes each guess slow for an attacker, but a login still takes only a few milliseconds
+        // a real system would use more, we keep it lower so the tests stay quick
         private const int ITERATIONS = 100000;
         public static string GenerateSalt()
         {
@@ -43,6 +45,8 @@ namespace CinemaBooking.Services
 
             byte[] typed_hash_bytes = Rfc2898DeriveBytes.Pbkdf2(typed_password, salt_bytes, ITERATIONS,
                 HashAlgorithmName.SHA256, HASH_SIZE);
+            // FixedTimeEquals takes the same time whether the hashes match or not
+            // so the timing cannot hint how close a guess was
             return CryptographicOperations.FixedTimeEquals(typed_hash_bytes, stored_hash_bytes);
         }
 

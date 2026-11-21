@@ -2,7 +2,7 @@
 using CinemaBooking.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace CinemaBooking.tests
+namespace CinemaBooking.Tests
 {
     [TestClass]
     public class PasswordHasherTests
