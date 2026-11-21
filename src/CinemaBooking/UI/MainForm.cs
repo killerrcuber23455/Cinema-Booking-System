@@ -152,18 +152,26 @@ namespace CinemaBooking.UI
                 film,
                 showing,
                 () => OpenFilmDetail(film),
-                seat_codes => OpenBookingSummary(showing, seat_codes));
+                seat_codes => OpenBookingSummary(film, showing, seat_codes));
 
             ShowPage(btnFilms, "Choose seats", seat_page);
         }
 
         // the booking summary is the next card (403), for now the chosen seats are only named
-        private void OpenBookingSummary(Showing showing, string[] seat_codes)
+        private void OpenBookingSummary(Film film, Showing showing, string[] seat_codes)
         {
-            ShowPage(btnFilms, "Booking", MakePlaceholderPage(
-                "Seats " + string.Join(", ", seat_codes) + " for showing " + showing.Id + ". The booking summary is built in the next card."));
-        }
+            // member is null until login exists, so everyone is shown as a guest for now
+            BookingSummaryForm summary_page = new BookingSummaryForm(
+                film,
+                showing,
+                seat_codes,
+                null,
+                () => OpenSeatMap(film, showing),
+                () => ShowPage(btnFilms, "Booking", MakePlaceholderPage(
+                    "The booking is made when the booking service is connected.")));
 
+            ShowPage(btnFilms, "Booking summary", summary_page);
+        }
         // a text page for the parts that are not built yet
         private static Control MakePlaceholderPage(string page_text)
         {
