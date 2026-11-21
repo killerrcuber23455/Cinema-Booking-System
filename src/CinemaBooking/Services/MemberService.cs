@@ -8,10 +8,10 @@ namespace CinemaBooking.Services
    public class MemberService
    {
         //database used to save and read members
-        private Database _database;
+        private IDatabase _database;
 
         //uses the database given so everyone shares the same data
-        public MemberService(Database database)
+        public MemberService(IDatabase database)
         {
             _database = database;
         }

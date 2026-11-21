@@ -22,11 +22,15 @@ namespace CinemaBooking.Services
         //random generator for whole service
         private static readonly Random _random = new Random();
 
+        //one lock for every change to a seat grid. the app makes one BookingService,
+        //static is a safeguard in case a test makes two
+        private static readonly object _seat_lock = new object();
+
         //the database and the showings table are given to us, we do not create them here
-        private readonly Database _database;
+        private readonly IDatabase _database;
         private readonly ShowingTable _showing_table;
 
-        public BookingService(Database database, ShowingTable showing_table)
+        public BookingService(IDatabase database, ShowingTable showing_table)
         {
             _database = database;
             _showing_table = showing_table;
@@ -107,15 +111,21 @@ namespace CinemaBooking.Services
             Booking new_booking = new Booking(0, reference, showing_id, member_id, guest_name,
                 guest_email, guest_phone, seat_codes, amount_paid, points_earned, 0,
                 BookingStatus.Confirmed, DateTime.Now);
-
             //book the seats in the grid, all or nothing
-            if (!grid.BookSeats(seat_codes))
+            //the lock is short: only the grid check and write are inside it, no database and no window
+            bool is_booked;
+            lock (_seat_lock)
+            {
+                is_booked = grid.BookSeats(seat_codes);
+            }
+            if (!is_booked)
             {
                 error_message = "one of the seats was just taken, please choose again";
                 return false;
             }
 
-            //save, the database is the last guard against a double booking, -1 means a seat is taken
+            //save outside the lock, it is a slow database call
+            //the database is the last guard against a double booking, -1 means a seat is taken
             int new_id;
             try
             {
@@ -124,13 +134,19 @@ namespace CinemaBooking.Services
             catch
             {
                 //the database failed, give the seats back and pass the error on
-                grid.FreeSeats(seat_codes);
+                lock (_seat_lock)
+                {
+                    grid.FreeSeats(seat_codes);
+                }
                 throw;
             }
 
             if (new_id <= 0)
             {
-                grid.FreeSeats(seat_codes);
+                lock (_seat_lock)
+                {
+                    grid.FreeSeats(seat_codes);
+                }
                 error_message = "one of the seats was just taken, please choose again";
                 return false;
             }
@@ -157,7 +173,10 @@ namespace CinemaBooking.Services
                 if (!is_points_saved)
                 {
                     //undo the booking: give the seats back first, then cancel it in the database
-                    grid.FreeSeats(seat_codes);
+                    lock (_seat_lock)
+                    {
+                        grid.FreeSeats(seat_codes);
+                    }
                     try
                     {
                         _database.CancelBooking(new_booking.Id);
@@ -176,6 +195,124 @@ namespace CinemaBooking.Services
             return true;
         }
 
+        //what customer pays, price for every seat followed by tier discount
+        //guest has no tier so Tier.Standard for a guest
+        private static decimal AmountPaid(decimal showing_price, int seat_count, Tier tier)
+        {
+            decimal ticket_total = showing_price * seat_count;
+            return LoyaltyService.ApplyTierDiscount(ticket_total, tier);
+        }
+
+        //points earned on amount paid, guest doesnt earn points
+        private static int PointsForBooking(bool is_guest, decimal amount_paid, Tier tier)
+        {
+            if (is_guest) return 0;
+            return LoyaltyService.PointsEarned(amount_paid, tier);
+        }
+
+        //cancel a booking, free the seats and fix the member's points
+        //true when cancelled, false with a message
+        public bool CancelBooking(Role role, int? acting_member_id, string guest_email, string reference,
+            out string error_message)
+        {
+            error_message = "";
+
+            //role check
+            if (!CanCancel(role))
+            {
+                error_message = "your role isnt allowed to cancel bookings";
+                return false;
+            }
+
+            if (!Booking.IsValidReference(reference, out error_message))
+            {
+                return false;
+            }
+
+            //find the booking, the seats and the points it earned come with it
+            Booking? booking = _database.FindBooking(reference);
+            if (booking == null)
+            {
+                error_message = "no booking found with this reference";
+                return false;
+            }
+
+            if (!MayCancelThisBooking(role, acting_member_id, guest_email, booking))
+            {
+                //a guest gets the same message as not found...
+                error_message = role == Role.Guest
+                    ? "no booking found with this reference"
+                    : "you can only cancel your own booking";
+                return false;
+            }
+
+            //early check so user gets a clear message
+            if (booking.Status == BookingStatus.Cancelled)
+            {
+                error_message = "this booking is already cancelled";
+                return false;
+            }
+
+            //read the member before changing anything, so a missing member stops us early
+            Member? member = null;
+            if (booking.MemberId.HasValue)
+            {
+                member = FindMember(booking.MemberId.Value);
+                if (member == null)
+                {
+                    error_message = "member not found";
+                    return false;
+                }
+            }
+
+            //the database is the real guard against cancelling twice, false means already cancelled
+            if (!_database.CancelBooking(booking.Id))
+            {
+                error_message = "this booking is already cancelled";
+                return false;
+            }
+
+            //free the seats in the grid, if the showing is not loaded there is no grid to fix
+            Showing? showing = _showing_table.FindShowing(booking.ShowingId);
+            if (showing != null)
+            {
+                lock (_seat_lock)
+                {
+                    showing.SeatGrid.FreeSeats(booking.Seats);
+                }
+            }
+
+
+            //take back the points earned give back the points used(guest has no points)
+            if (member != null)
+            {
+                int new_points = member.Points - booking.PointsEarned + booking.PointsUsed;
+                int new_lifetime_points = member.LifetimePoints - booking.PointsEarned;
+
+                //points cannot go below 0
+                if (new_points < 0) new_points = 0;
+                if (new_lifetime_points < 0) new_lifetime_points = 0;
+
+                Tier new_tier = LoyaltyService.TierForLifetimePoints(new_lifetime_points);
+
+                bool is_points_saved = false;
+                try
+                {
+                    is_points_saved = _database.UpdateMemberPoints(member.Id, new_points, new_lifetime_points, new_tier);
+                }
+                catch
+                {
+                    is_points_saved = false;
+                }
+
+                if (!is_points_saved)
+                {
+                    error_message = "the booking was cancelled but the points could not be updated, please tell staff";
+                }
+            }
+            return true;
+        }
+
         //looks for one member by id, null if there is none
         private Member? FindMember(int member_id)
         {
@@ -190,12 +327,30 @@ namespace CinemaBooking.Services
             return null;
         }
 
-
-
         //all roles can book
         private static bool CanBook(Role role)
         {
             return role == Role.Guest || role == Role.Customer || role == Role.Staff || role == Role.Admin;
+        }
+
+        //all roles can cancel, but see MayCancelThisBooking for whose booking
+        private static bool CanCancel(Role role)
+        {
+            return role == Role.Guest || role == Role.Customer || role == Role.Staff || role == Role.Admin;
+        }
+
+
+        //staff and admin can cancel any booking, a customer only their own,
+        //a guest only a guest booking whose saved email matches (capital letters ignored)
+        private static bool MayCancelThisBooking(Role role, int? acting_member_id, string guest_email, Booking booking)
+        {
+            if (role == Role.Staff || role == Role.Admin) return true;
+            if (role == Role.Customer) return acting_member_id.HasValue && booking.MemberId == acting_member_id;
+
+            //an empty email never matches
+            if (string.IsNullOrWhiteSpace(guest_email)) return false;
+            return booking.IsGuest
+                && string.Equals(booking.GuestEmail, guest_email.Trim(), StringComparison.OrdinalIgnoreCase);
         }
 
         //checks one seat is on our screens, rows A to H and seats 1 to 12
@@ -277,21 +432,5 @@ namespace CinemaBooking.Services
             error_message = "Could not make a unique reference, please try again!";
             return false;
         }
-
-        //what customer pays, price for every seat followed by tier discount
-        //guest has no tier so Tier.Standard for a guest
-        private static decimal AmountPaid(decimal showing_price, int seat_count, Tier tier)
-        {
-            decimal ticket_total = showing_price * seat_count;
-            return LoyaltyService.ApplyTierDiscount(ticket_total, tier);
-        }
-
-        //points earned on amount paid, guest doesnt earn points
-        private static int PointsForBooking(bool is_guest, decimal amount_paid, Tier tier)
-        {
-            if (is_guest) return 0;
-            return LoyaltyService.PointsEarned(amount_paid, tier);
-        }
-
     }
 }

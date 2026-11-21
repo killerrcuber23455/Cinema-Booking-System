@@ -171,7 +171,7 @@ public class FilmTests
     [TestMethod]
     public void IsValidDescription_NullOrEmpty_IsAccepted()
     {
-        Assert.IsTrue(Film.IsValidDescription(null, out _));
+        Assert.IsTrue(Film.IsValidDescription(null!, out _));
         Assert.IsTrue(Film.IsValidDescription("", out _));
     }
 
@@ -198,7 +198,7 @@ public class FilmTests
     [DataRow("   ")]
     public void IsValidPosterFile_Empty_IsAccepted(string? poster)
     {
-        Assert.IsTrue(Film.IsValidPosterFile(poster, out _));
+        Assert.IsTrue(Film.IsValidPosterFile(poster!, out _));
     }
 
     [TestMethod]
