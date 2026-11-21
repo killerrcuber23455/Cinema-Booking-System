@@ -42,7 +42,7 @@ namespace CinemaBooking.Services
                     found[compare_index + 1] = found[compare_index];
                     compare_index--;
                 }
-                
+                found[compare_index + 1] = current;
             }
             return found;
         }
