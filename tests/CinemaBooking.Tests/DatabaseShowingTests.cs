@@ -18,11 +18,11 @@ namespace CinemaBooking.Tests
         [TestInitialize]
         public void Setup()
         {
-            string? value = Environment.GetEnvironmentVariable("CINEMA_TEST_CONNECTION");
+            string? value = Environment.GetEnvironmentVariable("CINEMA_TEST_DB");
 
             if (string.IsNullOrWhiteSpace(value) || !value.Contains("Test", StringComparison.OrdinalIgnoreCase))
             {
-                Assert.Inconclusive("Set CINEMA_TEST_CONNECTION to a TEST database (name must contain Test).");
+                Assert.Inconclusive("Set CINEMA_TEST_DB to a TEST database (name must contain Test).");
             }
 
             _connection_string = value;
