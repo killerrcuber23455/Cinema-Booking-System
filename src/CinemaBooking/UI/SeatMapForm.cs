@@ -216,6 +216,7 @@ namespace CinemaBooking.UI
 
             lblSelection.Text = _selection.Describe();
             btnContinue.Enabled = _selection.Count > 0;
+            btnContinue.BackColor = btnContinue.Enabled ? UiTheme.ACCENT_RED : UiTheme.CARD;
         }
     }
 }

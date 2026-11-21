@@ -36,9 +36,11 @@ namespace CinemaBooking.UI
         // every page shares one film table, so films loaded once are seen on every page
         private readonly HashTable<int, Film> _films = new HashTable<int, Film>();
         private readonly FilmService _film_service;
+        private readonly ShowingService _showing_service;
 
-        public MainForm()
+        public MainForm(ShowingService showing_service)
         {
+            _showing_service = showing_service;
             _film_service = new FilmService(_films);
 
             BuildWindow();
@@ -133,14 +135,15 @@ namespace CinemaBooking.UI
             return new FilmBrowseForm(_film_service, OpenFilmDetail);
         }
 
-        // the detail page of the film that was clicked (card 402)
-        // the showings list stays empty until the ShowingService has GetShowingsForFilm
+        // the detail page of the film that was clicked (card 402), with the showings of that film
         private void OpenFilmDetail(Film film)
         {
             FilmDetailForm detail_page = new FilmDetailForm(
                 film,
                 () => ShowPage(btnFilms, "Films", MakeFilmsPage()),
                 showing => OpenSeatMap(film, showing));
+
+            detail_page.ShowShowings(_showing_service.GetShowingsForFilm(film.Id));
 
             ShowPage(btnFilms, "Film details", detail_page);
         }
@@ -155,7 +158,7 @@ namespace CinemaBooking.UI
                 seat_codes => OpenBookingSummary(film, showing, seat_codes));
 
             ShowPage(btnFilms, "Choose seats", seat_page);
-        }
+        } 
 
         // the booking summary is the next card (403), for now the chosen seats are only named
         private void OpenBookingSummary(Film film, Showing showing, string[] seat_codes)
