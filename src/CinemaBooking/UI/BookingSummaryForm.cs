@@ -94,9 +94,9 @@ namespace CinemaBooking.UI
                 next_top = BuildGuestBoxes(next_top);
             }
 
+            // the message sits under the confirm button and can have up to three lines, one for each wrong box
             lblMessage.ForeColor = UiTheme.ACCENT_RED;
-            lblMessage.AutoEllipsis = true;
-            lblMessage.SetBounds(PAGE_PADDING, next_top, PAGE_WIDTH - 220, 24);
+            lblMessage.SetBounds(PAGE_PADDING, next_top + 52, PAGE_WIDTH, 80);
 
             Button btnConfirm = new Button();
             btnConfirm.Text = "Confirm booking";

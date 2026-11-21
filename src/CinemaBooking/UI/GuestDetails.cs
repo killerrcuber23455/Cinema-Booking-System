@@ -1,5 +1,5 @@
 // the name, email and phone of a guest booking, checked before the booking is made (owner: divyesh)
-// the rules live in Booking, this class only trims the text and shows the first message in page order
+// the rules live in Booking, this class only trims the text and gathers every message, one line per wrong box
 using CinemaBooking.Models;
 
 namespace CinemaBooking.UI
@@ -26,23 +26,34 @@ namespace CinemaBooking.UI
             string clean_phone = (phone ?? "").Trim();
             details = null;
 
+            // every wrong box is added, in page order, so the user sees all the problems together
             // null as member id means a guest, so the guest rules are checked
-            if (!Booking.IsValidGuestName(null, clean_name, out error_message))
+            string all_errors = "";
+            string rule_message;
+
+            if (!Booking.IsValidGuestName(null, clean_name, out rule_message))
             {
-                return false;
+                all_errors += rule_message + "\n";
             }
 
-            if (!Booking.IsValidGuestEmail(null, clean_email, out error_message))
+            if (!Booking.IsValidGuestEmail(null, clean_email, out rule_message))
             {
-                return false;
+                all_errors += rule_message + "\n";
             }
 
-            if (!Booking.IsValidGuestPhone(null, clean_phone, out error_message))
+            if (!Booking.IsValidGuestPhone(null, clean_phone, out rule_message))
             {
+                all_errors += rule_message + "\n";
+            }
+
+            if (all_errors != "")
+            {
+                error_message = all_errors.TrimEnd('\n');
                 return false;
             }
 
             details = new GuestDetails(clean_name, clean_email, clean_phone);
+            error_message = "";
             return true;
         }
     }
