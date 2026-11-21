@@ -110,13 +110,48 @@ public class GuestDetailsTests
         Assert.IsNull(details);
     }
 
+    // several wrong at once: the user sees every problem together, one message per line
     [TestMethod]
-    public void TryCreate_SeveralWrong_SaysTheFirstOneInPageOrder()
+    public void TryCreate_SeveralWrong_ShowsAllMessagesAtOnce()
     {
-        // the page order is name, email, phone, so the user fixes the top box first
         GuestDetails.TryCreate("", "wrong", "abc", out GuestDetails? details, out string error_message);
 
         StringAssert.Contains(error_message, "name");
+        StringAssert.Contains(error_message, "email");
+        StringAssert.Contains(error_message, "phone");
+    }
+
+    [TestMethod]
+    public void TryCreate_AllThreeEmpty_ShowsThreeLines()
+    {
+        GuestDetails.TryCreate("", "", "", out GuestDetails? details, out string error_message);
+
+        string[] lines = error_message.Split('\n');
+
+        Assert.AreEqual(3, lines.Length);
+    }
+
+    [TestMethod]
+    public void TryCreate_SeveralWrong_MessagesAreInPageOrder()
+    {
+        // the page order is name, email, phone, so the lines follow the boxes from the top
+        GuestDetails.TryCreate("", "", "", out GuestDetails? details, out string error_message);
+
+        int name_place = error_message.IndexOf("name");
+        int email_place = error_message.IndexOf("email");
+        int phone_place = error_message.IndexOf("phone");
+
+        Assert.IsTrue(name_place >= 0 && name_place < email_place);
+        Assert.IsTrue(email_place < phone_place);
+    }
+
+    [TestMethod]
+    public void TryCreate_OnlyTheEmailWrong_ShowsOnlyOneLine()
+    {
+        GuestDetails.TryCreate("Anna Smith", "wrong", "57123456", out GuestDetails? details, out string error_message);
+
+        Assert.AreEqual(1, error_message.Split('\n').Length);
+        StringAssert.Contains(error_message, "email");
     }
 
     [TestMethod]
