@@ -160,14 +160,16 @@ namespace CinemaBooking.UI
         // the booking summary is the next card (403), for now the chosen seats are only named
         private void OpenBookingSummary(Film film, Showing showing, string[] seat_codes)
         {
-            // member is null until login exists, so everyone is shown as a guest for now
+            // member is null until login exists, so everyone is a guest for now
             BookingSummaryForm summary_page = new BookingSummaryForm(
                 film,
                 showing,
                 seat_codes,
                 null,
                 () => OpenSeatMap(film, showing),
-                () => ShowPage(btnFilms, "Booking", MakePlaceholderPage(
+                () => ShowPage(btnFilms, "My account", MakePlaceholderPage(
+                    "Login is built in its own card.")),
+                guest_details => ShowPage(btnFilms, "Booking", MakePlaceholderPage(
                     "The booking is made when the booking service is connected.")));
 
             ShowPage(btnFilms, "Booking summary", summary_page);
