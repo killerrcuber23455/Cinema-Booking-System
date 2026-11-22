@@ -34,6 +34,11 @@ namespace CinemaBooking.UI
         // a message about the whole login, like a wrong password or a locked account
         private readonly Label lblMessage = new Label();
 
+        private readonly Button btnSignIn = FormParts.MakeButton("Sign in", UiTheme.ACCENT_RED);
+
+        // true while the login is running on a background thread, a second click is ignored
+        private bool _is_busy;
+
         public LoginForm(AuthService auth_service, Action<Role, Member?, string> signed_in, Action go_sign_up,
             Action? go_first_admin = null, string notice = "")
         {
@@ -82,7 +87,6 @@ namespace CinemaBooking.UI
 
             int buttons_top = FormParts.TopUnderRows(LoginInput.BOX_COUNT);
 
-            Button btnSignIn = FormParts.MakeButton("Sign in", UiTheme.ACCENT_RED);
             btnSignIn.SetBounds(FormParts.PAGE_PADDING, buttons_top, 180, 40);
             btnSignIn.Click += (sender, e) => ClickSignIn();
 
@@ -108,8 +112,13 @@ namespace CinemaBooking.UI
         }
 
         // the boxes are checked first, then AuthService tries the login
-        private void ClickSignIn()
+        private async void ClickSignIn()
         {
+            if (_is_busy)
+            {
+                return;
+            }
+
             lblMessage.Text = "";
 
             // every wrong box shows its own message, all at once
@@ -127,19 +136,48 @@ namespace CinemaBooking.UI
                 return;
             }
 
-            Role role;
-            Member? member;
+            // the database call runs on a background thread so the window does not freeze
+            string email = input!.Email;
+            string password = input.Password;
 
-            if (!_auth_service.Login(input!.Email, input.Password, out role, out member, out error_message))
+            SetBusy(true);
+            CallResult<(bool Ok, Role Role, Member? Member, string Error)> result = await BackgroundCall.RunAsync(() =>
+            {
+                Role found_role;
+                Member? found_member;
+                string found_error;
+                bool ok = _auth_service.Login(email, password, out found_role, out found_member, out found_error);
+                return (ok, found_role, found_member, found_error);
+            });
+            SetBusy(false);
+
+            if (!result.IsOk)
+            {
+                lblMessage.Text = result.ErrorText;
+                return;
+            }
+
+            Role role = result.Value.Role;
+            Member? member = result.Value.Member;
+
+            if (!result.Value.Ok)
             {
                 // the password box is cleared, the email stays so the user can try again
                 txtPassword.Text = "";
-                lblMessage.Text = error_message;
+                lblMessage.Text = result.Value.Error;
                 return;
             }
 
             txtPassword.Text = "";
-            _signed_in(role, member, input.Email);
+            _signed_in(role, member, email);
+        }
+
+        // while the call runs the button says "Signing in..." and cannot be clicked again
+        private void SetBusy(bool is_busy)
+        {
+            _is_busy = is_busy;
+            btnSignIn.Enabled = !is_busy;
+            btnSignIn.Text = is_busy ? "Signing in..." : "Sign in";
         }
     }
 }

@@ -51,13 +51,19 @@ public class BackgroundCallTests
     }
 
     [TestMethod]
-    public async Task RunAsync_RunsTheWorkOnAnotherThread()
+    public async Task RunAsync_SlowWork_GivesControlBackBeforeTheWorkIsDone()
     {
-        int calling_thread = Environment.CurrentManagedThreadId;
+        // the work waits here until the test lets it go, so it can only finish after RunAsync has returned
+        using ManualResetEventSlim gate = new ManualResetEventSlim(false);
 
-        CallResult<int> result = await BackgroundCall.RunAsync(() => Environment.CurrentManagedThreadId);
+        Task<CallResult<bool>> task = BackgroundCall.RunAsync(() => gate.Wait(TimeSpan.FromSeconds(5)));
 
-        Assert.AreNotEqual(calling_thread, result.Value);
+        Assert.IsFalse(task.IsCompleted);
+
+        gate.Set();
+        CallResult<bool> result = await task;
+
+        Assert.IsTrue(result.Value);
     }
 
     // ErrorTextFor

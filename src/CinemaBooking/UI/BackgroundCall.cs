@@ -26,17 +26,31 @@ namespace CinemaBooking.UI
         public const string GENERIC_ERROR = "Something went wrong. Please try again.";
 
         // runs the work on another thread and gives back the value, or the error text if it failed
-        // this is only a stub for the red step, it does not run the work
-        public static Task<CallResult<T>> RunAsync<T>(Func<T> work)
+        // the work must not touch any control, the window reads the result after the await, back on its own thread
+        public static async Task<CallResult<T>> RunAsync<T>(Func<T> work)
         {
-            return Task.FromResult(new CallResult<T>(true, default, ""));
+            try
+            {
+                T value = await Task.Run(work);
+                return new CallResult<T>(true, value, "");
+            }
+            catch (Exception exception)
+            {
+                return new CallResult<T>(false, default, ErrorTextFor(exception));
+            }
         }
 
         // the sentence to show for this error
-        // this is only a stub for the red step
+        // the data layer throws InvalidOperationException with a clear sentence when SQL Server cannot be reached,
+        // that sentence is meant for the user. any other error shows the general text, so no technical detail leaks
         public static string ErrorTextFor(Exception exception)
         {
-            return "";
+            if (exception is InvalidOperationException && !string.IsNullOrWhiteSpace(exception.Message))
+            {
+                return exception.Message;
+            }
+
+            return GENERIC_ERROR;
         }
     }
 }

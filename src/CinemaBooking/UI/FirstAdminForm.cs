@@ -28,6 +28,11 @@ namespace CinemaBooking.UI
         // a message about the whole page, like "an admin already exists"
         private readonly Label lblMessage = new Label();
 
+        private readonly Button btnCreate = FormParts.MakeButton("Create admin", UiTheme.ACCENT_RED);
+
+        // true while the admin is being made on a background thread, a second click is ignored
+        private bool _is_busy;
+
         public FirstAdminForm(AuthService auth_service, Action<string> admin_created, Action go_login)
         {
             _auth_service = auth_service;
@@ -76,7 +81,6 @@ namespace CinemaBooking.UI
 
             int buttons_top = FormParts.TopUnderRows(FirstAdminInput.BOX_COUNT);
 
-            Button btnCreate = FormParts.MakeButton("Create admin", UiTheme.ACCENT_RED);
             btnCreate.SetBounds(FormParts.PAGE_PADDING, buttons_top, 180, 40);
             btnCreate.Click += (sender, e) => ClickCreate();
 
@@ -93,8 +97,13 @@ namespace CinemaBooking.UI
         }
 
         // the boxes are checked first, then AuthService makes the admin
-        private void ClickCreate()
+        private async void ClickCreate()
         {
+            if (_is_busy)
+            {
+                return;
+            }
+
             lblMessage.Text = "";
 
             string[] box_errors = FirstAdminInput.CheckBoxes(txtEmail.Text, txtPassword.Text, txtConfirm.Text);
@@ -113,15 +122,42 @@ namespace CinemaBooking.UI
                 return;
             }
 
-            if (!_auth_service.CreateFirstAdmin(input!.Email, input.Password, out error_message))
+            // the database call runs on a background thread so the window does not freeze
+            string email = input!.Email;
+            string password = input.Password;
+
+            SetBusy(true);
+            CallResult<(bool Ok, string Error)> result = await BackgroundCall.RunAsync(() =>
             {
-                txtPassword.Text = "";
-                txtConfirm.Text = "";
-                lblMessage.Text = error_message;
+                string create_error;
+                bool ok = _auth_service.CreateFirstAdmin(email, password, out create_error);
+                return (ok, create_error);
+            });
+            SetBusy(false);
+
+            if (!result.IsOk)
+            {
+                lblMessage.Text = result.ErrorText;
                 return;
             }
 
-            _admin_created(input.Email);
+            if (!result.Value.Ok)
+            {
+                txtPassword.Text = "";
+                txtConfirm.Text = "";
+                lblMessage.Text = result.Value.Error;
+                return;
+            }
+
+            _admin_created(email);
+        }
+
+        // while the call runs the button says "Creating..." and cannot be clicked again
+        private void SetBusy(bool is_busy)
+        {
+            _is_busy = is_busy;
+            btnCreate.Enabled = !is_busy;
+            btnCreate.Text = is_busy ? "Creating..." : "Create admin";
         }
     }
 }

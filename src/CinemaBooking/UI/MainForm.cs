@@ -386,7 +386,19 @@ namespace CinemaBooking.UI
         {
             Action? go_first_admin = null;
 
-            if (!_auth_service.HasAnyAdmin())
+            // if the database cannot be reached, no button is shown here: the sign in will show the clear message
+            bool has_admin = true;
+
+            try
+            {
+                has_admin = _auth_service.HasAnyAdmin();
+            }
+            catch (InvalidOperationException)
+            {
+                has_admin = true;
+            }
+
+            if (!has_admin)
             {
                 go_first_admin = () => ShowPage(btnAccount, "Admin setup", new FirstAdminForm(
                     _auth_service,

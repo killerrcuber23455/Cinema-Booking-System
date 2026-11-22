@@ -30,6 +30,11 @@ namespace CinemaBooking.UI
         // a message about the whole sign up, like an email that is already used
         private readonly Label lblMessage = new Label();
 
+        private readonly Button btnCreate = FormParts.MakeButton("Create account", UiTheme.ACCENT_RED);
+
+        // true while the account is being made on a background thread, a second click is ignored
+        private bool _is_busy;
+
         public SignUpForm(AuthService auth_service, Action<string> account_created, Action go_login)
         {
             _auth_service = auth_service;
@@ -74,7 +79,6 @@ namespace CinemaBooking.UI
 
             int buttons_top = FormParts.TopUnderRows(SignUpInput.BOX_COUNT);
 
-            Button btnCreate = FormParts.MakeButton("Create account", UiTheme.ACCENT_RED);
             btnCreate.SetBounds(FormParts.PAGE_PADDING, buttons_top, 180, 40);
             btnCreate.Click += (sender, e) => ClickCreate();
 
@@ -91,8 +95,13 @@ namespace CinemaBooking.UI
         }
 
         // the boxes are checked first, then AuthService makes the account
-        private void ClickCreate()
+        private async void ClickCreate()
         {
+            if (_is_busy)
+            {
+                return;
+            }
+
             lblMessage.Text = "";
 
             string[] box_errors = SignUpInput.CheckBoxes(txtName.Text, txtEmail.Text, txtPhone.Text,
@@ -113,16 +122,45 @@ namespace CinemaBooking.UI
                 return;
             }
 
-            if (!_auth_service.SignUp(input!.Name, input.Email, input.Phone, input.Password, out error_message))
+            // the database call runs on a background thread so the window does not freeze
+            string name = input!.Name;
+            string email = input.Email;
+            string phone = input.Phone;
+            string password = input.Password;
+
+            SetBusy(true);
+            CallResult<(bool Ok, string Error)> result = await BackgroundCall.RunAsync(() =>
+            {
+                string sign_up_error;
+                bool ok = _auth_service.SignUp(name, email, phone, password, out sign_up_error);
+                return (ok, sign_up_error);
+            });
+            SetBusy(false);
+
+            if (!result.IsOk)
+            {
+                lblMessage.Text = result.ErrorText;
+                return;
+            }
+
+            if (!result.Value.Ok)
             {
                 // the passwords are cleared, the other boxes stay so the user can fix one and try again
                 txtPassword.Text = "";
                 txtConfirm.Text = "";
-                lblMessage.Text = error_message;
+                lblMessage.Text = result.Value.Error;
                 return;
             }
 
-            _account_created(input.Email);
+            _account_created(email);
+        }
+
+        // while the call runs the button says "Creating..." and cannot be clicked again
+        private void SetBusy(bool is_busy)
+        {
+            _is_busy = is_busy;
+            btnCreate.Enabled = !is_busy;
+            btnCreate.Text = is_busy ? "Creating..." : "Create account";
         }
     }
 }
