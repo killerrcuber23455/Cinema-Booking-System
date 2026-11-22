@@ -2,7 +2,7 @@
 
 Author: Irwin Chinathoo (Tester 2)
 Card: 354 (AB#354), data-side section for Akilesh to merge into `test-plan.md`
-Status: draft 7, 20 Nov 2026. Every table uses the new columns. Cards 356, 409, 361 and 432 run and passing. Section 11 is card 418: performance, security and boundary tests that run without SQL Server, the regression log, and the summary of the whole file. The SQL Server and window parts of 418 wait for the test database and the windows.
+Status: draft 8, 22 Nov 2026. Card 337 added (section 8): 15 integration runs on CinemaBookingTestDb, 11 passed, 4 failed with real bugs BUG-05 to BUG-08. Sections 1 to 7 and 10 to 11 as before.
 
 This section covers Kushal's code: our own hash tables and linked list, the seat grid, search, the file loader and the database. All tables use the columns agreed on 18 Nov: Test ID, Test type, Mode, Area, What is tested, Preconditions, Test data, Post-conditions, Expected result, Actual result, Pass/Fail, Executed date, Tester, Bug ID. Rows that cannot run yet say why in Actual result and are marked Not run.
 
@@ -187,15 +187,28 @@ All database tests use a separate test database, never the real one.
 
 ## 8. Users and audit log (card 337)
 
+MSTest file: `tests/CinemaBooking.Tests/DatabaseUserTests.cs`, integration tests on the local CinemaBookingTestDb (setting CINEMA_TEST_DB, steps in `docs/testing/test-database-setup.md`). Kushal's `UserRepositoryTests` already check the normal cases (new user, duplicate email in any case, find, failed attempts and lock, unknown user, audit without a user, HasAnyAdmin), so these rows add read-back of every field, the audit row details, security text, bad data, database down and a timing. The old rows USER-03, USER-04 and USER-05 are covered by Kushal's tests and were removed.
+
 | Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| USER-01 | Integration | Automatic | Users | Save and read back a user | Local CinemaBookingTest database built from cinema.sql | User with username and role | - | Same username and role | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
-| USER-02 | Security | Automatic | Users | No plain password stored | Local CinemaBookingTest database built from cinema.sql | Save a user with password "abc123" | - | The password column holds a hash, not "abc123" | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
-| USER-03 | Integration | Automatic | Users | Update failed attempts | Local CinemaBookingTest database built from cinema.sql | Set failed attempts to 2 | - | Reads back as 2 | Not run yet: the users table has no failed_attempts or locked_until column, waits for Kushal's card 318 | Not run | - | Irwin | - |
-| USER-04 | Integration | Automatic | Users | Locked-until saved | Local CinemaBookingTest database built from cinema.sql | Set a lock time | - | Reads back the same time | Not run yet: the users table has no failed_attempts or locked_until column, waits for Kushal's card 318 | Not run | - | Irwin | - |
-| USER-05 | Security | Automatic | Users | Two users with the same username | Local CinemaBookingTest database built from cinema.sql | Save the same username twice | - | Second is refused by the unique key `uq_users_username` | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
-| AUD-01 | Integration | Automatic | Audit log | Write an audit row | Local CinemaBookingTest database built from cinema.sql | Write "admin added film 5" | - | Row saved with who, what and when | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
-| AUD-02 | Integration | Automatic | Audit log | Rows come back in order | Local CinemaBookingTest database built from cinema.sql | Write 3 rows | - | Read back oldest to newest (or newest first, TBC) | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| USER-01 | Integration | Automatic | Users | Save and read back every field (SaveUser_CustomerWithMember_ReadsBackAllFields) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | "Ann@Mail.com", hash123, salt123, Customer, a new member row | 1 user, 1 audit row | Same id, email lowercased, same hash, salt, role and member id | As expected | Pass | 22 Nov 2026 | Irwin | - |
+| AUD-01 | Integration | Automatic | Audit log | Saving a user writes an audit row (SaveUser_WritesAuditRowWithTime) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | boss@x.com, Admin | 1 audit row | Row with the user id, "boss@x.com as Admin", time within the last minute | As expected | Pass | 22 Nov 2026 | Irwin | - |
+| AUD-03 | Integration | Automatic | Audit log | Audit row keeps the user id (WriteAudit_WithUser_KeepsUserId) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | Staff user, action film_added | 1 extra audit row | True, row has the user id | As expected | Pass | 22 Nov 2026 | Irwin | - |
+| AUD-04 | Boundary/negative | Automatic | Audit log | Empty action refused (WriteAudit_EmptyAction_ReturnsFalse) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | Action "   " | No audit rows | False, nothing written | As expected | Pass | 22 Nov 2026 | Irwin | - |
+| SEC-03 | Security | Automatic | Users | SQL injection text in the email (SaveUser_SqlInjectionEmail_StoredAsText) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | x'); DROP TABLE users;--@x.com | 1 user | Saved and found as plain text, users table still there | As expected | Pass | 22 Nov 2026 | Irwin | - |
+| SEC-04 | Security | Automatic | Users | Apostrophe in the email (SaveUser_ApostropheEmail_ReadsBack) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | o'brien@x.com | 1 user | Read back unchanged | As expected | Pass | 22 Nov 2026 | Irwin | - |
+| BND-05 | Boundary/negative | Automatic | Users | Blank email (SaveUser_BlankEmail_ReturnsMinusOne, 2 inputs) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | "" and "   " | No users | -1 | -1 for both | Pass | 22 Nov 2026 | Irwin | - |
+| BND-06 | Boundary/negative | Automatic | Users | Find a blank email (FindByEmail_BlankEmail_ReturnsNull) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | "  " | No change | Null | Null | Pass | 22 Nov 2026 | Irwin | - |
+| BND-07 | Boundary/negative | Automatic | Users | Guest role has no account (SaveUser_GuestRole_ReturnsMinusOne) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | guest@x.com, role Guest | No users | -1, no crash (the users table only allows Customer, Staff, Admin) | Throws SqlException, the test crashes (ck_users_role) | Fail | 22 Nov 2026 | Irwin | BUG-05 |
+| BND-08 | Boundary/negative | Automatic | Users | Negative failed attempts (SetFailedAttempts_Negative_ReturnsFalse) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | Failed attempts -1 | User unchanged | False, no crash | Throws SqlException, the test crashes (ck_users_failed) | Fail | 22 Nov 2026 | Irwin | BUG-06 |
+| BND-09 | Boundary/negative | Automatic | Users | Email longer than the column (SaveUser_EmailTooLong_ReturnsMinusOne) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | 101-letter email | No users | -1, no crash | Throws SqlException, the test crashes (string would be truncated) | Fail | 22 Nov 2026 | Irwin | BUG-07 |
+| BND-10 | Boundary/negative | Automatic | Users | Member id that does not exist (SaveUser_MissingMemberId_ReturnsMinusOne) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | Customer with member id 999999 | No users | -1, no crash | Throws SqlException, the test crashes (fk_users_member) | Fail | 22 Nov 2026 | Irwin | BUG-08 |
+| DB-12b | Integration | Automatic | Users | Database down (FindByEmail_DatabaseDown_ClearMessage) | No SQL Server at that name | Server name that does not exist, 2 second limit | - | "The database could not be reached..." message, no raw SQL error | As expected | Pass | 22 Nov 2026 | Irwin | - |
+| PERF-04 | Performance | Automatic | Users | 50 saves and 50 finds (SaveAndFind_FiftyUsers_UnderTenSeconds) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | user1 to user50 | 50 users | Under 10 seconds | About 170 ms (Test Explorer duration) | Pass | 22 Nov 2026 | Irwin | - |
+| USER-02 | Security | Automatic | Users | No plain password stored | Local CinemaBookingTest database built from cinema.sql | Save a user with password "abc123" | - | The password column holds a hash, not "abc123" | Not run yet: the hash is made by Shankar's PasswordHasher (card 333), tested with the login service | Not run | - | Irwin | - |
+| AUD-02 | Integration | Automatic | Audit log | Rows come back in order | Local CinemaBookingTest database built from cinema.sql | Write 3 rows | - | Read back oldest to newest (or newest first, TBC) | Not run: UserRepository has no method to read audit rows back in order | Not run | - | Irwin | - |
+
+Run on 22 Nov 2026: 15 runs, 11 passed, 4 failed. The 4 failures are real bugs (BUG-05 to BUG-08): when a database rule refuses the data, UserRepository lets the SqlException out instead of returning -1 or false. File 27 says normal problems return -1 or false and SqlException is caught in the Data layer. Assigned to Kushal (card 318). Screenshot: `337-database-user-tests.png`.
 
 ## 9. Manual tests: full journeys (cards 363 and 364)
 
@@ -298,6 +311,7 @@ MSTest file: `tests/CinemaBooking.Tests/PerformanceSecurityTests.cs`. These run 
 | 20 Nov 2026 | FakeDatabase green step | Test Explorer, Run All | 207 tests, 207 passed |
 | 20 Nov 2026 | Added seat grid, showing and member tests (361) | Test Explorer, Run All | 242 tests, 242 passed |
 | 20 Nov 2026 | Added performance, security and boundary tests (418) | Test Explorer, Run All | 250 tests, 250 passed |
+| 22 Nov 2026 | Added SaveFilm to the fake (316); merged Kushal (318, test database); added users and audit tests (337) | Test Explorer, Run All | 296 tests, 292 passed, 4 failed (BUG-05 to BUG-08) |
 
 Retest after a bug fix: HASH-15 (BUG-04) failed on 12 Nov on the old `FilmHashTable`, passed on 15 Nov on the new `HashTable<int, Film>` and in every run since.
 
@@ -308,33 +322,34 @@ Retest after a bug fix: HASH-15 (BUG-04) failed on 12 Nov on the old `FilmHashTa
 | PERF-01 | Add 1000 films (many resizes) and find each one | 1 ms |
 | PERF-02 | Search by title through 1000 films | 2 ms |
 | PERF-03 | One booking through BookingService (fake database) | 0 ms (under 1 ms) |
-| Not run yet | Database queries and a booking on SQL Server | Waits for the CinemaBookingTest database |
+| PERF-04 | 50 user saves and 50 finds on SQL Server | About 170 ms |
+| Not run yet | A booking on SQL Server | Waits for the database version of the fake tests |
 | Not run yet | Sort and search at 1,000, 10,000 and 100,000 films | Card 425, waits for Kushal's sort code (424) |
 
 ### Security
 
 | What the card asks | Where it is tested | Result |
 |---|---|---|
-| SQL injection text | SEC-01 (search box), SEC-02 (guest name); DB-10 on SQL Server | SEC-01 and SEC-02 pass; DB-10 not run, waits for the test database |
+| SQL injection text | SEC-01 (search box), SEC-02 (guest name), SEC-03 (email on SQL Server); DB-10 (film title on SQL Server) | SEC-01, SEC-02 and SEC-03 pass; DB-10 not run yet |
 | SQL injection in every text box | Hand tests, card 363 | Not run, waits for the windows |
 | Role checks | Akilesh's ServiceTests (for example `AddFilm_NotAnAdmin_IsRefused`, also for remove) | Pass (Akilesh's tests, card 359) |
-| Lock-out after 3 wrong passwords | USER-03, USER-04 and Akilesh's card 336 | Not run, waits for Kushal's card 318 and Shankar's card 400 |
-| No plain text passwords | USER-02 | Not run, waits for Shankar's PasswordHasher (card 333) and the test database |
+| Lock-out after 3 wrong passwords | Columns saved: Kushal's SetFailedAttempts tests (pass). Lock-out rule: Akilesh's card 336 | Columns pass; the rule waits for Shankar's card 400 |
+| No plain text passwords | USER-02 | Not run, waits for Shankar's PasswordHasher (card 333) |
 | Apostrophes in text | SRCH-10 (pass); DB-11 on SQL Server (not run) | |
 
 ### Boundary and negative
 
 In the code: every row marked Boundary/negative above (empty tables, missing IDs and emails, the same ID or email twice, negative ID, the 75% resize line, seats outside the grid, bad seat codes, a full grid, empty lists, null, very long text, a missing showing, a taken seat through the service). In the Database class: the DB rows in section 7 (not run, wait for the test database). In the windows: the hand tests in section 9 (cards 363 and 364).
 
-### Summary of this file (20 Nov 2026)
+### Summary of this file (22 Nov 2026)
 
 | Test type | Tests | Passed | Failed | Not run |
 |---|---|---|---|---|
 | White-box | 46 | 44 | 0 | 2 |
-| Boundary/negative | 52 | 43 | 0 | 9 |
-| Integration | 18 | 1 | 0 | 17 |
-| Security | 7 | 3 | 0 | 4 |
-| Performance | 3 | 3 | 0 | 0 |
-| **Total** | **126** | **94** | **0** | **32** |
+| Boundary/negative | 59 | 46 | 4 | 9 |
+| Integration | 18 | 5 | 0 | 13 |
+| Security | 8 | 5 | 0 | 3 |
+| Performance | 4 | 4 | 0 | 0 |
+| **Total** | **135** | **104** | **4** | **27** |
 
-Mode: 126 automatic (MSTest); the journeys J1 to J6 in section 9 are manual and are run in Sprint 4. Pass rate of the tests that were run: 100%. Open bugs: none (BUG-04 is closed). Screenshot for card 418: `418-performance-security-tests-green.png`.
+Mode: 135 automatic (MSTest); the journeys J1 to J6 in section 9 are manual and are run in Sprint 4. Pass rate of the tests that were run: 96%. Open bugs: BUG-05, BUG-06, BUG-07 and BUG-08 (card 337, assigned to Kushal). Closed: BUG-04.
