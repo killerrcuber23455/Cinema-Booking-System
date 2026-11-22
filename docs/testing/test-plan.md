@@ -344,6 +344,33 @@ Written first, before the CancelBooking rules were right. They run on the TEST d
 | CANCEL-16 | Integration | Automatic | Cancel booking | Tier is worked out again after a cancel | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Silver member, 105 lifetime points, booking earned 10 | Lifetime points 95, tier Standard | Tier goes back to Standard | Lifetime points 95, tier Standard | Pass | 2026-11-18 | Akilesh | - |
 | CANCEL-17 | Integration | Automatic | Cancel booking | Points cannot be saved | TEST database (CinemaBookingTest) with film 1, showing 1 and a member; the booking is Confirmed | Member with 100 points and 100 lifetime points, booking earned 10 and used 50, cancelled by Admin | Booking status Cancelled | true with the message: the booking was cancelled but the points could not be updated, please tell staff | Returned true with the message: the booking was cancelled but the points could not be updated, please tell staff | Pass | 2026-11-19 | Akilesh | BUG-03 |
 
+### Merge sort and binary search (card 423, red first)
+
+Written before the code (card 424, Kushal). File: `tests/CinemaBooking.Tests/SortHelperTests.cs`, 20 test methods that run as 22 tests (BSRCH-04 has 3 inputs). They run on the stub in `Algorithms/SortHelper.cs`. The red run on 22 Nov 2026 (commit 399fec1) gave 22 tests, 8 passed, 14 failed. The rows stay Not run until the real code is written and the tests are green. Screenshot: `docs/testing/screenshots/sorthelper-red.png`.
+
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SORT-01 | White-box | Automatic | Merge sort | Sort by title (MergeSort_ByTitle_SortsAToZ) | An array of valid films made inside the test (no database) | Matrix, Avatar, Titanic, Inception, sort_by "title" | Original array unchanged | Avatar, Inception, Matrix, Titanic | Red run 2026-11-22: fails on the stub (order not changed) | Not run |  | Akilesh |  |
+| SORT-02 | White-box | Automatic | Merge sort | Sort by year (MergeSort_ByYear_SortsOldestFirst) | An array of valid films made inside the test (no database) | Years 1999, 2009, 1997, 2010, sort_by "year" | Original array unchanged | Oldest first: 1997, 1999, 2009, 2010 | Red run 2026-11-22: fails on the stub (order not changed) | Not run |  | Akilesh |  |
+| SORT-03 | White-box | Automatic | Merge sort | Sort by rating (MergeSort_ByRating_SortsLowestRatingFirst) | An array of valid films made inside the test (no database) | Age ratings 15, 12, 12, 15, sort_by "rating" | Original array unchanged | 12, 12, 15, 15 | Red run 2026-11-22: fails on the stub (first rating 15, expected 12) | Not run |  | Akilesh |  |
+| SORT-04 | Boundary/negative | Automatic | Merge sort | Already sorted (MergeSort_AlreadySorted_StaysTheSame) | An array of valid films made inside the test (no database) | Avatar, Inception, Matrix, sort_by "title" | Original array unchanged | Same order | Red run 2026-11-22: passes on the stub, checked again when the real code is written | Not run |  | Akilesh |  |
+| SORT-05 | White-box | Automatic | Merge sort | Reverse order (MergeSort_ReverseOrder_GetsSorted) | An array of valid films made inside the test (no database) | Years 2010, 2000, 1990, 1980, sort_by "year" | Original array unchanged | 1980, 1990, 2000, 2010 | Red run 2026-11-22: fails on the stub (order not changed) | Not run |  | Akilesh |  |
+| SORT-06 | Boundary/negative | Automatic | Merge sort | Empty array (MergeSort_EmptyArray_ReturnsEmptyArray) | No films | Empty array, sort_by "title" | No change | Empty array returned, no crash | Red run 2026-11-22: passes on the stub, checked again when the real code is written | Not run |  | Akilesh |  |
+| SORT-07 | Boundary/negative | Automatic | Merge sort | One film (MergeSort_OneFilm_ReturnsThatFilm) | An array of valid films made inside the test (no database) | One film, sort_by "title" | No change | The same one film | Red run 2026-11-22: passes on the stub, checked again when the real code is written | Not run |  | Akilesh |  |
+| SORT-08 | White-box | Automatic | Merge sort | Equal years keep their order (MergeSort_EqualYears_KeepsOriginalOrder) | An array of valid films made inside the test (no database) | Ids 1 and 3 share a year, ids 2 and 4 share a year, sort_by "year" | Original array unchanged | Ids 2, 4, 1, 3 (equal keys stay in the original order) | Red run 2026-11-22: fails on the stub (order not changed) | Not run |  | Akilesh |  |
+| SORT-09 | White-box | Automatic | Merge sort | Equal ratings keep their order (MergeSort_EqualRatings_KeepsOriginalOrder) | An array of valid films made inside the test (no database) | Ids 1 and 3 share a rating, ids 2 and 4 share a rating, sort_by "rating" | Original array unchanged | Ids 2, 4, 1, 3 (equal keys stay in the original order) | Red run 2026-11-22: fails on the stub (order not changed) | Not run |  | Akilesh |  |
+| SORT-10 | White-box | Automatic | Merge sort | The original array is not changed (MergeSort_OriginalArray_IsNotChanged) | An array of valid films made inside the test (no database) | Sort by title, then look at the original array | Original array in its first order | Original ids still 1, 2, 3, 4 | Red run 2026-11-22: passes on the stub, checked again when the real code is written | Not run |  | Akilesh |  |
+| SORT-11 | White-box | Automatic | Merge sort | The result is a new array (MergeSort_Result_IsANewArray) | An array of valid films made inside the test (no database) | Sort by title | Original array unchanged | The result is not the same array object as the input | Red run 2026-11-22: fails on the stub (the input array is returned) | Not run |  | Akilesh |  |
+| BSRCH-01 | White-box | Automatic | Binary search | Title in the middle (BinarySearch_TitleInTheMiddle_ReturnsItsIndex) | An array of valid films made inside the test (no database), sorted by title | Matrix in Avatar, Inception, Matrix, Titanic, Up | No change | Index 2 | Red run 2026-11-22: fails on the stub (returns -1, expected 2) | Not run |  | Akilesh |  |
+| BSRCH-02 | Boundary/negative | Automatic | Binary search | First title (BinarySearch_FirstTitle_ReturnsZero) | An array of valid films made inside the test (no database), sorted by title | Avatar | No change | Index 0 | Red run 2026-11-22: fails on the stub (returns -1, expected 0) | Not run |  | Akilesh |  |
+| BSRCH-03 | Boundary/negative | Automatic | Binary search | Last title (BinarySearch_LastTitle_ReturnsLastIndex) | An array of valid films made inside the test (no database), sorted by title | Up | No change | Index 4 | Red run 2026-11-22: fails on the stub (returns -1, expected 4) | Not run |  | Akilesh |  |
+| BSRCH-04 | Black-box | Automatic | Binary search | Any letter case (BinarySearch_AnyCase_FindsTheTitle, 3 inputs) | An array of valid films made inside the test (no database), sorted by title | "matrix", "MATRIX", "mAtRiX" | No change | Index 2 for all three | Red run 2026-11-22: fails on the stub for all 3 inputs (returns -1) | Not run |  | Akilesh |  |
+| BSRCH-05 | Boundary/negative | Automatic | Binary search | Title that is not there (BinarySearch_TitleNotThere_ReturnsMinusOne) | An array of valid films made inside the test (no database), sorted by title | Shrek | No change | -1 | Red run 2026-11-22: passes on the stub, checked again when the real code is written | Not run |  | Akilesh |  |
+| BSRCH-06 | Boundary/negative | Automatic | Binary search | Only part of a title (BinarySearch_OnlyPartOfTitle_ReturnsMinusOne) | An array of valid films made inside the test (no database), sorted by title | "Matri" | No change | -1 (the title must match exactly) | Red run 2026-11-22: passes on the stub, checked again when the real code is written | Not run |  | Akilesh |  |
+| BSRCH-07 | Boundary/negative | Automatic | Binary search | Empty array (BinarySearch_EmptyArray_ReturnsMinusOne) | No films | Empty array, "Avatar" | No change | -1, no crash | Red run 2026-11-22: passes on the stub, checked again when the real code is written | Not run |  | Akilesh |  |
+| BSRCH-08 | Boundary/negative | Automatic | Binary search | One film, found (BinarySearch_OneFilmFound_ReturnsZero) | An array of valid films made inside the test (no database) | One film Avatar, search "Avatar" | No change | Index 0 | Red run 2026-11-22: fails on the stub (returns -1, expected 0) | Not run |  | Akilesh |  |
+| BSRCH-09 | Boundary/negative | Automatic | Binary search | One film, not found (BinarySearch_OneFilmNotFound_ReturnsMinusOne) | An array of valid films made inside the test (no database) | One film Avatar, search "Matrix" | No change | -1 | Red run 2026-11-22: passes on the stub, checked again when the real code is written | Not run |  | Akilesh |  |
+
 ### Data side (Irwin's tests, merged from test-plan-data-side.md)
 
 This part covers Kushal's code: our own hash tables and linked list, the seat grid, search, the file loader and the database. Rows that cannot run yet say why in Actual result and are marked Not run. Default sizes: seats are rows A to H and seats 1 to 12 (96 seats), and the hash table grows at about 75% full. The IDs are Irwin's (HASH, RES, SHOWDS, MEMB, SEAT, SRCH, LOAD, DB, USER, AUD, FAKE, PERF-01 and PERF-02, SEC-08, SEC-09, BND).
@@ -701,19 +728,19 @@ Worked out on 22 Nov 2026. Update it after every run. It counts every row of the
 
 | Item | Count |
 |---|---|
-| Tests of type White-box | 95 |
-| Tests of type Black-box | 50 |
+| Tests of type White-box | 104 |
+| Tests of type Black-box | 51 |
 | Tests of type Integration | 87 |
 | Tests of type System | 15 |
 | Tests of type Regression | 2 |
 | Tests of type Performance | 4 |
 | Tests of type Security | 19 |
-| Tests of type Boundary/negative | 93 |
-| Automatic tests | 342 |
+| Tests of type Boundary/negative | 103 |
+| Automatic tests | 362 |
 | Manual tests | 23 |
-| Total tests | 365 |
+| Total tests | 385 |
 | Passed | 193 |
 | Failed | 0 |
-| Not run | 172 |
+| Not run | 192 |
 | Pass rate (passed out of tests run) | 100% |
 | Open bugs | 0 |
