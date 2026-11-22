@@ -10,6 +10,10 @@ namespace CinemaBooking.Services
         private MemberService _member_service;
         private Func<DateTime> _now;
 
+        // the same message for a wrong email and a wrong password
+        // so nobody can find out which emails exist
+        private const string WRONG_LOGIN_MESSAGE = "email or password is wrong";
+
         // the normal constructor uses the real time
         public AuthService(IUserRepository user_repository, MemberService member_service)
             : this(user_repository, member_service, () => DateTime.Now)
@@ -29,8 +33,32 @@ namespace CinemaBooking.Services
         {
             role = Role.Guest;
             member = null;
-            error_message = "login is not built yet";
-            return false;
+            error_message = WRONG_LOGIN_MESSAGE;
+            
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            {
+                return false;
+            }
+
+            UserRecord? user = _user_repository.FindByEmail(email);
+            if (user == null)
+            {
+                return false;
+            }
+
+            if (!PasswordHasher.Verify(password, user.PasswordHash, user.Salt))
+            {
+                return false;
+            }
+
+            role = user.Role;
+            if (user.MemberId.HasValue)
+            {
+                member = _member_service.FindMemberById(user.MemberId.Value);
+            }
+
+            error_message = "";
+            return true;
         }
 
         public bool SignUp(string name, string email, string phone, string password, out string error_message)
