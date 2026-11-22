@@ -72,7 +72,8 @@ namespace CinemaBooking.UI
             _seat_map.Location = new Point(0, MAP_TOP);
 
             int map_bottom = _seat_map.Bottom;
-            int line_width = _seat_map.Width - 190;
+            // the text lines stop before the Continue button, so they never draw over its glowing edge
+            int line_width = _seat_map.Width - 24 - 168 - PAGE_PADDING;
 
             // what the seat under the mouse or the keys is like, in the warm marquee colour
             lblView.ForeColor = UiTheme.AMBER;

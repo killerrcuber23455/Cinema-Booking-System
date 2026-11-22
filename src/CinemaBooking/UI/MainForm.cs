@@ -106,6 +106,7 @@ namespace CinemaBooking.UI
             btnToggle.FlatAppearance.BorderSize = 0;
             btnToggle.FlatAppearance.MouseOverBackColor = UiTheme.MENU_HOVER;
             btnToggle.Cursor = Cursors.Hand;
+            btnToggle.TabStop = false;
             btnToggle.SetBounds(12, 16, 40, 40);
             btnToggle.Click += (sender, e) => ToggleMenu();
             _tips.SetToolTip(btnToggle, "Open or close the menu");

@@ -129,6 +129,8 @@ namespace CinemaBooking.UI
             using (LinearGradientBrush light = new LinearGradientBrush(fade_area,
                 Color.FromArgb(34, UiTheme.SCREEN_LIGHT), Color.FromArgb(0, UiTheme.SCREEN_LIGHT), LinearGradientMode.Vertical))
             {
+                // flip instead of repeat, so the light does not start again below the fade (that made a thin line between two rows)
+                light.WrapMode = WrapMode.TileFlipXY;
                 graphics.FillPolygon(light, cone);
             }
         }
