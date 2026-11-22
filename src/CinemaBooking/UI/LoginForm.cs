@@ -11,13 +11,6 @@ namespace CinemaBooking.UI
 {
     public class LoginForm : UserControl
     {
-        private const int PAGE_PADDING = 8;
-        private const int FORM_WIDTH = 380;
-        private const int LABEL_HEIGHT = 22;
-        private const int BOX_HEIGHT = 28;
-        private const int ROW_HEIGHT = 74;
-        private const int FIRST_ROW_TOP = 56;
-
         private readonly AuthService _auth_service;
 
         // called when the login worked, with the role, the member (null for staff and admin) and the email
@@ -25,6 +18,12 @@ namespace CinemaBooking.UI
 
         // called when the user clicks the sign up button
         private readonly Action _go_sign_up;
+
+        // called when the user clicks "set up the first admin", null means there is no such button
+        private readonly Action? _go_first_admin;
+
+        // a good message above the boxes, like "account created", it can be empty
+        private readonly string _notice;
 
         private readonly TextBox txtEmail = new TextBox();
         private readonly TextBox txtPassword = new TextBox();
@@ -35,11 +34,14 @@ namespace CinemaBooking.UI
         // a message about the whole login, like a wrong password or a locked account
         private readonly Label lblMessage = new Label();
 
-        public LoginForm(AuthService auth_service, Action<Role, Member?, string> signed_in, Action go_sign_up)
+        public LoginForm(AuthService auth_service, Action<Role, Member?, string> signed_in, Action go_sign_up,
+            Action? go_first_admin = null, string notice = "")
         {
             _auth_service = auth_service;
             _signed_in = signed_in;
             _go_sign_up = go_sign_up;
+            _go_first_admin = go_first_admin;
+            _notice = notice;
 
             BuildPage();
         }
@@ -54,13 +56,19 @@ namespace CinemaBooking.UI
             Label lblHeading = new Label();
             lblHeading.Font = UiTheme.CARD_TITLE_FONT;
             lblHeading.Text = "Sign in to your account";
-            lblHeading.SetBounds(PAGE_PADDING, PAGE_PADDING, FORM_WIDTH, 26);
+            lblHeading.SetBounds(FormParts.PAGE_PADDING, FormParts.PAGE_PADDING, FormParts.FORM_WIDTH, 26);
             Controls.Add(lblHeading);
 
-            AddRow("Email", txtEmail, LoginInput.BOX_EMAIL);
+            Label lblNotice = new Label();
+            lblNotice.ForeColor = UiTheme.TEXT_MUTED;
+            lblNotice.Text = _notice;
+            lblNotice.SetBounds(FormParts.PAGE_PADDING, 34, FormParts.FORM_WIDTH, 20);
+            Controls.Add(lblNotice);
+
+            _box_messages[LoginInput.BOX_EMAIL] = FormParts.AddRow(this, "Email", txtEmail, LoginInput.BOX_EMAIL);
 
             txtPassword.UseSystemPasswordChar = true;
-            AddRow("Password", txtPassword, LoginInput.BOX_PASSWORD);
+            _box_messages[LoginInput.BOX_PASSWORD] = FormParts.AddRow(this, "Password", txtPassword, LoginInput.BOX_PASSWORD);
 
             // pressing Enter in the password box is the same as clicking sign in
             txtPassword.KeyDown += (sender, e) =>
@@ -72,60 +80,31 @@ namespace CinemaBooking.UI
                 }
             };
 
-            int buttons_top = FIRST_ROW_TOP + (LoginInput.BOX_COUNT * ROW_HEIGHT) + 4;
+            int buttons_top = FormParts.TopUnderRows(LoginInput.BOX_COUNT);
 
-            Button btnSignIn = MakeButton("Sign in", UiTheme.ACCENT_RED);
-            btnSignIn.SetBounds(PAGE_PADDING, buttons_top, 180, 40);
+            Button btnSignIn = FormParts.MakeButton("Sign in", UiTheme.ACCENT_RED);
+            btnSignIn.SetBounds(FormParts.PAGE_PADDING, buttons_top, 180, 40);
             btnSignIn.Click += (sender, e) => ClickSignIn();
 
-            Button btnSignUp = MakeButton("Create an account", UiTheme.CARD);
-            btnSignUp.SetBounds(PAGE_PADDING + 192, buttons_top, 188, 40);
+            Button btnSignUp = FormParts.MakeButton("Create an account", UiTheme.CARD);
+            btnSignUp.SetBounds(FormParts.PAGE_PADDING + 192, buttons_top, 188, 40);
             btnSignUp.Click += (sender, e) => _go_sign_up();
 
             lblMessage.ForeColor = UiTheme.ACCENT_RED;
-            lblMessage.SetBounds(PAGE_PADDING, buttons_top + 52, FORM_WIDTH, 60);
+            lblMessage.SetBounds(FormParts.PAGE_PADDING, buttons_top + 52, FormParts.FORM_WIDTH, 60);
 
             Controls.Add(btnSignIn);
             Controls.Add(btnSignUp);
             Controls.Add(lblMessage);
-        }
 
-        // a label, a box and the red message under the box
-        private void AddRow(string label_text, TextBox box, int box_place)
-        {
-            int row_top = FIRST_ROW_TOP + (box_place * ROW_HEIGHT);
-
-            Label lblName = new Label();
-            lblName.Text = label_text;
-            lblName.ForeColor = UiTheme.TEXT_MUTED;
-            lblName.SetBounds(PAGE_PADDING, row_top, FORM_WIDTH, LABEL_HEIGHT);
-
-            box.BackColor = UiTheme.INPUT;
-            box.ForeColor = UiTheme.TEXT;
-            box.BorderStyle = BorderStyle.FixedSingle;
-            box.SetBounds(PAGE_PADDING, row_top + LABEL_HEIGHT, FORM_WIDTH, BOX_HEIGHT);
-
-            Label lblBoxMessage = new Label();
-            lblBoxMessage.ForeColor = UiTheme.ACCENT_RED;
-            lblBoxMessage.Font = UiTheme.SMALL_FONT;
-            lblBoxMessage.SetBounds(PAGE_PADDING, row_top + LABEL_HEIGHT + BOX_HEIGHT + 2, FORM_WIDTH, 20);
-            _box_messages[box_place] = lblBoxMessage;
-
-            Controls.Add(lblName);
-            Controls.Add(box);
-            Controls.Add(lblBoxMessage);
-        }
-
-        private Button MakeButton(string text, Color colour)
-        {
-            Button button = new Button();
-            button.Text = text;
-            button.FlatStyle = FlatStyle.Flat;
-            button.FlatAppearance.BorderSize = 0;
-            button.BackColor = colour;
-            button.ForeColor = UiTheme.TEXT;
-            button.Cursor = Cursors.Hand;
-            return button;
+            // the first admin button only appears while there is no admin yet
+            if (_go_first_admin != null)
+            {
+                Button btnFirstAdmin = FormParts.MakeButton("Set up the first admin", UiTheme.CARD);
+                btnFirstAdmin.SetBounds(FormParts.PAGE_PADDING, buttons_top + 120, FormParts.FORM_WIDTH, 36);
+                btnFirstAdmin.Click += (sender, e) => _go_first_admin();
+                Controls.Add(btnFirstAdmin);
+            }
         }
 
         // the boxes are checked first, then AuthService tries the login
@@ -134,20 +113,7 @@ namespace CinemaBooking.UI
             lblMessage.Text = "";
 
             // every wrong box shows its own message, all at once
-            string[] box_errors = LoginInput.CheckBoxes(txtEmail.Text, txtPassword.Text);
-            bool is_any_wrong = false;
-
-            for (int box_index = 0; box_index < box_errors.Length; box_index++)
-            {
-                _box_messages[box_index].Text = box_errors[box_index];
-
-                if (box_errors[box_index] != "")
-                {
-                    is_any_wrong = true;
-                }
-            }
-
-            if (is_any_wrong)
+            if (FormParts.ShowBoxMessages(_box_messages, LoginInput.CheckBoxes(txtEmail.Text, txtPassword.Text)))
             {
                 return;
             }
