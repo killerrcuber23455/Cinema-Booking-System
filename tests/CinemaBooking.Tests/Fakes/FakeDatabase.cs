@@ -39,6 +39,12 @@ public class FakeDatabase : IDatabase
         return _films.Add(film.Id, film);
     }
 
+    // saves a film, false if a film with that id is already saved (like the real database)
+    public bool SaveFilm(Film film)
+    {
+        return _films.Add(film.Id, film);
+    }
+
     // copies every film into the given table and returns how many were added
     public int LoadFilms(HashTable<int, Film> film_table)
     {
