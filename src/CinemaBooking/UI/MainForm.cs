@@ -81,7 +81,7 @@ namespace CinemaBooking.UI
             AddMenuButton(btnBookSeats, "Book seats", 186, () => MakePlaceholderPage("Choosing a showing and seats will be done here."));
             AddMenuButton(btnCancel, "Cancel booking", 234, () => MakePlaceholderPage("A booking is cancelled here with its reference."));
             AddMenuButton(btnMembers, "Members", 282, () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
-            AddMenuButton(btnAdmin, "Admin", 330, () => MakePlaceholderPage("Admins add and remove films and showings here."));
+            AddMenuButton(btnAdmin, "Admin", 330, () => new AdminFilmsForm(_film_service, Role.Admin));
             AddMenuButton(btnAccount, "My account", 378, () => MakePlaceholderPage("Login and account details will be shown here."));
 
             // exit sits at the bottom of the menu
