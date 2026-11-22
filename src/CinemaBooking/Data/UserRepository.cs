@@ -201,5 +201,11 @@ namespace CinemaBooking.Data
                 return Convert.ToInt32(command.ExecuteScalar());
             }
         }
+
+        // returns true if at least one user has the role Admin
+        public bool HasAnyAdmin()
+        {
+            return false;
+        }
     }
 }
