@@ -362,4 +362,19 @@ public class LoginTests
             Assert.IsFalse(details.Contains(GetUser("ann@x.com").Salt));
         }
     }
+
+    [TestMethod]
+    public void Login_VeryLongUnknownEmail_IsRefusedAndWritesAShortenedRow()
+    {
+        string long_email = new string('a', 501) + "@x.com";
+
+        bool is_ok = _service.Login(long_email, PASSWORD, out Role role, out Member? member, out string error_message);
+
+        Assert.IsFalse(is_ok);
+        Assert.AreEqual(WRONG_LOGIN_MESSAGE, error_message);
+        Assert.AreEqual(1, _users.AuditRows.Count);
+        Assert.AreEqual("login_failed", LastAudit().Action);
+        Assert.IsNull(LastAudit().UserId);
+        Assert.AreEqual(long_email.Substring(0, 200), LastAudit().Details);
+    }
 }
