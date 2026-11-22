@@ -22,6 +22,10 @@ namespace CinemaBooking.Services
         //random generator for whole service
         private static readonly Random _random = new Random();
 
+        //one lock for every change to a seat grid. the app makes one BookingService,
+        //static is a safeguard in case a test makes two
+        private static readonly object _seat_lock = new object();
+
         //the database and the showings table are given to us, we do not create them here
         private readonly IDatabase _database;
         private readonly ShowingTable _showing_table;
@@ -107,15 +111,21 @@ namespace CinemaBooking.Services
             Booking new_booking = new Booking(0, reference, showing_id, member_id, guest_name,
                 guest_email, guest_phone, seat_codes, amount_paid, points_earned, 0,
                 BookingStatus.Confirmed, DateTime.Now);
-
             //book the seats in the grid, all or nothing
-            if (!grid.BookSeats(seat_codes))
+            //the lock is short: only the grid check and write are inside it, no database and no window
+            bool is_booked;
+            lock (_seat_lock)
+            {
+                is_booked = grid.BookSeats(seat_codes);
+            }
+            if (!is_booked)
             {
                 error_message = "one of the seats was just taken, please choose again";
                 return false;
             }
 
-            //save, the database is the last guard against a double booking, -1 means a seat is taken
+            //save outside the lock, it is a slow database call
+            //the database is the last guard against a double booking, -1 means a seat is taken
             int new_id;
             try
             {
@@ -124,13 +134,19 @@ namespace CinemaBooking.Services
             catch
             {
                 //the database failed, give the seats back and pass the error on
-                grid.FreeSeats(seat_codes);
+                lock (_seat_lock)
+                {
+                    grid.FreeSeats(seat_codes);
+                }
                 throw;
             }
 
             if (new_id <= 0)
             {
-                grid.FreeSeats(seat_codes);
+                lock (_seat_lock)
+                {
+                    grid.FreeSeats(seat_codes);
+                }
                 error_message = "one of the seats was just taken, please choose again";
                 return false;
             }
@@ -157,7 +173,10 @@ namespace CinemaBooking.Services
                 if (!is_points_saved)
                 {
                     //undo the booking: give the seats back first, then cancel it in the database
-                    grid.FreeSeats(seat_codes);
+                    lock (_seat_lock)
+                    {
+                        grid.FreeSeats(seat_codes);
+                    }
                     try
                     {
                         _database.CancelBooking(new_booking.Id);
@@ -257,7 +276,10 @@ namespace CinemaBooking.Services
             Showing? showing = _showing_table.FindShowing(booking.ShowingId);
             if (showing != null)
             {
-                showing.SeatGrid.FreeSeats(booking.Seats);
+                lock (_seat_lock)
+                {
+                    showing.SeatGrid.FreeSeats(booking.Seats);
+                }
             }
 
 
