@@ -48,10 +48,10 @@ namespace CinemaBooking.DataStructures
         }
 
         // removes a showing returns false if it does not exist
-        // EMPTY STUB for the red step
+        // removes a showing. returns false if it does not exist.
         public bool RemoveShowing(int showing_id)
         {
-            return false;
+            return _showings.Remove(showing_id);
         }
 
         public Showing[] ListAll()
