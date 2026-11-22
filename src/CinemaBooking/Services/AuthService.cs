@@ -200,8 +200,9 @@ namespace CinemaBooking.Services
                 return false;
             }
 
-            //we trim the email but never the password, spaces at the start or end are part of a password
-            string clean_email = email.Trim();
+            // we trim the email but never the password, spaces at the start or end are part of a password
+            // a null email counts as empty so it is refused with the normal email message
+            string clean_email = (email ?? "").Trim();
 
             if (!Member.IsValidEmail(clean_email, out error_message))
             {
