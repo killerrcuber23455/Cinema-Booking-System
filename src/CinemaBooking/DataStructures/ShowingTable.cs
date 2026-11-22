@@ -39,12 +39,19 @@ namespace CinemaBooking.DataStructures
             return _showings.Find(showing_id);
         }
 
-        // returns the seat grid of a showing, or null if the showing does not exist
+        // returns the seat grid of a showing or null if the showing does not exist
         public SeatGrid? GetGrid(int showing_id)
         {
             Showing? showing = _showings.Find(showing_id);
 
             return showing == null ? null : showing.SeatGrid;
+        }
+
+        // removes a showing returns false if it does not exist
+        // removes a showing. returns false if it does not exist.
+        public bool RemoveShowing(int showing_id)
+        {
+            return _showings.Remove(showing_id);
         }
 
         public Showing[] ListAll()

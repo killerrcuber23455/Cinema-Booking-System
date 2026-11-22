@@ -27,6 +27,9 @@ namespace CinemaBooking.UI
 
         private readonly FilmService _film_service;
 
+        // called with the film the user clicked, the main window opens its detail page (card 402)
+        private readonly Action<Film> _open_film;
+
         // stops the genre filter from searching while we refill it
         private bool _is_filling_genres;
 
@@ -37,9 +40,10 @@ namespace CinemaBooking.UI
         private readonly Button btnLoadFile = new Button();
         private readonly Label lblStatus = new Label();
         private readonly FlowLayoutPanel flpCards = new SmoothFlowPanel();
-        public FilmBrowseForm(FilmService film_service)
+        public FilmBrowseForm(FilmService film_service, Action<Film> open_film)
         {
             _film_service = film_service;
+            _open_film = open_film;
             DoubleBuffered = true;
             BuildPage();
             FillGenres();
@@ -255,6 +259,16 @@ namespace CinemaBooking.UI
             pnlCard.Controls.Add(lblTitle);
             pnlCard.Controls.Add(lblGenreYear);
             pnlCard.Controls.Add(lblLengthAge);
+
+            // a click on the card or on any part of it opens the film, the parts swallow clicks otherwise
+            pnlCard.Cursor = Cursors.Hand;
+            pnlCard.Click += (sender, e) => _open_film(film);
+            for (int part_index = 0; part_index < pnlCard.Controls.Count; part_index++)
+            {
+                pnlCard.Controls[part_index].Cursor = Cursors.Hand;
+                pnlCard.Controls[part_index].Click += (sender, e) => _open_film(film);
+            }
+
             return pnlCard;
         }
 
