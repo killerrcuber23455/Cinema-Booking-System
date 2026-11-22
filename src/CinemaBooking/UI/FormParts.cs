@@ -1,4 +1,4 @@
-// the parts every box form shares: a label, a box and a red message under the box, and a flat button (owner: divyesh)
+﻿// the parts every box form shares: a label, a box and a red message under the box, and a flat button (owner: divyesh)
 // kept in one place so the login, sign up and first admin pages look the same and the code is not repeated
 using System.Drawing;
 using System.Windows.Forms;
@@ -38,6 +38,9 @@ namespace CinemaBooking.UI
             page.Controls.Add(lblName);
             page.Controls.Add(box);
             page.Controls.Add(lblBoxMessage);
+
+            // the box glows while the user types in it
+            FocusGlow.AddTo(page, box);
             return lblBoxMessage;
         }
 
@@ -47,15 +50,12 @@ namespace CinemaBooking.UI
             return FIRST_ROW_TOP + (row_count * ROW_HEIGHT) + 4;
         }
 
+        // a rounded button, the red ones glow when the mouse is on them. it keeps a few pixels around it for the glow
         public static Button MakeButton(string text, Color colour)
         {
-            Button button = new Button();
+            GlowButton button = new GlowButton();
             button.Text = text;
-            button.FlatStyle = FlatStyle.Flat;
-            button.FlatAppearance.BorderSize = 0;
             button.BackColor = colour;
-            button.ForeColor = UiTheme.TEXT;
-            button.Cursor = Cursors.Hand;
             return button;
         }
 

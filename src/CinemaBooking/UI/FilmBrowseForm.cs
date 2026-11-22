@@ -1,4 +1,4 @@
-// the films page: poster cards, a title search, a genre filter and loading the film file (owner: divyesh)
+﻿// the films page: poster cards, a title search, a genre filter and loading the film file (owner: divyesh)
 // it is a page shown inside the main window, not a separate window. it only reads input and shows
 // results, the search and the file loading live in FilmService
 using System;
@@ -37,7 +37,7 @@ namespace CinemaBooking.UI
         private readonly Panel pnlTopBar = new Panel();
         private readonly TextBox txtSearch = new TextBox();
         private readonly ComboBox cmbGenre = new ComboBox();
-        private readonly Button btnLoadFile = new Button();
+        private readonly Button btnLoadFile = FormParts.MakeButton("Load film file", UiTheme.ACCENT_RED);
         private readonly Label lblStatus = new Label();
         private readonly FlowLayoutPanel flpCards = new SmoothFlowPanel();
         public FilmBrowseForm(FilmService film_service, Action<Film> open_film)
@@ -82,13 +82,9 @@ namespace CinemaBooking.UI
                 }
             };
 
-            btnLoadFile.Text = "Load film file";
-            btnLoadFile.FlatStyle = FlatStyle.Flat;
-            btnLoadFile.FlatAppearance.BorderSize = 0;
-            btnLoadFile.BackColor = UiTheme.ACCENT_RED;
-            btnLoadFile.ForeColor = UiTheme.TEXT;
-            btnLoadFile.Cursor = Cursors.Hand;
-            btnLoadFile.SetBounds(464, 10, 160, 34);
+            // the button keeps a few pixels around it for its glow
+            btnLoadFile.SetBounds(464 - UiTheme.GLOW_SPREAD, 10 - UiTheme.GLOW_SPREAD, 160 + (2 * UiTheme.GLOW_SPREAD),
+                34 + (2 * UiTheme.GLOW_SPREAD));
             btnLoadFile.Click += (sender, e) => LoadFilmFile();
 
             lblStatus.ForeColor = UiTheme.TEXT_MUTED;
@@ -101,6 +97,9 @@ namespace CinemaBooking.UI
             pnlTopBar.Controls.Add(cmbGenre);
             pnlTopBar.Controls.Add(btnLoadFile);
             pnlTopBar.Controls.Add(lblStatus);
+
+            // the search box glows while the user types in it
+            FocusGlow.AddTo(pnlTopBar, txtSearch);
 
             flpCards.Dock = DockStyle.Fill;
             flpCards.AutoScroll = true;
@@ -236,40 +235,59 @@ namespace CinemaBooking.UI
             Label lblTitle = new Label();
             lblTitle.Font = UiTheme.CARD_TITLE_FONT;
             lblTitle.ForeColor = UiTheme.TEXT;
+            lblTitle.BackColor = Color.Transparent;
             lblTitle.AutoEllipsis = true;
             lblTitle.Text = film.Title;
             lblTitle.SetBounds(CARD_PADDING, text_top, inner_width, 24);
 
-            Label lblGenreYear = new Label();
-            lblGenreYear.Font = UiTheme.SMALL_FONT;
-            lblGenreYear.ForeColor = UiTheme.TEXT_MUTED;
-            lblGenreYear.Text = film.Genre + " · " + film.Year;
-            lblGenreYear.SetBounds(CARD_PADDING, text_top + 26, inner_width, 20);
+            // the genre and the age rating as small tags, the year and the length in a quiet line under them
+            Pill pilGenre = new Pill(film.Genre, ColorMath.Blend(UiTheme.CARD, UiTheme.TEXT, 0.12), UiTheme.TEXT);
+            pilGenre.Location = new Point(CARD_PADDING, text_top + 28);
 
-            // age 0 means anyone can watch it
-            string age_text = film.AgeRating == 0 ? "all ages" : "age " + film.AgeRating + "+";
+            // age 0 means anyone can watch it, 16 and over is shown in red
+            string age_text = film.AgeRating == 0 ? "all ages" : film.AgeRating + "+";
+            Color age_colour = film.AgeRating >= 16 ? UiTheme.ACCENT_RED : UiTheme.AMBER;
+            Pill pilAge = new Pill(age_text, ColorMath.Blend(UiTheme.CARD, age_colour, 0.22), age_colour);
+            pilAge.Location = new Point(pilGenre.Right + 6, text_top + 28);
 
-            Label lblLengthAge = new Label();
-            lblLengthAge.Font = UiTheme.SMALL_FONT;
-            lblLengthAge.ForeColor = UiTheme.TEXT_MUTED;
-            lblLengthAge.Text = film.DurationMinutes + " min · " + age_text;
-            lblLengthAge.SetBounds(CARD_PADDING, text_top + 46, inner_width, 20);
+            Label lblYearLength = new Label();
+            lblYearLength.Font = UiTheme.SMALL_FONT;
+            lblYearLength.ForeColor = UiTheme.TEXT_MUTED;
+            lblYearLength.BackColor = Color.Transparent;
+            lblYearLength.Text = film.Year + " · " + film.DurationMinutes + " min";
+            lblYearLength.SetBounds(CARD_PADDING, text_top + 52, inner_width, 18);
 
             pnlCard.Controls.Add(picPoster);
             pnlCard.Controls.Add(lblTitle);
-            pnlCard.Controls.Add(lblGenreYear);
-            pnlCard.Controls.Add(lblLengthAge);
+            pnlCard.Controls.Add(pilGenre);
+            pnlCard.Controls.Add(pilAge);
+            pnlCard.Controls.Add(lblYearLength);
 
             // a click on the card or on any part of it opens the film, the parts swallow clicks otherwise
             pnlCard.Cursor = Cursors.Hand;
             pnlCard.Click += (sender, e) => _open_film(film);
+            pnlCard.MouseEnter += (sender, e) => pnlCard.IsHighlighted = true;
+            pnlCard.MouseLeave += (sender, e) => UpdateHighlight(pnlCard);
+
             for (int part_index = 0; part_index < pnlCard.Controls.Count; part_index++)
             {
-                pnlCard.Controls[part_index].Cursor = Cursors.Hand;
-                pnlCard.Controls[part_index].Click += (sender, e) => _open_film(film);
+                Control part = pnlCard.Controls[part_index];
+                part.Cursor = Cursors.Hand;
+                part.Click += (sender, e) => _open_film(film);
+
+                // the parts cover the card, so the mouse on a part also lights the card
+                part.MouseEnter += (sender, e) => pnlCard.IsHighlighted = true;
+                part.MouseLeave += (sender, e) => UpdateHighlight(pnlCard);
             }
 
             return pnlCard;
+        }
+
+        // the mouse left the card or one of its parts: the glow goes out only if the mouse is really off the card
+        private static void UpdateHighlight(RoundedPanel card)
+        {
+            Point mouse = card.PointToClient(Cursor.Position);
+            card.IsHighlighted = card.ClientRectangle.Contains(mouse);
         }
 
         // reads the poster image if the file is there, otherwise null so the card shows the title

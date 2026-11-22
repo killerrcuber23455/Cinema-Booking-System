@@ -60,19 +60,28 @@ namespace CinemaBooking.UI
             Invalidate();
         }
 
+        // the menu moved or changed size, so the part of the fade behind this button changed too
+        protected override void OnLocationChanged(EventArgs e)
+        {
+            base.OnLocationChanged(e);
+            Invalidate();
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
-            Color back_colour = UiTheme.SIDE_MENU;
             if (_is_active)
             {
-                back_colour = UiTheme.MENU_ACTIVE;
+                e.Graphics.Clear(UiTheme.MENU_ACTIVE);
             }
             else if (_is_hovered)
             {
-                back_colour = UiTheme.MENU_HOVER;
+                e.Graphics.Clear(UiTheme.MENU_HOVER);
             }
-
-            e.Graphics.Clear(back_colour);
+            else
+            {
+                // a plain button shows the menu fade behind it
+                GlowPainter.FillMenuBackground(e.Graphics, this);
+            }
 
             // the red bar on the left shows which page is open
             if (_is_active)

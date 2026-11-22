@@ -1,4 +1,5 @@
 // a panel with rounded corners, used for the cards on every window (owner: divyesh)
+// it has a very faint light at the top, and a soft red glow along its edge when it is highlighted (a film card under the mouse)
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -7,9 +8,34 @@ namespace CinemaBooking.UI
 {
     public class RoundedPanel : Panel
     {
+        // how much lighter the top of the panel is than the bottom, kept small so labels on it do not show edges
+        private const double TOP_LIGHT = 0.025;
+
+        // the edge glow is a few thin outlines, each a little further in and fainter
+        private const int EDGE_GLOW_LINES = 3;
+
+        private bool _is_highlighted;
+
         // how round the corners are, in pixels
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int CornerRadius { get; set; } = UiTheme.PANEL_RADIUS;
+
+        // true while the mouse is on a film card, the edge then glows
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public bool IsHighlighted
+        {
+            get { return _is_highlighted; }
+            set
+            {
+                if (_is_highlighted == value)
+                {
+                    return;
+                }
+
+                _is_highlighted = value;
+                Invalidate();
+            }
+        }
 
         public RoundedPanel()
         {
@@ -26,26 +52,34 @@ namespace CinemaBooking.UI
             e.Graphics.Clear(corner_colour);
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
-            Rectangle area = new Rectangle(0, 0, Width - 1, Height - 1);
-            using (GraphicsPath path = BuildRoundedPath(area, CornerRadius))
-            using (SolidBrush brush = new SolidBrush(BackColor))
+            if (Width <= 1 || Height <= 1)
+            {
+                return;
+            }
+
+            RectangleF area = new RectangleF(0, 0, Width - 1, Height - 1);
+            using (GraphicsPath path = GlowPainter.RoundedPath(area, CornerRadius))
+            using (LinearGradientBrush brush = new LinearGradientBrush(ClientRectangle,
+                ColorMath.Blend(BackColor, Color.White, TOP_LIGHT), BackColor, LinearGradientMode.Vertical))
             {
                 e.Graphics.FillPath(brush, path);
             }
-        }
 
-        // builds a rectangle outline whose four corners are quarter circles
-        private static GraphicsPath BuildRoundedPath(Rectangle area, int radius)
-        {
-            int diameter = radius * 2;
-            GraphicsPath path = new GraphicsPath();
-            path.AddArc(area.X, area.Y, diameter, diameter, 180, 90);
-            path.AddArc(area.Right - diameter, area.Y, diameter, diameter, 270, 90);
-            path.AddArc(area.Right - diameter, area.Bottom - diameter, diameter, diameter, 0, 90);
-            path.AddArc(area.X, area.Bottom - diameter, diameter, diameter, 90, 90);
-            path.CloseFigure();
-            return path;
+            if (_is_highlighted)
+            {
+                for (int line_index = 0; line_index < EDGE_GLOW_LINES; line_index++)
+                {
+                    float inset = 0.5f + line_index;
+                    RectangleF line_area = RectangleF.Inflate(area, -inset, -inset);
+                    int alpha = 200 - (line_index * 70);
+
+                    using (GraphicsPath line_path = GlowPainter.RoundedPath(line_area, CornerRadius - inset))
+                    using (Pen line_pen = new Pen(Color.FromArgb(alpha, UiTheme.ACCENT_RED), 1f))
+                    {
+                        e.Graphics.DrawPath(line_pen, line_path);
+                    }
+                }
+            }
         }
     }
 }
-

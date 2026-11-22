@@ -1,4 +1,4 @@
-// the small user box at the bottom of the side menu: a round badge with the first letter, the name and the role (owner: divyesh)
+﻿// the small user box at the bottom of the side menu: a round badge with the first letter, the name and the role (owner: divyesh)
 // it only draws what it is told, the main window gives it the name and the role
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -25,7 +25,7 @@ namespace CinemaBooking.UI
                 | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
 
             Height = CHIP_HEIGHT;
-            BackColor = UiTheme.SIDE_MENU;
+            BackColor = UiTheme.SIDE_MENU_BOTTOM;
         }
 
         // the title is the name or email, the subtitle is the role
@@ -38,7 +38,8 @@ namespace CinemaBooking.UI
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            e.Graphics.Clear(UiTheme.SIDE_MENU);
+            // the chip shows the menu fade behind it
+            GlowPainter.FillMenuBackground(e.Graphics, this);
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
             int badge_top = (Height - BADGE_SIZE) / 2;

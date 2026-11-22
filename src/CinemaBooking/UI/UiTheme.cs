@@ -14,6 +14,16 @@ namespace CinemaBooking.UI
         public static readonly Color MENU_HOVER = Color.FromArgb(45, 45, 54);
         public static readonly Color MENU_ACTIVE = Color.FromArgb(48, 28, 32);
         public static readonly Color GOOD = Color.FromArgb(46, 160, 90);
+
+        // the second accent: the warm light of marquee bulbs, only for small details
+        public static readonly Color AMBER = Color.FromArgb(255, 184, 77);
+
+        // the cool white light of the cinema screen on the seat map
+        public static readonly Color SCREEN_LIGHT = Color.FromArgb(226, 234, 255);
+
+        // the side menu fades from a little lighter at the top to darker at the bottom
+        public static readonly Color SIDE_MENU_TOP = Color.FromArgb(32, 30, 38);
+        public static readonly Color SIDE_MENU_BOTTOM = Color.FromArgb(17, 17, 21);
         public static readonly Color TEXT = Color.FromArgb(240, 240, 240);
         public static readonly Color TEXT_MUTED = Color.FromArgb(160, 160, 170);
         public static readonly Color CARD = Color.FromArgb(40, 40, 48);
@@ -34,6 +44,10 @@ namespace CinemaBooking.UI
         public const int SIDE_MENU_WIDTH = 220;
         public const int MENU_BUTTON_HEIGHT = 48;
         public const int SIDE_MENU_COLLAPSED_WIDTH = 64;
+
+        // glows: how far they spread around a shape, and how round buttons are
+        public const int GLOW_SPREAD = 4;
+        public const int BUTTON_RADIUS = 8;
 
         // the icons of the side menu, change a character here to change an icon everywhere
         public const string ICON_MENU = "\uE700";

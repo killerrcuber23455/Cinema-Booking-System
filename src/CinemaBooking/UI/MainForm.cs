@@ -14,8 +14,8 @@ namespace CinemaBooking.UI
         private const int FIRST_MENU_TOP = 90;
 
         // the parts of the window
-        private readonly Panel pnlSideMenu = new Panel();
-        private readonly Label lblAppName = new Label();
+        private readonly Panel pnlSideMenu = new SideMenuPanel();
+        private readonly GlowLogo lblAppName = new GlowLogo();
         private readonly Panel pnlHost = new Panel();
         private readonly RoundedPanel pnlContent = new RoundedPanel();
         private readonly Label lblPageTitle = new Label();
@@ -101,7 +101,7 @@ namespace CinemaBooking.UI
             btnToggle.Text = UiTheme.ICON_MENU;
             btnToggle.Font = UiTheme.ICON_FONT;
             btnToggle.ForeColor = UiTheme.TEXT;
-            btnToggle.BackColor = UiTheme.SIDE_MENU;
+            btnToggle.BackColor = UiTheme.SIDE_MENU_TOP;
             btnToggle.FlatStyle = FlatStyle.Flat;
             btnToggle.FlatAppearance.BorderSize = 0;
             btnToggle.FlatAppearance.MouseOverBackColor = UiTheme.MENU_HOVER;
@@ -111,11 +111,9 @@ namespace CinemaBooking.UI
             _tips.SetToolTip(btnToggle, "Open or close the menu");
             pnlSideMenu.Controls.Add(btnToggle);
 
+            // the name glows in red like a neon sign
             lblAppName.Text = "CINEMA";
-            lblAppName.ForeColor = UiTheme.ACCENT_RED;
-            lblAppName.Font = UiTheme.TITLE_FONT;
-            lblAppName.SetBounds(60, 16, UiTheme.SIDE_MENU_WIDTH - 70, 44);
-            lblAppName.TextAlign = ContentAlignment.MiddleLeft;
+            lblAppName.SetBounds(60, 14, UiTheme.SIDE_MENU_WIDTH - 66, 48);
             pnlSideMenu.Controls.Add(lblAppName);
 
             // each menu item shows its page when it is clicked, RefreshMenu shows the ones this role may see

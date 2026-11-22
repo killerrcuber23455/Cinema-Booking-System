@@ -1,6 +1,6 @@
-// the film detail page: poster, film details and the list of showings for one film (owner: divyesh)
-// it is a page shown inside the main window. it only shows what it is given, the showings come
-// from the ShowingService (card 402 waits for Shankar's GetShowingsForFilm)
+// the film detail page: poster, the title in a marquee frame, film details and the showings of one film (owner: divyesh)
+// the page takes a faint tint from the poster's main colour, so each film feels a little different.
+// it is a page shown inside the main window. it only shows what it is given, the showings come from the ShowingService
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -13,7 +13,12 @@ namespace CinemaBooking.UI
         private const int POSTER_WIDTH = 260;
         private const int POSTER_HEIGHT = 380;
         private const int PAGE_PADDING = 8;
-        private const int SHOWING_ROW_HEIGHT = 52;
+        private const int TEXT_WIDTH = 620;
+        private const int SHOWING_ROW_WIDTH = 600;
+        private const int SHOWING_ROW_HEIGHT = 72;
+
+        // how much of the poster colour goes into the page, small so the text stays easy to read
+        private const double POSTER_TINT = 0.12;
 
         private readonly Film _film;
 
@@ -34,22 +39,17 @@ namespace CinemaBooking.UI
             ShowShowings(new Showing[0]);
         }
 
-        // poster on the left, details and showings on the right
+        // poster on the left, the marquee title, details and showings on the right
         private void BuildPage()
         {
             BackColor = UiTheme.PANEL;
             ForeColor = UiTheme.TEXT;
             Font = UiTheme.BODY_FONT;
             Padding = new Padding(PAGE_PADDING);
+            AutoScroll = true;
 
-            Button btnBack = new Button();
-            btnBack.Text = "< Back to films";
-            btnBack.FlatStyle = FlatStyle.Flat;
-            btnBack.FlatAppearance.BorderSize = 0;
-            btnBack.BackColor = UiTheme.CARD;
-            btnBack.ForeColor = UiTheme.TEXT;
-            btnBack.Cursor = Cursors.Hand;
-            btnBack.SetBounds(PAGE_PADDING, PAGE_PADDING, 140, 34);
+            Button btnBack = FormParts.MakeButton("< Back to films", UiTheme.CARD);
+            btnBack.SetBounds(PAGE_PADDING - UiTheme.GLOW_SPREAD, PAGE_PADDING - UiTheme.GLOW_SPREAD, 150, 42);
             btnBack.Click += (sender, e) => _go_back();
 
             PictureBox picPoster = new PictureBox();
@@ -61,6 +61,13 @@ namespace CinemaBooking.UI
             if (poster != null)
             {
                 picPoster.Image = poster;
+
+                // the page takes a little of the poster's colour
+                Bitmap? poster_bitmap = poster as Bitmap;
+                if (poster_bitmap != null)
+                {
+                    BackColor = ColorMath.Blend(UiTheme.PANEL, ColorMath.Average(poster_bitmap), POSTER_TINT);
+                }
             }
             else
             {
@@ -74,11 +81,9 @@ namespace CinemaBooking.UI
 
             int text_left = PAGE_PADDING + POSTER_WIDTH + 24;
 
-            Label lblTitle = new Label();
-            lblTitle.Font = UiTheme.TITLE_FONT;
-            lblTitle.AutoEllipsis = true;
-            lblTitle.Text = _film.Title;
-            lblTitle.SetBounds(text_left, 52, 600, 40);
+            MarqueeTitle marqueeTitle = new MarqueeTitle();
+            marqueeTitle.Text = _film.Title;
+            marqueeTitle.SetBounds(text_left - 8, 48, TEXT_WIDTH, 70);
 
             // age 0 means anyone can watch it
             string age_text = _film.AgeRating == 0 ? "all ages" : "age " + _film.AgeRating + "+";
@@ -86,26 +91,26 @@ namespace CinemaBooking.UI
             Label lblFacts = new Label();
             lblFacts.ForeColor = UiTheme.TEXT_MUTED;
             lblFacts.Text = _film.Genre + " · " + _film.Year + " · " + _film.DurationMinutes + " min · " + age_text;
-            lblFacts.SetBounds(text_left, 96, 600, 24);
+            lblFacts.SetBounds(text_left, 126, TEXT_WIDTH, 24);
 
             Label lblDescription = new Label();
             lblDescription.Text = _film.Description;
-            lblDescription.SetBounds(text_left, 128, 600, 90);
+            lblDescription.SetBounds(text_left, 154, TEXT_WIDTH, 80);
 
             Label lblShowingsTitle = new Label();
             lblShowingsTitle.Font = UiTheme.CARD_TITLE_FONT;
             lblShowingsTitle.Text = "Showings";
-            lblShowingsTitle.SetBounds(text_left, 226, 300, 26);
+            lblShowingsTitle.SetBounds(text_left, 240, 300, 26);
 
             flpShowings.FlowDirection = FlowDirection.TopDown;
             flpShowings.WrapContents = false;
             flpShowings.AutoScroll = true;
-            flpShowings.BackColor = UiTheme.PANEL;
-            flpShowings.SetBounds(text_left, 256, 600, 180);
+            flpShowings.BackColor = BackColor;
+            flpShowings.SetBounds(text_left, 270, TEXT_WIDTH, 240);
 
             Controls.Add(btnBack);
             Controls.Add(picPoster);
-            Controls.Add(lblTitle);
+            Controls.Add(marqueeTitle);
             Controls.Add(lblFacts);
             Controls.Add(lblDescription);
             Controls.Add(lblShowingsTitle);
@@ -128,37 +133,45 @@ namespace CinemaBooking.UI
                 Label lblNone = new Label();
                 lblNone.AutoSize = true;
                 lblNone.ForeColor = UiTheme.TEXT_MUTED;
-                lblNone.Text = "no showings for this film yet";
+                lblNone.Text = "No showings for this film yet. Staff add them on the Showings page.";
                 flpShowings.Controls.Add(lblNone);
             }
 
             flpShowings.ResumeLayout();
         }
 
-        // one row: the showing text and a button that opens the seat map
+        // one row: the showing text, how soon it starts, how full it is, and a button that opens the seat map
         private RoundedPanel BuildShowingRow(Showing showing)
         {
             RoundedPanel pnlRow = new RoundedPanel();
             pnlRow.BackColor = UiTheme.CARD;
-            pnlRow.Size = new Size(580, SHOWING_ROW_HEIGHT);
+            pnlRow.Size = new Size(SHOWING_ROW_WIDTH, SHOWING_ROW_HEIGHT);
             pnlRow.Margin = new Padding(0, 0, 0, 8);
 
             Label lblText = new Label();
             lblText.Text = ShowingLabel.Describe(showing);
-            lblText.TextAlign = ContentAlignment.MiddleLeft;
-            lblText.SetBounds(12, 0, 400, SHOWING_ROW_HEIGHT);
+            lblText.AutoEllipsis = true;
+            lblText.BackColor = Color.Transparent;
+            lblText.SetBounds(14, 8, 400, 24);
 
-            Button btnChoose = new Button();
-            btnChoose.Text = "Choose seats";
-            btnChoose.FlatStyle = FlatStyle.Flat;
-            btnChoose.FlatAppearance.BorderSize = 0;
-            btnChoose.BackColor = UiTheme.ACCENT_RED;
-            btnChoose.ForeColor = UiTheme.TEXT;
-            btnChoose.Cursor = Cursors.Hand;
-            btnChoose.SetBounds(424, 9, 144, 34);
+            // only showings later today get a countdown
+            Label lblStartsIn = new Label();
+            lblStartsIn.Text = ShowingTimes.StartsIn(showing.StartsAt, DateTime.Now);
+            lblStartsIn.Font = UiTheme.SMALL_FONT;
+            lblStartsIn.ForeColor = UiTheme.AMBER;
+            lblStartsIn.BackColor = Color.Transparent;
+            lblStartsIn.SetBounds(14, 33, 300, 18);
+
+            FillBar fillBar = new FillBar(ShowingTimes.FillFraction(showing));
+            fillBar.SetBounds(14, 56, 400, 5);
+
+            Button btnChoose = FormParts.MakeButton("Choose seats", UiTheme.ACCENT_RED);
+            btnChoose.SetBounds(SHOWING_ROW_WIDTH - 172, 12, 160, 48);
             btnChoose.Click += (sender, e) => _open_seat_map(showing);
 
             pnlRow.Controls.Add(lblText);
+            pnlRow.Controls.Add(lblStartsIn);
+            pnlRow.Controls.Add(fillBar);
             pnlRow.Controls.Add(btnChoose);
             return pnlRow;
         }
