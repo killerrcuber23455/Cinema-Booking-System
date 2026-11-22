@@ -10,5 +10,6 @@ namespace CinemaBooking.Data
         UserRecord? FindByEmail(string email);
         bool SetFailedAttempts(int user_id, int failed_attempts, DateTime? locked_until);
         bool WriteAudit(int? user_id, string action, string details);
+        bool HasAnyAdmin();
     }
 }
