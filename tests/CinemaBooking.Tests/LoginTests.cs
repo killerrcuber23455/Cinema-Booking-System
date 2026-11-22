@@ -60,6 +60,12 @@ public class LoginTests
         return _users.FindByEmail(email)!;
     }
 
+    // the row Login wrote last
+    private AuditRow LastAudit()
+    {
+        return _users.AuditRows[_users.AuditRows.Count - 1];
+    }
+
     [TestMethod]
     public void Login_CorrectPasswordCustomer_ReturnsTrueWithRoleAndMember()
     {
@@ -272,5 +278,88 @@ public class LoginTests
 
         Assert.IsFalse(is_ok_before);
         Assert.IsTrue(is_ok_at_end);
+    }
+
+    [TestMethod]
+    public void Login_GoodLogin_WritesALoginRow()
+    {
+        int user_id = AddUser("ann@x.com", Role.Customer, null);
+
+        _service.Login("ann@x.com", PASSWORD, out _, out _, out _);
+
+        Assert.AreEqual(1, _users.AuditRows.Count);
+        Assert.AreEqual("login", LastAudit().Action);
+        Assert.AreEqual(user_id, LastAudit().UserId);
+    }
+
+    [TestMethod]
+    public void Login_WrongPassword_WritesALoginFailedRowWithTheUser()
+    {
+        int user_id = AddUser("ann@x.com", Role.Customer, null);
+
+        WrongTries("ann@x.com", 1);
+
+        Assert.AreEqual(1, _users.AuditRows.Count);
+        Assert.AreEqual("login_failed", LastAudit().Action);
+        Assert.AreEqual(user_id, LastAudit().UserId);
+    }
+
+    [TestMethod]
+    public void Login_ThirdWrongPassword_WritesOnlyAnAccountLockedRow()
+    {
+        int user_id = AddUser("ann@x.com", Role.Customer, null);
+
+        WrongTries("ann@x.com", MAX_TRIES);
+
+        Assert.AreEqual(MAX_TRIES, _users.AuditRows.Count);
+        Assert.AreEqual("login_failed", _users.AuditRows[0].Action);
+        Assert.AreEqual("login_failed", _users.AuditRows[1].Action);
+        Assert.AreEqual("account_locked", LastAudit().Action);
+        Assert.AreEqual(user_id, LastAudit().UserId);
+    }
+
+    [TestMethod]
+    public void Login_LockedAccount_WritesALoginRefusedLockedRow()
+    {
+        int user_id = AddUser("ann@x.com", Role.Customer, null);
+        WrongTries("ann@x.com", MAX_TRIES);
+        Assert.AreEqual(MAX_TRIES, _users.AuditRows.Count);
+
+        _service.Login("ann@x.com", PASSWORD, out _, out _, out _);
+
+        Assert.AreEqual(MAX_TRIES + 1, _users.AuditRows.Count);
+        Assert.AreEqual("login_refused_locked", LastAudit().Action);
+        Assert.AreEqual(user_id, LastAudit().UserId);
+    }
+
+    [TestMethod]
+    public void Login_UnknownEmail_WritesALoginFailedRowWithNoUserAndTheEmail()
+    {
+        _service.Login("nobody@x.com", PASSWORD, out _, out _, out _);
+
+        Assert.AreEqual(1, _users.AuditRows.Count);
+        Assert.AreEqual("login_failed", LastAudit().Action);
+        Assert.IsNull(LastAudit().UserId);
+        StringAssert.Contains(LastAudit().Details, "nobody@x.com");
+    }
+
+    [TestMethod]
+    public void Login_EveryOutcome_NeverWritesAPasswordOrHashInDetails()
+    {
+        AddUser("ann@x.com", Role.Customer, null);
+        _service.Login("ann@x.com", PASSWORD, out _, out _, out _);
+        WrongTries("ann@x.com", MAX_TRIES);
+        _service.Login("ann@x.com", PASSWORD, out _, out _, out _);
+        _service.Login("nobody@x.com", PASSWORD, out _, out _, out _);
+        Assert.AreEqual(MAX_TRIES + 3, _users.AuditRows.Count);
+
+        for (int index = 0; index < _users.AuditRows.Count; index++)
+        {
+            string details = _users.AuditRows[index].Details;
+            Assert.IsFalse(details.Contains(PASSWORD));
+            Assert.IsFalse(details.Contains("Wrong999"));
+            Assert.IsFalse(details.Contains(GetUser("ann@x.com").PasswordHash));
+            Assert.IsFalse(details.Contains(GetUser("ann@x.com").Salt));
+        }
     }
 }
