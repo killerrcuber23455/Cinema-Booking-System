@@ -27,6 +27,9 @@ namespace CinemaBooking.UI
 
         private readonly FilmService _film_service;
 
+        // who is looking at the page, only staff and admin see the button that loads the film file (card 437)
+        private readonly Role _role;
+
         // called with the film the user clicked, the main window opens its detail page (card 402)
         private readonly Action<Film> _open_film;
 
@@ -40,9 +43,10 @@ namespace CinemaBooking.UI
         private readonly Button btnLoadFile = FormParts.MakeButton("Load film file", UiTheme.ACCENT_RED);
         private readonly Label lblStatus = new Label();
         private readonly FlowLayoutPanel flpCards = new SmoothFlowPanel();
-        public FilmBrowseForm(FilmService film_service, Action<Film> open_film)
+        public FilmBrowseForm(FilmService film_service, Role role, Action<Film> open_film)
         {
             _film_service = film_service;
+            _role = role;
             _open_film = open_film;
             DoubleBuffered = true;
             BuildPage();
@@ -86,11 +90,14 @@ namespace CinemaBooking.UI
             btnLoadFile.SetBounds(464 - UiTheme.GLOW_SPREAD, 10 - UiTheme.GLOW_SPREAD, 160 + (2 * UiTheme.GLOW_SPREAD),
                 34 + (2 * UiTheme.GLOW_SPREAD));
             btnLoadFile.Click += (sender, e) => LoadFilmFile();
+            btnLoadFile.Visible = FilmPageRules.CanLoadFilms(_role);
 
             lblStatus.ForeColor = UiTheme.TEXT_MUTED;
             lblStatus.Font = UiTheme.SMALL_FONT;
             lblStatus.AutoEllipsis = true;
-            lblStatus.SetBounds(636, 17, 300, 24);
+            // without the button the status text moves left, so there is no gap
+            int status_left = FilmPageRules.CanLoadFilms(_role) ? 636 : 464;
+            lblStatus.SetBounds(status_left, 17, 300, 24);
             lblStatus.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
             pnlTopBar.Controls.Add(txtSearch);
@@ -193,7 +200,7 @@ namespace CinemaBooking.UI
             bool is_searching = txtSearch.Text.Trim() != "" || genre_filter != "";
             lblEmpty.Text = is_searching
                 ? "no film matches your search"
-                : "no films yet, click \"Load film file\" and choose the film file";
+                : FilmPageRules.EmptyFilmsText(_role);
             return lblEmpty;
         }
 
