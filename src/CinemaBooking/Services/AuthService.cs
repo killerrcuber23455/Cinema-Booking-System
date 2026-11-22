@@ -29,6 +29,13 @@ namespace CinemaBooking.Services
         // audit_log.details holds 500 characters, so a very long email is cut before it is written
         private const int MAX_EMAIL_IN_AUDIT = 200;
 
+        // the password rule, decided in docs/design/validation-rules.md
+        private const int MIN_PASSWORD_LENGTH = 8;
+
+        // the same words as the windows use
+        private const string SHORT_PASSWORD_MESSAGE = "password must be at least 8 characters";
+        private const string EMAIL_USED_MESSAGE = "this email is already used";
+
         // the normal constructor uses the real time
         public AuthService(IUserRepository user_repository, MemberService member_service)
             : this(user_repository, member_service, () => DateTime.Now)
@@ -142,6 +149,37 @@ namespace CinemaBooking.Services
             return "this account is locked, try again in " + minutes_left + " minutes";
         }
 
+        // the password rule, used by the first admin and by sign up
+        // a password of only spaces is refused because Login treats it as empty
+        private static bool IsValidPassword(string password, out string error_message)
+        {
+            if (string.IsNullOrWhiteSpace(password) || password.Length < MIN_PASSWORD_LENGTH)
+            {
+                error_message = SHORT_PASSWORD_MESSAGE;
+                return false;
+            }
+
+            error_message = "";
+            return true;
+        }
+
+        // makes a new salt, hashes the password and saves the user
+        // false if the email is already used
+        private bool SaveNewUser(string email, string password, Role role, int? member_id, out string error_message)
+        {
+            string salt = PasswordHasher.GenerateSalt();
+            string hash = PasswordHasher.HashPassword(password, salt);
+
+            if (_user_repository.SaveUser(email, hash, salt, role, member_id) == -1)
+            {
+                error_message = EMAIL_USED_MESSAGE;
+                return false;
+            }
+
+            error_message = "";
+            return true;
+        }
+
         public bool SignUp(string name, string email, string phone, string password, out string error_message)
         {
             error_message = "sign up is not built yet";
@@ -150,13 +188,32 @@ namespace CinemaBooking.Services
 
         public bool HasAnyAdmin()
         {
-            return false;
+            return _user_repository.HasAnyAdmin();
         }
 
         public bool CreateFirstAdmin(string email, string password, out string error_message)
         {
-            error_message = "first admin not built yet";
-            return false;
+            // only the very first admin can be made this way, so nobody can use it later to get admin rights
+            if (_user_repository.HasAnyAdmin())
+            {                
+                error_message = "an admin already exists";
+                return false;
+            }
+
+            //we trim the email but never the password, spaces at the start or end are part of a password
+            string clean_email = email.Trim();
+
+            if (!Member.IsValidEmail(clean_email, out error_message))
+            {
+                return false;
+            }
+
+            if (!IsValidPassword(password, out error_message))
+            {
+                return false;
+            }
+
+            return SaveNewUser(clean_email, password, Role.Admin, null, out error_message);
         }
     }
 
