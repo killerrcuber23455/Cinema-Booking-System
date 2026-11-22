@@ -196,17 +196,40 @@ namespace CinemaBooking.UI
         }
 
         // the account button shows the login page for a guest and the account page for someone signed in
+        // the account button shows the login page for a guest and the account page for someone signed in
         private Control MakeAccountPage()
         {
             if (_current_role == Role.Guest)
             {
-                return new LoginForm(
-                    _auth_service,
-                    SignedIn,
-                    () => ShowPage(btnAccount, "My account", MakePlaceholderPage("Sign up is built in its own card.")));
+                return MakeLoginPage("");
             }
 
             return new AccountForm(_current_role, _current_email, _current_member, SignOut);
+        }
+
+        // the login page, the notice is a good message above the boxes, like "account created"
+        // the first admin button only shows while there is no admin yet
+        private Control MakeLoginPage(string notice)
+        {
+            Action? go_first_admin = null;
+
+            if (!_auth_service.HasAnyAdmin())
+            {
+                go_first_admin = () => ShowPage(btnAccount, "Admin setup", new FirstAdminForm(
+                    _auth_service,
+                    email => ShowPage(btnAccount, "My account", MakeLoginPage("Admin account created for " + email + ", sign in now")),
+                    () => ShowPage(btnAccount, "My account", MakeLoginPage(""))));
+            }
+
+            return new LoginForm(
+                _auth_service,
+                SignedIn,
+                () => ShowPage(btnAccount, "Sign up", new SignUpForm(
+                    _auth_service,
+                    email => ShowPage(btnAccount, "My account", MakeLoginPage("Account created for " + email + ", sign in now")),
+                    () => ShowPage(btnAccount, "My account", MakeLoginPage("")))),
+                go_first_admin,
+                notice);
         }
 
         // the login worked, so the window remembers who it is and shows the account page
