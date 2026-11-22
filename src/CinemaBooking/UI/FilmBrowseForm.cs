@@ -5,6 +5,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+using CinemaBooking.Data;
 using CinemaBooking.Models;
 using CinemaBooking.Services;
 
@@ -24,6 +25,9 @@ namespace CinemaBooking.UI
         private const int POSTER_HEIGHT = 230;
         private const int CARD_PADDING = 10;
         private const int TOP_BAR_HEIGHT = 56;
+
+        // checks that a poster file is really in the posters folder, and gives the placeholder when it is not (card 320)
+        private static readonly PosterStore POSTERS = new PosterStore(Path.Combine(AppContext.BaseDirectory, POSTER_FOLDER));
 
         private readonly FilmService _film_service;
 
@@ -297,15 +301,12 @@ namespace CinemaBooking.UI
             card.IsHighlighted = card.ClientRectangle.Contains(mouse);
         }
 
-        // reads the poster image if the file is there, otherwise null so the card shows the title
+        // reads the poster image, the poster store gives the placeholder file when the film has no poster
+        // null is only returned when even the placeholder is missing, then the card shows the title
         internal static Image? LoadPoster(string poster_file)
         {
-            if (string.IsNullOrWhiteSpace(poster_file))
-            {
-                return null;
-            }
-
-            string poster_path = Path.Combine(AppContext.BaseDirectory, POSTER_FOLDER, poster_file);
+            string poster_name = POSTERS.GetPosterFile(poster_file);
+            string poster_path = Path.Combine(AppContext.BaseDirectory, POSTER_FOLDER, poster_name);
             if (!File.Exists(poster_path))
             {
                 return null;

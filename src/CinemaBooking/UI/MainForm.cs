@@ -59,7 +59,7 @@ namespace CinemaBooking.UI
         private readonly AuthService _auth_service;
 
         // who is signed in now, a guest until the login works
-        private Role _current_role = Role.Guest;
+        private Role _current_role = Role.Staff;
         private Member? _current_member;
         private string _current_email = "";
 
