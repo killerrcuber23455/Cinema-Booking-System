@@ -36,10 +36,14 @@ namespace CinemaBooking.UI
         // the showings shown in the list, in the same order as the list lines
         private Showing[] _listed_showings = new Showing[0];
 
-        public AdminShowingsForm(ShowingAdminService showing_admin_service, Role role)
+        // shows a good news message as a toast in the main window
+        private readonly Action<string> _show_toast;
+
+        public AdminShowingsForm(ShowingAdminService showing_admin_service, Role role, Action<string> show_toast)
         {
             _showing_admin_service = showing_admin_service;
             _role = role;
+            _show_toast = show_toast;
 
             BuildPage();
             FillList();
@@ -199,10 +203,11 @@ namespace CinemaBooking.UI
             lblMessage.Text = message.TrimEnd('\n');
         }
 
+        // a success is shown as a toast in the main window, so the red message area stays only for problems
         private void ShowGood(string message)
         {
-            lblMessage.ForeColor = UiTheme.TEXT_MUTED;
-            lblMessage.Text = message;
+            lblMessage.Text = "";
+            _show_toast(message);
         }
     }
 }

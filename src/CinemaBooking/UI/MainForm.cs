@@ -59,7 +59,7 @@ namespace CinemaBooking.UI
         private readonly AuthService _auth_service;
 
         // who is signed in now, a guest until the login works
-        private Role _current_role = Role.Staff;
+        private Role _current_role = Role.Guest;
         private Member? _current_member;
         private string _current_email = "";
 
@@ -304,7 +304,7 @@ namespace CinemaBooking.UI
                 return MakePlaceholderPage("Sign in as staff or an admin to manage showings.");
             }
 
-            return new AdminShowingsForm(_showing_admin_service, _current_role);
+            return new AdminShowingsForm(_showing_admin_service, _current_role, ShowGoodToast);
         }
 
         // tells the showing rules if a film id exists, by looking at the films the film service knows
@@ -323,6 +323,12 @@ namespace CinemaBooking.UI
             return false;
         }
 
+        // the admin pages call this when something worked, for example a film was added
+        private void ShowGoodToast(string message)
+        {
+            _toast.ShowMessage(message, false);
+        }
+
         // the admin page opens only when an admin is signed in
         private Control MakeAdminPage()
         {
@@ -331,7 +337,7 @@ namespace CinemaBooking.UI
                 return MakePlaceholderPage("Sign in as an admin to manage films.");
             }
 
-            return new AdminFilmsForm(_film_service, _current_role);
+            return new AdminFilmsForm(_film_service, _current_role, ShowGoodToast);
         }
 
         // the seat map of the chosen showing (card 348), back goes to the film's detail page
