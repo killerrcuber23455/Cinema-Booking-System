@@ -5,8 +5,8 @@ using CinemaBooking.Data;
 
 namespace CinemaBooking.Services
 {
-   public class MemberService
-   {
+    public class MemberService
+    {
         //database used to save and read members
         private IDatabase _database;
 
@@ -82,5 +82,12 @@ namespace CinemaBooking.Services
             return _database.GetAllMembers();
         }
 
-   }
+        //finding a member
+        public Member? FindMember(Role role, string email, out string error_message)
+        {
+            error_message = "find member is not built yet";
+            return null;
+        }
+
+    }
 }
