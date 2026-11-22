@@ -113,12 +113,74 @@ public class FilmInputTests
     }
 
     [TestMethod]
-    public void TryRead_SeveralNumbersWrong_SaysTheFirstInPageOrder()
+    public void TryRead_SeveralNumbersWrong_ShowsEveryOne()
     {
-        // the page order is id, title, genre, year, duration, age rating
         Read(out Film? film, out string error_message, id_text: "x", year_text: "y");
 
-        StringAssert.Contains(error_message, "id");
+        StringAssert.Contains(error_message, "id must be a whole number");
+        StringAssert.Contains(error_message, "year must be a whole number");
+    }
+
+    [TestMethod]
+    public void TryRead_EverythingEmpty_ShowsEveryBox()
+    {
+        Read(out Film? film, out string error_message, id_text: "", title: "", genre: "", year_text: "",
+            duration_text: "", age_rating_text: "");
+
+        StringAssert.Contains(error_message, "id cannot be empty");
+        StringAssert.Contains(error_message, "title");
+        StringAssert.Contains(error_message, "genre");
+        StringAssert.Contains(error_message, "year cannot be empty");
+        StringAssert.Contains(error_message, "duration cannot be empty");
+        StringAssert.Contains(error_message, "age rating cannot be empty");
+    }
+
+    [TestMethod]
+    public void TryRead_EverythingEmpty_GivesOneLinePerBox()
+    {
+        // description and poster file may be empty, so six boxes are wrong
+        Read(out Film? film, out string error_message, id_text: "", title: "", genre: "", year_text: "",
+            duration_text: "", age_rating_text: "");
+
+        Assert.AreEqual(6, error_message.Split('\n').Length);
+    }
+
+    [TestMethod]
+    public void TryRead_MessagesAreInPageOrder()
+    {
+        Read(out Film? film, out string error_message, id_text: "", title: "", genre: "", year_text: "",
+            duration_text: "", age_rating_text: "");
+
+        int id_place = error_message.IndexOf("id cannot be empty");
+        int title_place = error_message.IndexOf("title");
+        int genre_place = error_message.IndexOf("genre");
+        int year_place = error_message.IndexOf("year cannot be empty");
+        int duration_place = error_message.IndexOf("duration cannot be empty");
+        int age_place = error_message.IndexOf("age rating cannot be empty");
+
+        Assert.IsTrue(id_place < title_place);
+        Assert.IsTrue(title_place < genre_place);
+        Assert.IsTrue(genre_place < year_place);
+        Assert.IsTrue(year_place < duration_place);
+        Assert.IsTrue(duration_place < age_place);
+    }
+
+    [TestMethod]
+    public void TryRead_BadNumberAndBadTitle_ShowsBoth()
+    {
+        Read(out Film? film, out string error_message, id_text: "x", title: "");
+
+        StringAssert.Contains(error_message, "id must be a whole number");
+        StringAssert.Contains(error_message, "title");
+    }
+
+    [TestMethod]
+    public void TryRead_OnlyTheYearWrong_ShowsOnlyOneLine()
+    {
+        Read(out Film? film, out string error_message, year_text: "abc");
+
+        Assert.AreEqual(1, error_message.Split('\n').Length);
+        StringAssert.Contains(error_message, "year must be a whole number");
     }
 
     // numbers that are read but the film rules refuse
