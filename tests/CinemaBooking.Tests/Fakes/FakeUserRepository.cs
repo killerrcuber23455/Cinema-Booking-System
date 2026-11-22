@@ -30,7 +30,7 @@ public class FakeUserRepository : IUserRepository
     // same rule as the real table: the email is trimmed and lowercase, and it must be unique
     private static string MakeEmailKey(string email)
     {
-        return email.Trim().ToLower();
+        return email.Trim().ToLowerInvariant();
     }
 
     public int SaveUser(string email, string password_hash, string salt, Role role, int? member_id)
@@ -88,5 +88,18 @@ public class FakeUserRepository : IUserRepository
     {
         AuditRows.Add(new AuditRow(user_id, action, details));
         return true;
+    }
+
+    public bool HasAnyAdmin()
+    {
+        for (int index = 0; index < _users.Count; index++)
+        {
+            if (_users[index].Role == Role.Admin)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
