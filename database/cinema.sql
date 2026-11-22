@@ -128,17 +128,24 @@ CREATE TABLE booked_seats (
 );
 GO
 
--- stores the people who log in, password is stored as a hash
+-- stores the people who log in. the login service makes the hash and the salt,
+-- this table only stores them: salt is Base64 text in its own column, password_hash is the hash as text.
+-- failed_attempts and locked_until are used for the login lock.
+-- email is always saved trimmed and lowercase. Guest is never stored.
 CREATE TABLE users (
     id INT IDENTITY(1, 1) NOT NULL,
-    username NVARCHAR(50) NOT NULL,
+    email NVARCHAR(100) NOT NULL,
     password_hash NVARCHAR(200) NOT NULL,
+    salt NVARCHAR(100) NOT NULL,
     role NVARCHAR(20) NOT NULL,
+    failed_attempts INT NOT NULL CONSTRAINT df_users_failed DEFAULT 0,
+    locked_until DATETIME2 NULL,
     member_id INT NULL,
     CONSTRAINT pk_users PRIMARY KEY (id),
-    CONSTRAINT uq_users_username UNIQUE (username),
+    CONSTRAINT uq_users_email UNIQUE (email),
     CONSTRAINT fk_users_member FOREIGN KEY (member_id) REFERENCES members (id),
-    CONSTRAINT ck_users_role CHECK (role IN ('Customer', 'Staff', 'Admin'))
+    CONSTRAINT ck_users_role CHECK (role IN ('Customer', 'Staff', 'Admin')),
+    CONSTRAINT ck_users_failed CHECK (failed_attempts >= 0)
 );
 GO
 
