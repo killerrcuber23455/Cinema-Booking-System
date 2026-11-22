@@ -203,9 +203,17 @@ namespace CinemaBooking.Data
         }
 
         // returns true if at least one user has the role Admin
+        // returns true if at least one user has the role Admin
         public bool HasAnyAdmin()
         {
-            return false;
+            using (SqlConnection connection = OpenConnection())
+            using (SqlCommand command = new SqlCommand(
+                "SELECT COUNT(*) FROM users WHERE role = @role", connection))
+            {
+                command.Parameters.AddWithValue("@role", Role.Admin.ToString());
+
+                return Convert.ToInt32(command.ExecuteScalar()) > 0;
+            }
         }
     }
 }
