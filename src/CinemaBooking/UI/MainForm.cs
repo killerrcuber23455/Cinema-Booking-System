@@ -38,9 +38,17 @@ namespace CinemaBooking.UI
         private readonly FilmService _film_service;
         private readonly ShowingService _showing_service;
 
-        public MainForm(ShowingService showing_service)
+        private readonly AuthService _auth_service;
+
+        // who is signed in now, a guest until the login works
+        private Role _current_role = Role.Guest;
+        private Member? _current_member;
+        private string _current_email = "";
+
+        public MainForm(ShowingService showing_service, AuthService auth_service)
         {
             _showing_service = showing_service;
+            _auth_service = auth_service;
             _film_service = new FilmService(_films);
 
             BuildWindow();
@@ -81,8 +89,8 @@ namespace CinemaBooking.UI
             AddMenuButton(btnBookSeats, "Book seats", 186, () => MakePlaceholderPage("Choosing a showing and seats will be done here."));
             AddMenuButton(btnCancel, "Cancel booking", 234, () => MakePlaceholderPage("A booking is cancelled here with its reference."));
             AddMenuButton(btnMembers, "Members", 282, () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
-            AddMenuButton(btnAdmin, "Admin", 330, () => new AdminFilmsForm(_film_service, Role.Admin));
-            AddMenuButton(btnAccount, "My account", 378, () => MakePlaceholderPage("Login and account details will be shown here."));
+            AddMenuButton(btnAdmin, "Admin", 330, MakeAdminPage);
+            AddMenuButton(btnAccount, "My account", 378, MakeAccountPage);
 
             // exit sits at the bottom of the menu
             StyleMenuButton(btnExit, "Exit");
@@ -148,6 +156,16 @@ namespace CinemaBooking.UI
             ShowPage(btnFilms, "Film details", detail_page);
         }
 
+        private Control MakeAdminPage()
+        {
+            if (_current_role != Role.Admin)
+            {
+                return MakePlaceholderPage("Sign in as an admin to manage films.");
+            }
+
+            return new AdminFilmsForm(_film_service, _current_role);
+        }
+
         // the seat map of the chosen showing (card 348), back goes to the film's detail page
         private void OpenSeatMap(Film film, Showing showing)
         {
@@ -163,20 +181,52 @@ namespace CinemaBooking.UI
         // the booking summary is the next card (403), for now the chosen seats are only named
         private void OpenBookingSummary(Film film, Showing showing, string[] seat_codes)
         {
-            // member is null until login exists, so everyone is a guest for now
+            // a signed in customer is a member, everyone else books as a guest
             BookingSummaryForm summary_page = new BookingSummaryForm(
                 film,
                 showing,
                 seat_codes,
-                null,
+                _current_member,
                 () => OpenSeatMap(film, showing),
-                () => ShowPage(btnFilms, "My account", MakePlaceholderPage(
-                    "Login is built in its own card.")),
+                () => ShowPage(btnAccount, "My account", MakeAccountPage()),
                 guest_details => ShowPage(btnFilms, "Booking", MakePlaceholderPage(
                     "The booking is made when the booking service is connected.")));
 
             ShowPage(btnFilms, "Booking summary", summary_page);
         }
+
+        // the account button shows the login page for a guest and the account page for someone signed in
+        private Control MakeAccountPage()
+        {
+            if (_current_role == Role.Guest)
+            {
+                return new LoginForm(
+                    _auth_service,
+                    SignedIn,
+                    () => ShowPage(btnAccount, "My account", MakePlaceholderPage("Sign up is built in its own card.")));
+            }
+
+            return new AccountForm(_current_role, _current_email, _current_member, SignOut);
+        }
+
+        // the login worked, so the window remembers who it is and shows the account page
+        private void SignedIn(Role role, Member? member, string email)
+        {
+            _current_role = role;
+            _current_member = member;
+            _current_email = email;
+            ShowPage(btnAccount, "My account", MakeAccountPage());
+        }
+
+        // back to a guest, and the login page opens again
+        private void SignOut()
+        {
+            _current_role = Role.Guest;
+            _current_member = null;
+            _current_email = "";
+            ShowPage(btnAccount, "My account", MakeAccountPage());
+        }
+
         // a text page for the parts that are not built yet
         private static Control MakePlaceholderPage(string page_text)
         {
