@@ -89,5 +89,21 @@ namespace CinemaBooking.Services
             return null;
         }
 
+        // used by login to get the member of a customer, no role check because the user is already known
+        internal Member? FindMemberById(int member_id)
+        {
+            Member[] all_members = _database.GetAllMembers();
+
+            for (int index = 0; index < all_members.Length; index++)
+            {
+                if (all_members[index].Id == member_id)
+                {
+                    return all_members[index];
+                }
+            }
+
+            return null;
+        }
+
     }
 }
