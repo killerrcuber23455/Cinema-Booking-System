@@ -20,6 +20,12 @@ namespace CinemaBooking.Services
         // how long a locked account stays closed, the tests and the message both use this one number
         private const int LOCK_MINUTES = 15;
 
+        // the action names written to the audit log where the column holds up to 50 characters
+        private const string AUDIT_LOGIN = "login";
+        private const string AUDIT_LOGIN_FAILED = "login_failed";
+        private const string AUDIT_ACCOUNT_LOCKED = "account_locked";
+        private const string AUDIT_LOGIN_REFUSED_LOCKED = "login_refused_locked";
+
         // the normal constructor uses the real time
         public AuthService(IUserRepository user_repository, MemberService member_service)
             : this(user_repository, member_service, () => DateTime.Now)
@@ -49,6 +55,8 @@ namespace CinemaBooking.Services
             UserRecord? user = _user_repository.FindByEmail(email);
             if (user == null)
             {
+                // there is no user id, so the email goes in details, never a password
+                _user_repository.WriteAudit(null, AUDIT_LOGIN_FAILED, email.Trim());
                 return false;
             }
 
@@ -59,6 +67,8 @@ namespace CinemaBooking.Services
             //even the right password, and changes nothing
             if (user.LockedUntil.HasValue && now < user.LockedUntil.Value)
             {
+                _user_repository.WriteAudit(user.Id, AUDIT_LOGIN_REFUSED_LOCKED,
+                    "locked until " + user.LockedUntil.Value.ToString("yyyy-MM-dd HH:mm"));
                 error_message = MakeLockedMessage(user.LockedUntil.Value, now);
                 return false;
             }
@@ -78,11 +88,15 @@ namespace CinemaBooking.Services
                 {
                     DateTime locked_until = now.AddMinutes(LOCK_MINUTES);
                     _user_repository.SetFailedAttempts(user.Id, failed_attempts, locked_until);
+                    _user_repository.WriteAudit(user.Id, AUDIT_ACCOUNT_LOCKED,
+                        "locked until " + locked_until.ToString("yyyy-MM-dd HH:mm"));
                     error_message = MakeLockedMessage(locked_until, now);
                 }
                 else
                 {
                     _user_repository.SetFailedAttempts(user.Id, failed_attempts, null);
+                    _user_repository.WriteAudit(user.Id, AUDIT_LOGIN_FAILED,
+                        "wrong password, try " + failed_attempts + " of " + MAX_LOGIN_TRIES);
                 }
 
                 return false;
@@ -93,6 +107,8 @@ namespace CinemaBooking.Services
             {
                 _user_repository.SetFailedAttempts(user.Id, 0, null);
             }
+
+            _user_repository.WriteAudit(user.Id, AUDIT_LOGIN, user.Email);
 
             role = user.Role;
             if (user.MemberId.HasValue)
