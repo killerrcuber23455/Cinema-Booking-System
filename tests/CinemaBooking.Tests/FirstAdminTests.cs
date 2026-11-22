@@ -182,4 +182,26 @@ public class FirstAdminTests
         Assert.IsTrue(is_ok_as_typed);
         Assert.IsFalse(is_ok_trimmed);
     }
+
+    // the windows never send null, but the service must refuse it instead of crashing
+    [TestMethod]
+    public void CreateFirstAdmin_NullEmail_IsRefusedNotCrashed()
+    {
+        Member.IsValidEmail("", out string expected_message);
+
+        bool is_ok = _service.CreateFirstAdmin(null!, PASSWORD, out string error_message);
+
+        Assert.IsFalse(is_ok);
+        Assert.AreEqual(expected_message, error_message);
+    }
+
+    // this one passes at once because IsValidPassword already handles null, it guards that
+    [TestMethod]
+    public void CreateFirstAdmin_NullPassword_IsRefusedNotCrashed()
+    {
+        bool is_ok = _service.CreateFirstAdmin(EMAIL, null!, out string error_message);
+
+        Assert.IsFalse(is_ok);
+        Assert.AreEqual(SHORT_PASSWORD_MESSAGE, error_message);
+    }
 }
