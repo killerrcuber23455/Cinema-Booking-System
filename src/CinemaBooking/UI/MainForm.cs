@@ -1,4 +1,4 @@
-// the main window with the side menu, every function is reached from here (owner: divyesh)
+﻿// the main window with the side menu, every function is reached from here (owner: divyesh)
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -41,6 +41,7 @@ namespace CinemaBooking.UI
         private readonly HashTable<int, Film> _films = new HashTable<int, Film>();
         private readonly FilmService _film_service;
         private readonly ShowingService _showing_service;
+        private readonly ShowingAdminService _showing_admin_service;
         private readonly AuthService _auth_service;
 
         // who is signed in now, a guest until the login works
@@ -48,11 +49,12 @@ namespace CinemaBooking.UI
         private Member? _current_member;
         private string _current_email = "";
 
-        public MainForm(ShowingService showing_service, AuthService auth_service)
+        public MainForm(ShowingService showing_service, AuthService auth_service, ShowingTable showing_table)
         {
             _showing_service = showing_service;
             _auth_service = auth_service;
             _film_service = new FilmService(_films);
+            _showing_admin_service = new ShowingAdminService(showing_table, FilmExists);
 
             BuildWindow();
             BuildSideMenu();
@@ -88,7 +90,7 @@ namespace CinemaBooking.UI
 
             // each menu item shows its page when it is clicked, RefreshMenu shows the ones this role may see
             AddMenuButton(btnFilms, "Films", MakeFilmsPage);
-            AddMenuButton(btnShowings, "Showings", () => MakePlaceholderPage("The showings for each screen will be shown here."));
+            AddMenuButton(btnShowings, "Showings", MakeShowingsPage);
             AddMenuButton(btnBookSeats, "Book seats", () => MakePlaceholderPage("Choosing a showing and seats will be done here."));
             AddMenuButton(btnMyBookings, "My bookings", () => MakePlaceholderPage("Your bookings and cancelling will be shown here."));
             AddMenuButton(btnCancel, "Cancel booking", () => MakePlaceholderPage("A booking is cancelled here with its reference."));
@@ -206,6 +208,33 @@ namespace CinemaBooking.UI
             detail_page.ShowShowings(_showing_service.GetShowingsForFilm(film.Id));
 
             ShowPage(btnFilms, "Film details", detail_page);
+        }
+
+        // the showings page opens for staff and admins, the service also refuses anyone else
+        private Control MakeShowingsPage()
+        {
+            if (_current_role != Role.Staff && _current_role != Role.Admin)
+            {
+                return MakePlaceholderPage("Sign in as staff or an admin to manage showings.");
+            }
+
+            return new AdminShowingsForm(_showing_admin_service, _current_role);
+        }
+
+        // tells the showing rules if a film id exists, by looking at the films the film service knows
+        private bool FilmExists(int film_id)
+        {
+            Film[] all_films = _film_service.Search("", "");
+
+            for (int film_index = 0; film_index < all_films.Length; film_index++)
+            {
+                if (all_films[film_index].Id == film_id)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         // the admin page opens only when an admin is signed in

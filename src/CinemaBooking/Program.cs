@@ -37,7 +37,7 @@ namespace CinemaBooking
             }
 
             ShowingService showing_service = new ShowingService(showing_table);
-            Application.Run(new UI.MainForm(showing_service, auth_service));
+            Application.Run(new UI.MainForm(showing_service, auth_service, showing_table));
         }
     }
 }
