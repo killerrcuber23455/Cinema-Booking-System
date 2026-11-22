@@ -2,6 +2,10 @@
 
 
 
+After card 318 everyone must drop and recreate CinemaBookingTestDb from the new database/cinema.sql (the users table changed).
+
+
+
 Integration tests only run on a separate test database, never on the real one.
 
 The tests refuse any connection string that does not contain "Test".
@@ -14,7 +18,7 @@ The tests refuse any connection string that does not contain "Test".
 
 2\. Click New Query and run: CREATE DATABASE CinemaBookingTestDb;
 
-3\. Open database/cinema.sql, set the database dropdown to CinemaBookingTestDb, and press F5. There must be no red errors.
+3\. Open database/cinema.sql, set the database dropdown to CinemaBookingTestDb, and press F5. There must be no red errors. The script drops and recreates every table, so it also resets an older test database.
 
 4\. In PowerShell run (change the server name if yours is different):
 
