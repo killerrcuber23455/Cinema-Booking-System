@@ -26,6 +26,9 @@ namespace CinemaBooking.Services
         private const string AUDIT_ACCOUNT_LOCKED = "account_locked";
         private const string AUDIT_LOGIN_REFUSED_LOCKED = "login_refused_locked";
 
+        // audit_log.details holds 500 characters, so a very long email is cut before it is written
+        private const int MAX_EMAIL_IN_AUDIT = 200;
+
         // the normal constructor uses the real time
         public AuthService(IUserRepository user_repository, MemberService member_service)
             : this(user_repository, member_service, () => DateTime.Now)
@@ -55,8 +58,14 @@ namespace CinemaBooking.Services
             UserRecord? user = _user_repository.FindByEmail(email);
             if (user == null)
             {
-                // there is no user id, so the email goes in details, never a password
-                _user_repository.WriteAudit(null, AUDIT_LOGIN_FAILED, email.Trim());
+                // there is no user id, so the email goes in details (cut to fit the column), never a password
+                string short_email = email.Trim();
+                if (short_email.Length > MAX_EMAIL_IN_AUDIT)
+                {
+                    short_email = short_email.Substring(0, MAX_EMAIL_IN_AUDIT);
+                }
+
+                _user_repository.WriteAudit(null, AUDIT_LOGIN_FAILED, short_email);
                 return false;
             }
 
