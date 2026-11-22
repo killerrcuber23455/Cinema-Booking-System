@@ -1,4 +1,5 @@
 // starts the program and opens the main window (owner: divyesh)
+using CinemaBooking.Data;
 using CinemaBooking.DataStructures;
 using CinemaBooking.Services;
 
@@ -18,9 +19,22 @@ namespace CinemaBooking
 #if DEBUG
             DemoShowings.Load(showing_table);
 #endif
-            // the login service. its constructor will take the user repository and the member service when
-            // Shankar pushes the real login, then only this line changes
-            AuthService auth_service = new AuthService();
+            // the login needs the database, so read appsettings.json first
+            AuthService auth_service;
+            try
+            {
+                AppConfig config = new AppConfig();
+                Database database = new Database(config);
+                UserRepository users = new UserRepository(config);
+                MemberService member_service = new MemberService(database);
+                auth_service = new AuthService(users, member_service);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("The program could not start the database settings.\n\n" + ex.Message,
+                    "Cinema", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
             ShowingService showing_service = new ShowingService(showing_table);
             Application.Run(new UI.MainForm(showing_service, auth_service));
