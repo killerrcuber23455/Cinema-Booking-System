@@ -15,11 +15,67 @@ namespace CinemaBooking.Services
         }
 
         // replaces the film that has the same id with the edited film, otherwise false with the reason
-        // this is only a stub for the red step, it says yes and changes nothing
         public static bool Update(FilmService film_service, Film? edited_film, Role role, out string error_message)
         {
+            if (role != Role.Admin)
+            {
+                error_message = NOT_ADMIN_TEXT;
+                return false;
+            }
+
+            if (edited_film == null)
+            {
+                error_message = NO_FILM_GIVEN_TEXT;
+                return false;
+            }
+
+            // the new details are checked first, so a bad edit never touches the old film
+            string film_errors;
+
+            if (!edited_film.IsValid(out film_errors))
+            {
+                error_message = film_errors;
+                return false;
+            }
+
+            Film? old_film = FindById(film_service, edited_film.Id);
+
+            if (old_film == null)
+            {
+                error_message = NotFoundText(edited_film.Id);
+                return false;
+            }
+
+            if (!film_service.RemoveFilm(old_film.Id, role, out error_message))
+            {
+                return false;
+            }
+
+            if (!film_service.AddFilm(edited_film, role, out error_message))
+            {
+                // give the old film back so nothing is lost
+                string ignored;
+                film_service.AddFilm(old_film, role, out ignored);
+                return false;
+            }
+
             error_message = "";
             return true;
+        }
+
+        private static Film? FindById(FilmService film_service, int film_id)
+        {
+            Film[] all_films = film_service.Search("", "");
+
+            for (int film_index = 0; film_index < all_films.Length; film_index++)
+            {
+                if (all_films[film_index].Id == film_id)
+                {
+                    return all_films[film_index];
+                }
+            }
+
+            return null;
         }
     }
 }

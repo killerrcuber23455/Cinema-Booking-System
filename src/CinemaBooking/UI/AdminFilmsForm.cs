@@ -37,6 +37,12 @@ namespace CinemaBooking.UI
         private readonly TextBox txtDescription = new TextBox();
         private readonly TextBox txtPoster = new TextBox();
         private readonly Label lblMessage = new Label();
+        private readonly Label lblFormHeading = new Label();
+        private Button btnAdd = null!;
+        private Button btnCancelEdit = null!;
+
+        // the id of the film being edited, 0 means the boxes are for a new film
+        private int _editing_film_id;
 
         // the films shown in the list, in the same order as the list lines
         private Film[] _listed_films = new Film[0];
@@ -76,12 +82,16 @@ namespace CinemaBooking.UI
             btnRemove.SetBounds(PAGE_PADDING, 470, LIST_WIDTH, 40);
             btnRemove.Click += (sender, e) => ClickRemove();
 
+            Button btnEdit = MakeButton("Edit chosen film", UiTheme.CARD);
+            btnEdit.SetBounds(PAGE_PADDING, 516, LIST_WIDTH, 40);
+            btnEdit.Click += (sender, e) => ClickEdit();
+
             Controls.Add(lblListHeading);
             Controls.Add(lstFilms);
             Controls.Add(btnRemove);
+            Controls.Add(btnEdit);
 
             // the boxes to add a film on the right
-            Label lblFormHeading = new Label();
             lblFormHeading.Font = UiTheme.CARD_TITLE_FONT;
             lblFormHeading.Text = "Add a film";
             lblFormHeading.SetBounds(FORM_LEFT, PAGE_PADDING, 300, 26);
@@ -108,10 +118,17 @@ namespace CinemaBooking.UI
             AddRow("Description", txtDescription, box_top + (7 * ROW_HEIGHT), 90);
 
             int button_top = box_top + (7 * ROW_HEIGHT) + 104;
-            Button btnAdd = MakeButton("Add film", UiTheme.ACCENT_RED);
+            btnAdd = MakeButton("Add film", UiTheme.ACCENT_RED);
             btnAdd.SetBounds(BOX_LEFT + BOX_WIDTH - 160, button_top, 160, 40);
             btnAdd.Click += (sender, e) => ClickAdd();
             Controls.Add(btnAdd);
+
+            // only shown while a film is being edited
+            btnCancelEdit = MakeButton("Cancel edit", UiTheme.CARD);
+            btnCancelEdit.SetBounds(BOX_LEFT + BOX_WIDTH - 160 - 130, button_top, 120, 40);
+            btnCancelEdit.Visible = false;
+            btnCancelEdit.Click += (sender, e) => StopEditing();
+            Controls.Add(btnCancelEdit);
 
             // the message sits under the add button and can have several lines, one for each wrong box
             lblMessage.ForeColor = UiTheme.ACCENT_RED;
@@ -174,6 +191,20 @@ namespace CinemaBooking.UI
                 return;
             }
 
+            if (_editing_film_id != 0)
+            {
+                if (!FilmEditor.Update(_film_service, film, _role, out error_message))
+                {
+                    ShowError(error_message);
+                    return;
+                }
+
+                StopEditing();
+                FillList();
+                ShowGood("Film saved: " + film!.Title);
+                return;
+            }
+
             if (!_film_service.AddFilm(film!, _role, out error_message))
             {
                 ShowError(error_message);
@@ -183,6 +214,47 @@ namespace CinemaBooking.UI
             ClearBoxes();
             FillList();
             ShowGood("Film added: " + film!.Title);
+        }
+
+        // puts the chosen film into the boxes, the id cannot be changed while editing
+        private void ClickEdit()
+        {
+            int chosen_index = lstFilms.SelectedIndex;
+
+            if (chosen_index < 0)
+            {
+                ShowError("Choose a film in the list first");
+                return;
+            }
+
+            Film film = _listed_films[chosen_index];
+
+            _editing_film_id = film.Id;
+            txtId.Text = film.Id.ToString();
+            txtId.ReadOnly = true;
+            txtTitle.Text = film.Title;
+            txtGenre.Text = film.Genre;
+            txtYear.Text = film.Year.ToString();
+            txtDuration.Text = film.DurationMinutes.ToString();
+            txtAgeRating.Text = film.AgeRating.ToString();
+            txtDescription.Text = film.Description;
+            txtPoster.Text = film.PosterFile;
+
+            lblFormHeading.Text = "Edit film";
+            btnAdd.Text = "Save changes";
+            btnCancelEdit.Visible = true;
+            lblMessage.Text = "";
+        }
+
+        // back to the add form with empty boxes
+        private void StopEditing()
+        {
+            _editing_film_id = 0;
+            txtId.ReadOnly = false;
+            ClearBoxes();
+            lblFormHeading.Text = "Add a film";
+            btnAdd.Text = "Add film";
+            btnCancelEdit.Visible = false;
         }
 
         // the admin picks a picture, PosterImport checks it and copies it into the posters folder
