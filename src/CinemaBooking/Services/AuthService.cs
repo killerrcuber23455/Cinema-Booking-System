@@ -14,6 +14,12 @@ namespace CinemaBooking.Services
         // so nobody can find out which emails exist
         private const string WRONG_LOGIN_MESSAGE = "email or password is wrong";
 
+        // three wrong passwords in a row lock the account (rule from card 400)
+        private const int MAX_LOGIN_TRIES = 3;
+
+        // how long a locked account stays closed, the tests and the message both use this one number
+        private const int LOCK_MINUTES = 15;
+
         // the normal constructor uses the real time
         public AuthService(IUserRepository user_repository, MemberService member_service)
             : this(user_repository, member_service, () => DateTime.Now)
@@ -46,9 +52,46 @@ namespace CinemaBooking.Services
                 return false;
             }
 
+            DateTime now = _now();
+            int failed_attempts = user.FailedAttempts;
+
+            //a lock that is still running refuses everything
+            //even the right password, and changes nothing
+            if (user.LockedUntil.HasValue && now < user.LockedUntil.Value)
+            {
+                error_message = MakeLockedMessage(user.LockedUntil.Value, now);
+                return false;
+            }
+
+            // the lock has ended, so the account starts again with a fresh set of tries
+            if (user.LockedUntil.HasValue)
+            {
+                failed_attempts = 0;
+                _user_repository.SetFailedAttempts(user.Id, 0, null);
+            }
+
             if (!PasswordHasher.Verify(password, user.PasswordHash, user.Salt))
             {
+                failed_attempts++;
+
+                if (failed_attempts >= MAX_LOGIN_TRIES)
+                {
+                    DateTime locked_until = now.AddMinutes(LOCK_MINUTES);
+                    _user_repository.SetFailedAttempts(user.Id, failed_attempts, locked_until);
+                    error_message = MakeLockedMessage(locked_until, now);
+                }
+                else
+                {
+                    _user_repository.SetFailedAttempts(user.Id, failed_attempts, null);
+                }
+
                 return false;
+            }
+
+            // a right password clears the wrong tries
+            if (failed_attempts > 0)
+            {
+                _user_repository.SetFailedAttempts(user.Id, 0, null);
             }
 
             role = user.Role;
@@ -59,6 +102,19 @@ namespace CinemaBooking.Services
 
             error_message = "";
             return true;
+        }
+
+        // says how long is left, rounded up so "30 seconds left" never shows as "0 minutes"
+        private static string MakeLockedMessage(DateTime locked_until, DateTime now)
+        {
+            int minutes_left = (int)Math.Ceiling((locked_until - now).TotalMinutes);
+
+            if (minutes_left == 1)
+            {
+                return "this account is locked, try again in 1 minute";
+            }
+
+            return "this account is locked, try again in " + minutes_left + " minutes";
         }
 
         public bool SignUp(string name, string email, string phone, string password, out string error_message)
