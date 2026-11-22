@@ -3,6 +3,7 @@
 // done by FilmInput and the add and remove rules (including the admin check) are in FilmService
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 using CinemaBooking.Models;
 using CinemaBooking.Services;
@@ -18,6 +19,8 @@ namespace CinemaBooking.UI
         private const int BOX_LEFT = FORM_LEFT + LABEL_WIDTH;
         private const int BOX_WIDTH = 300;
         private const int ROW_HEIGHT = 36;
+        private const int CHOOSE_WIDTH = 104;
+        private const string POSTER_FOLDER = "posters";
 
         private readonly FilmService _film_service;
 
@@ -92,6 +95,13 @@ namespace CinemaBooking.UI
             AddRow("Duration (min)", txtDuration, box_top + (4 * ROW_HEIGHT), 28);
             AddRow("Age rating", txtAgeRating, box_top + (5 * ROW_HEIGHT), 28);
             AddRow("Poster file", txtPoster, box_top + (6 * ROW_HEIGHT), 28);
+
+            // the poster box is a bit shorter so the choose button fits on the same row
+            txtPoster.Width = BOX_WIDTH - CHOOSE_WIDTH - 6;
+            Button btnChoose = MakeButton("Choose...", UiTheme.CARD);
+            btnChoose.SetBounds(BOX_LEFT + BOX_WIDTH - CHOOSE_WIDTH, box_top + (6 * ROW_HEIGHT), CHOOSE_WIDTH, 28);
+            btnChoose.Click += (sender, e) => ClickChoosePoster();
+            Controls.Add(btnChoose);
 
             // the description is taller than the other boxes
             txtDescription.Multiline = true;
@@ -173,6 +183,32 @@ namespace CinemaBooking.UI
             ClearBoxes();
             FillList();
             ShowGood("Film added: " + film!.Title);
+        }
+
+        // the admin picks a picture, PosterImport checks it and copies it into the posters folder
+        private void ClickChoosePoster()
+        {
+            using OpenFileDialog dialog = new OpenFileDialog();
+            dialog.Title = "Choose a poster picture";
+            dialog.Filter = "Pictures (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png";
+
+            if (dialog.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+
+            string poster_file;
+            string error_message;
+
+            if (!PosterImport.Import(dialog.FileName, Path.Combine(AppContext.BaseDirectory, POSTER_FOLDER),
+                    out poster_file, out error_message))
+            {
+                ShowError(error_message);
+                return;
+            }
+
+            lblMessage.Text = "";
+            txtPoster.Text = poster_file;
         }
 
         private void ClickRemove()

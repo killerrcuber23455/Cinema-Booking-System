@@ -17,20 +17,91 @@ namespace CinemaBooking.Services
         public const string NAME_TEXT = "The picture file name must be 100 characters or fewer";
 
         // true when the chosen file can be used as a poster, otherwise false with the reason
-        // this is only a stub for the red step, it accepts everything
         public static bool Check(string? source_path, out string error_message)
         {
+            if (string.IsNullOrWhiteSpace(source_path))
+            {
+                error_message = BLANK_TEXT;
+                return false;
+            }
+
+            string path = source_path.Trim();
+            string extension = Path.GetExtension(path).ToLowerInvariant();
+
+            if (extension != ".jpg" && extension != ".jpeg" && extension != ".png")
+            {
+                error_message = TYPE_TEXT;
+                return false;
+            }
+
+            if (!File.Exists(path))
+            {
+                error_message = MISSING_TEXT;
+                return false;
+            }
+
+            if (Path.GetFileName(path).Length > MAX_NAME_LENGTH)
+            {
+                error_message = NAME_TEXT;
+                return false;
+            }
+
+            if (new FileInfo(path).Length > MAX_BYTES)
+            {
+                error_message = BIG_TEXT;
+                return false;
+            }
+
             error_message = "";
             return true;
         }
 
         // copies the picture into the posters folder and gives back the file name to store on the film
-        // this is only a stub for the red step, it copies nothing
+        // a picture that is already in the folder is not copied again, and a name that is taken gets a number
         public static bool Import(string? source_path, string posters_folder, out string poster_file, out string error_message)
         {
             poster_file = "";
-            error_message = "";
-            return false;
+
+            if (!Check(source_path, out error_message))
+            {
+                return false;
+            }
+
+            string path = Path.GetFullPath(source_path!.Trim());
+            string folder = Path.GetFullPath(posters_folder);
+            string name = Path.GetFileName(path);
+
+            string? source_folder = Path.GetDirectoryName(path);
+
+            if (string.Equals(source_folder?.TrimEnd(Path.DirectorySeparatorChar), folder.TrimEnd(Path.DirectorySeparatorChar),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                poster_file = name;
+                return true;
+            }
+
+            Directory.CreateDirectory(folder);
+
+            string stem = Path.GetFileNameWithoutExtension(name);
+            string extension = Path.GetExtension(name);
+            string new_name = name;
+            int number = 2;
+
+            while (File.Exists(Path.Combine(folder, new_name)))
+            {
+                new_name = stem + "_" + number + extension;
+                number++;
+            }
+
+            if (new_name.Length > MAX_NAME_LENGTH)
+            {
+                error_message = NAME_TEXT;
+                return false;
+            }
+
+            File.Copy(path, Path.Combine(folder, new_name));
+            poster_file = new_name;
+            return true;
         }
     }
 }
