@@ -23,10 +23,10 @@ namespace CinemaBooking.Services
         private static readonly Random _random = new Random();
 
         //the database and the showings table are given to us, we do not create them here
-        private readonly Database _database;
+        private readonly IDatabase _database;
         private readonly ShowingTable _showing_table;
 
-        public BookingService(Database database, ShowingTable showing_table)
+        public BookingService(IDatabase database, ShowingTable showing_table)
         {
             _database = database;
             _showing_table = showing_table;
