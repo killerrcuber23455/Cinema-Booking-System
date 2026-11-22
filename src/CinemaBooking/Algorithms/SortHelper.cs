@@ -1,6 +1,5 @@
 // week 8 sorting and searching on our own arrays (owner: kushal)
 using CinemaBooking.Models;
-using System;
 
 namespace CinemaBooking.Algorithms
 {
@@ -11,14 +10,14 @@ namespace CinemaBooking.Algorithms
         // sort_by is "title", "year" or "rating"
         public static Film[] MergeSort(Film[] films, string sort_by)
         {
-            throw new NotImplementedException();
+            return films;
         }
 
         // binary search: O(log n) on an array already sorted by title
         // returns the index of the exact title (any case), or -1 if it is not there
         public static int BinarySearch(Film[] sorted_films, string title)
         {
-            throw new NotImplementedException();
+            return -1;
         }
     }
 }
