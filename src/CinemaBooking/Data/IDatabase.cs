@@ -7,6 +7,7 @@ namespace CinemaBooking.Data
     public interface IDatabase
     {
         int LoadFilms(HashTable<int, Film> film_table);
+        bool SaveFilm(Film film);
 
         int SaveMember(Member member);
         Member[] GetAllMembers();

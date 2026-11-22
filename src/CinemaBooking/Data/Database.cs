@@ -131,6 +131,42 @@ namespace CinemaBooking.Data
             return loaded;
         }
 
+        // saves a film with the id it already has (FilmService makes the next free id).
+        // returns false if the id is already used.
+        public bool SaveFilm(Film film)
+        {
+            using (SqlConnection connection = OpenConnection())
+            using (SqlCommand command = new SqlCommand(
+                "INSERT INTO films (id, title, genre, [year], duration_minutes, age_rating, description, poster_file) " +
+                "VALUES (@id, @title, @genre, @year, @duration_minutes, @age_rating, @description, @poster_file)",
+                connection))
+            {
+                command.Parameters.AddWithValue("@id", film.Id);
+                command.Parameters.AddWithValue("@title", film.Title);
+                command.Parameters.AddWithValue("@genre", film.Genre);
+                command.Parameters.AddWithValue("@year", film.Year);
+                command.Parameters.AddWithValue("@duration_minutes", film.DurationMinutes);
+                command.Parameters.AddWithValue("@age_rating", film.AgeRating);
+                command.Parameters.AddWithValue("@description", film.Description ?? "");
+                command.Parameters.AddWithValue("@poster_file", film.PosterFile ?? "");
+
+                try
+                {
+                    command.ExecuteNonQuery();
+                    return true;
+                }
+                catch (SqlException error)
+                {
+                    if (IsUniqueError(error))
+                    {
+                        return false;
+                    }
+
+                    throw;
+                }
+            }
+        }
+
         // saves a member and returns the new id, or -1 if the email already exists
         public int SaveMember(Member member)
         {
