@@ -20,19 +20,33 @@ namespace CinemaBooking.UI
         private readonly RoundedPanel pnlContent = new RoundedPanel();
         private readonly Label lblPageTitle = new Label();
 
+        // the button that opens and closes the menu, the user box at the bottom and the small messages
+        private readonly Button btnToggle = new Button();
+        private readonly UserChip _user_chip = new UserChip();
+        private readonly ToastBanner _toast;
+        private readonly ToolTip _tips = new ToolTip();
+
+        // the menu is wide with names or narrow with only icons, it slides between the two
+        private const int MENU_SLIDE_STEP = 26;
+        private const int MENU_SLIDE_INTERVAL_MS = 15;
+        private const int MENU_NAME_FROM_WIDTH = 150;
+        private readonly System.Windows.Forms.Timer _menu_timer = new System.Windows.Forms.Timer();
+        private bool _menu_is_collapsed;
+        private int _menu_target_width = UiTheme.SIDE_MENU_WIDTH;
+
         // the menu buttons, RefreshMenu shows the ones the signed in role may see
-        private readonly Button btnFilms = new Button();
-        private readonly Button btnShowings = new Button();
-        private readonly Button btnBookSeats = new Button();
-        private readonly Button btnMyBookings = new Button();
-        private readonly Button btnCancel = new Button();
-        private readonly Button btnMembers = new Button();
-        private readonly Button btnAdmin = new Button();
-        private readonly Button btnAccount = new Button();
-        private readonly Button btnExit = new Button();
+        private readonly MenuButton btnFilms = new MenuButton();
+        private readonly MenuButton btnShowings = new MenuButton();
+        private readonly MenuButton btnBookSeats = new MenuButton();
+        private readonly MenuButton btnMyBookings = new MenuButton();
+        private readonly MenuButton btnCancel = new MenuButton();
+        private readonly MenuButton btnMembers = new MenuButton();
+        private readonly MenuButton btnAdmin = new MenuButton();
+        private readonly MenuButton btnAccount = new MenuButton();
+        private readonly MenuButton btnExit = new MenuButton();
 
         // the button that is open now, it is shown in red
-        private Button? _selected_button;
+        private MenuButton? _selected_button;
 
         // the page under the title now, it is taken out when another page opens
         private Control? _current_page;
@@ -59,6 +73,7 @@ namespace CinemaBooking.UI
             BuildWindow();
             BuildSideMenu();
             BuildContentArea();
+            _toast = new ToastBanner(this);
             ShowPage(btnFilms, "Films", MakeFilmsPage());
         }
 
@@ -75,40 +90,95 @@ namespace CinemaBooking.UI
             DoubleBuffered = true;
         }
 
-        // builds the menu on the left with the app name and the buttons
+        // builds the menu on the left with the toggle button, the app name, the buttons and the user box
         private void BuildSideMenu()
         {
             pnlSideMenu.Dock = DockStyle.Left;
             pnlSideMenu.Width = UiTheme.SIDE_MENU_WIDTH;
             pnlSideMenu.BackColor = UiTheme.SIDE_MENU;
 
+            // the button at the top opens and closes the menu
+            btnToggle.Text = UiTheme.ICON_MENU;
+            btnToggle.Font = UiTheme.ICON_FONT;
+            btnToggle.ForeColor = UiTheme.TEXT;
+            btnToggle.BackColor = UiTheme.SIDE_MENU;
+            btnToggle.FlatStyle = FlatStyle.Flat;
+            btnToggle.FlatAppearance.BorderSize = 0;
+            btnToggle.FlatAppearance.MouseOverBackColor = UiTheme.MENU_HOVER;
+            btnToggle.Cursor = Cursors.Hand;
+            btnToggle.SetBounds(12, 16, 40, 40);
+            btnToggle.Click += (sender, e) => ToggleMenu();
+            _tips.SetToolTip(btnToggle, "Open or close the menu");
+            pnlSideMenu.Controls.Add(btnToggle);
+
             lblAppName.Text = "CINEMA";
             lblAppName.ForeColor = UiTheme.ACCENT_RED;
             lblAppName.Font = UiTheme.TITLE_FONT;
-            lblAppName.SetBounds(20, 20, UiTheme.SIDE_MENU_WIDTH - 40, 50);
+            lblAppName.SetBounds(60, 16, UiTheme.SIDE_MENU_WIDTH - 70, 44);
+            lblAppName.TextAlign = ContentAlignment.MiddleLeft;
             pnlSideMenu.Controls.Add(lblAppName);
 
             // each menu item shows its page when it is clicked, RefreshMenu shows the ones this role may see
-            AddMenuButton(btnFilms, "Films", MakeFilmsPage);
-            AddMenuButton(btnShowings, "Showings", MakeShowingsPage);
-            AddMenuButton(btnBookSeats, "Book seats", () => MakePlaceholderPage("Choosing a showing and seats will be done here."));
-            AddMenuButton(btnMyBookings, "My bookings", () => MakePlaceholderPage("Your bookings and cancelling will be shown here."));
-            AddMenuButton(btnCancel, "Cancel booking", () => MakePlaceholderPage("A booking is cancelled here with its reference."));
-            AddMenuButton(btnMembers, "Members", () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
-            AddMenuButton(btnAdmin, "Admin", MakeAdminPage);
-            AddMenuButton(btnAccount, "My account", MakeAccountPage);
+            AddMenuButton(btnFilms, "Films", UiTheme.ICON_FILMS, MakeFilmsPage);
+            AddMenuButton(btnShowings, "Showings", UiTheme.ICON_SHOWINGS, MakeShowingsPage);
+            AddMenuButton(btnBookSeats, "Book seats", UiTheme.ICON_BOOK_SEATS, () => MakePlaceholderPage("Choosing a showing and seats will be done here."));
+            AddMenuButton(btnMyBookings, "My bookings", UiTheme.ICON_MY_BOOKINGS, () => MakePlaceholderPage("Your bookings and cancelling will be shown here."));
+            AddMenuButton(btnCancel, "Cancel booking", UiTheme.ICON_CANCEL, () => MakePlaceholderPage("A booking is cancelled here with its reference."));
+            AddMenuButton(btnMembers, "Members", UiTheme.ICON_MEMBERS, () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
+            AddMenuButton(btnAdmin, "Admin", UiTheme.ICON_ADMIN, MakeAdminPage);
+            AddMenuButton(btnAccount, "My account", UiTheme.ICON_ACCOUNT, MakeAccountPage);
 
-            // exit sits at the bottom of the menu
-            StyleMenuButton(btnExit, "Exit");
-            // docked to the bottom of the menu, so it stays there at any window height
+            // the user box is at the very bottom, exit sits just above it. both are docked, so they stay there at any window height
+            _user_chip.Dock = DockStyle.Bottom;
+
+            btnExit.Text = "Exit";
+            btnExit.Glyph = UiTheme.ICON_EXIT;
             btnExit.Dock = DockStyle.Bottom;
             btnExit.Height = UiTheme.MENU_BUTTON_HEIGHT;
             btnExit.Click += (sender, e) => Close();
+            _tips.SetToolTip(btnExit, "Exit");
+
             pnlSideMenu.Controls.Add(btnExit);
+            pnlSideMenu.Controls.Add(_user_chip);
+
+            _menu_timer.Interval = MENU_SLIDE_INTERVAL_MS;
+            _menu_timer.Tick += (sender, e) => SlideMenu();
 
             RefreshMenu();
 
             Controls.Add(pnlSideMenu);
+        }
+
+        // opens a closed menu and closes an open one, the menu slides a few pixels each tick
+        private void ToggleMenu()
+        {
+            _menu_is_collapsed = !_menu_is_collapsed;
+            _menu_target_width = _menu_is_collapsed ? UiTheme.SIDE_MENU_COLLAPSED_WIDTH : UiTheme.SIDE_MENU_WIDTH;
+            _menu_timer.Start();
+        }
+
+        private void SlideMenu()
+        {
+            int width = pnlSideMenu.Width;
+
+            if (width < _menu_target_width)
+            {
+                width = Math.Min(width + MENU_SLIDE_STEP, _menu_target_width);
+            }
+            else
+            {
+                width = Math.Max(width - MENU_SLIDE_STEP, _menu_target_width);
+            }
+
+            pnlSideMenu.Width = width;
+
+            // the app name has no room in a narrow menu
+            lblAppName.Visible = width >= MENU_NAME_FROM_WIDTH;
+
+            if (width == _menu_target_width)
+            {
+                _menu_timer.Stop();
+            }
         }
 
         // builds the area on the right where the pages appear
@@ -138,11 +208,16 @@ namespace CinemaBooking.UI
 
         // sets up one menu button. RefreshMenu decides if it is shown and where.
         // make_page builds a new page each time, so it always shows fresh data
-        private void AddMenuButton(Button button, string text, Func<Control> make_page)
+        private void AddMenuButton(MenuButton button, string text, string glyph, Func<Control> make_page)
         {
-            StyleMenuButton(button, text);
+            button.Text = text;
+            button.Glyph = glyph;
             button.Visible = false;
+
+            // the button gets as wide as the menu while the menu slides
+            button.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             button.Click += (sender, e) => ShowPage(button, button.Text, make_page());
+            _tips.SetToolTip(button, text);
             pnlSideMenu.Controls.Add(button);
         }
 
@@ -158,17 +233,29 @@ namespace CinemaBooking.UI
 
             for (int item_index = 0; item_index < visible_items.Length; item_index++)
             {
-                Button button = MenuButtonFor(visible_items[item_index]);
+                MenuButton button = MenuButtonFor(visible_items[item_index]);
                 button.SetBounds(0, FIRST_MENU_TOP + (item_index * UiTheme.MENU_BUTTON_HEIGHT),
-                    UiTheme.SIDE_MENU_WIDTH, UiTheme.MENU_BUTTON_HEIGHT);
+                    pnlSideMenu.Width, UiTheme.MENU_BUTTON_HEIGHT);
                 button.Visible = true;
             }
 
             btnAccount.Text = MenuRules.AccountLabel(_current_role);
+            _tips.SetToolTip(btnAccount, btnAccount.Text);
+
+            // the user box at the bottom shows who is signed in
+            if (_current_role == Role.Guest)
+            {
+                _user_chip.SetUser("Guest", "Not signed in");
+            }
+            else
+            {
+                string chip_title = _current_member != null ? _current_member.Name : _current_email;
+                _user_chip.SetUser(chip_title, _current_role.ToString());
+            }
         }
 
         // the button that belongs to a menu item
-        private Button MenuButtonFor(MenuItem item)
+        private MenuButton MenuButtonFor(MenuItem item)
         {
             switch (item)
             {
@@ -321,6 +408,7 @@ namespace CinemaBooking.UI
             _current_email = email;
             RefreshMenu();
             ShowPage(btnAccount, btnAccount.Text, MakeAccountPage());
+            _toast.ShowMessage("Signed in as " + email, false);
         }
 
         // back to a guest, the menu shrinks and the login page opens again
@@ -331,6 +419,7 @@ namespace CinemaBooking.UI
             _current_email = "";
             RefreshMenu();
             ShowPage(btnAccount, btnAccount.Text, MakeAccountPage());
+            _toast.ShowMessage("You are signed out", false);
         }
 
         // a text page for the parts that are not built yet
@@ -344,31 +433,16 @@ namespace CinemaBooking.UI
             return lblPageText;
         }
 
-        // gives a menu button the theme look
-        private static void StyleMenuButton(Button button, string text)
-        {
-            button.Text = text;
-            button.Font = UiTheme.MENU_FONT;
-            button.ForeColor = UiTheme.TEXT;
-            button.BackColor = UiTheme.SIDE_MENU;
-            button.FlatStyle = FlatStyle.Flat;
-            button.FlatAppearance.BorderSize = 0;
-            button.FlatAppearance.MouseOverBackColor = UiTheme.MENU_HOVER;
-            button.TextAlign = ContentAlignment.MiddleLeft;
-            button.Padding = new Padding(24, 0, 0, 0);
-            button.Cursor = Cursors.Hand;
-        }
-
-        // shows a page in the content area and turns the clicked button red
-        private void ShowPage(Button clicked_button, string page_title, Control page)
+        // shows a page in the content area and marks the clicked button with the red bar
+        private void ShowPage(MenuButton clicked_button, string page_title, Control page)
         {
             if (_selected_button != null)
             {
-                _selected_button.BackColor = UiTheme.SIDE_MENU;
+                _selected_button.IsActive = false;
             }
 
             _selected_button = clicked_button;
-            _selected_button.BackColor = UiTheme.ACCENT_RED_DARK;
+            _selected_button.IsActive = true;
 
             lblPageTitle.Text = page_title;
 
