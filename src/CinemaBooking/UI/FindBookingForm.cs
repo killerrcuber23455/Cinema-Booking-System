@@ -28,8 +28,7 @@ namespace CinemaBooking.UI
         private readonly Label[] _box_messages = new Label[BOX_COUNT];
         private readonly Label lblMessage = new Label();
         private readonly Button btnFind = FormParts.MakeButton("Find booking", UiTheme.ACCENT_RED);
-        private readonly Button btnCancel = FormParts.MakeButton("Cancel booking", UiTheme.CARD);
-        private readonly Panel pnlResult = new Panel();
+        private readonly Button btnCancel = FormParts.MakeButton("Cancel booking", UiTheme.INPUT); private readonly Panel pnlResult = new Panel();
         private readonly Label lblResult = new Label();
 
         // the reference and email of the booking on show, used when the guest cancels it

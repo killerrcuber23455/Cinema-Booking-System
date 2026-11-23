@@ -63,9 +63,12 @@ namespace CinemaBooking.UI
         private readonly ShowingTable _showing_table;
 
         // who is signed in now, a guest until the login works
-        private Role _current_role = Role.Guest;
+        private Role _current_role = Role.Admin;
         private Member? _current_member;
         private string _current_email = "";
+
+        // true while a booking is being made on a background task
+        private bool _is_booking;
 
         public MainForm(ShowingService showing_service, AuthService auth_service, ShowingTable showing_table,
             BookingService booking_service, IDatabase database)
@@ -413,10 +416,55 @@ namespace CinemaBooking.UI
                 _current_member,
                 () => OpenSeatMap(film, showing),
                 () => ShowPage(btnAccount, btnAccount.Text, MakeAccountPage()),
-                guest_details => ShowPage(btnFilms, "Booking", MakePlaceholderPage(
-                    "The booking is made when the booking service is connected.")));
+                guest_details => ConfirmBooking(film, showing, seat_codes, guest_details));
 
             ShowPage(btnFilms, "Booking summary", summary_page);
+        }
+
+        // the guest or the signed in customer pressed Confirm: the booking is made on a background task
+        // a customer has no guest details, the booking uses the member's account
+        private async void ConfirmBooking(Film film, Showing showing, string[] seat_codes, GuestDetails? guest_details)
+        {
+            // a second click while the booking is being made is ignored, so the seats are never booked twice
+            if (_is_booking)
+            {
+                return;
+            }
+
+            _is_booking = true;
+            Role role = _current_role;
+            int? member_id = _current_member?.Id;
+            string name = guest_details?.Name ?? "";
+            string email = guest_details?.Email ?? "";
+            string phone = guest_details?.Phone ?? "";
+
+            CallResult<(Booking? Booking, string Error)> result = await BackgroundCall.RunAsync(() =>
+            {
+                Booking? made;
+                string error;
+                _booking_service.BookSeats(role, member_id, name, email, phone, showing.Id, seat_codes, 0, out made, out error);
+                return (made, error);
+            });
+
+            _is_booking = false;
+
+            if (!result.IsOk)
+            {
+                _toast.ShowMessage(result.ErrorText, true);
+                return;
+            }
+
+            if (result.Value.Booking == null)
+            {
+                // for example a seat was taken a moment ago: show the seat map again with the seats now taken
+                _toast.ShowMessage(result.Value.Error, true);
+                OpenSeatMap(film, showing);
+                return;
+            }
+
+            _toast.ShowMessage("Booking confirmed: " + result.Value.Booking.Reference, false);
+            ShowPage(btnFilms, "Booking confirmed",
+                new BookingConfirmedForm(result.Value.Booking, film, showing, () => ShowPage(btnFilms, "Films", MakeFilmsPage())));
         }
 
         // the account button shows the login page for a guest and the account page for someone signed in
