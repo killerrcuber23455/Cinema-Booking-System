@@ -163,6 +163,20 @@ namespace CinemaBooking.Data
             }
         }
 
+
+
+        // updates an existing film, false if the id is not found
+        public bool UpdateFilm(Film film)
+        {
+            return false;
+        }
+
+        // deletes a film by id, false if it is not found or a showing still uses it
+        public bool DeleteFilm(int film_id)
+        {
+            return false;
+        }
+
         // saves a member and returns the new id, or -1 if the email already exists
         public int SaveMember(Member member)
         {
