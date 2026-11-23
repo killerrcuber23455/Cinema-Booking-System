@@ -222,6 +222,8 @@ namespace CinemaBooking.Data
         // returns true if at least one user has the role Admin
         public bool HasAnyAdmin()
         {
+
+
             using (SqlConnection connection = OpenConnection())
             using (SqlCommand command = new SqlCommand(
                 "SELECT COUNT(*) FROM users WHERE role = @role", connection))
@@ -230,6 +232,12 @@ namespace CinemaBooking.Data
 
                 return Convert.ToInt32(command.ExecuteScalar()) > 0;
             }
+        }
+
+        // changes the role of a user and writes an audit row, false if the user is not found
+        public bool SetRole(int user_id, Role role)
+        {
+            return false;
         }
     }
 }

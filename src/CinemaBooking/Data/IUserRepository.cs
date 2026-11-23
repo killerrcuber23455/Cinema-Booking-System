@@ -20,5 +20,8 @@ namespace CinemaBooking.Data
 
         // true if at least one user has the role Admin
         bool HasAnyAdmin();
+
+        // changes the role of a user and writes an audit row, false if the user is not found
+        bool SetRole(int user_id, Role role);
     }
 }
