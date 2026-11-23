@@ -74,16 +74,70 @@ namespace CinemaBooking.Services
             return true;
         }
 
-        // red stub: says yes and does nothing, on purpose. the real code comes in the green step
+        // removes a film (admin only) from the program and from the database.
+        // if the database refuses (or is down, or a showing still uses the film) the film is put back
         public bool RemoveFilm(int film_id, Role role, out string error_message)
         {
+            Film? old_film = _films.Find(film_id);
+
+            // FilmService checks the role and that the film exists first, nothing is changed if it refuses
+            if (!_film_service.RemoveFilm(film_id, role, out error_message))
+            {
+                return false;
+            }
+
+            bool is_deleted;
+            try
+            {
+                is_deleted = _database.DeleteFilm(film_id);
+            }
+            catch (Exception)
+            {
+                is_deleted = false;
+            }
+
+            if (!is_deleted)
+            {
+                // the database kept the film, so the program must keep it too
+                _film_service.AddFilm(old_film!, Role.Admin, out _);
+                error_message = DELETE_FAILED_TEXT;
+                return false;
+            }
+
             error_message = "";
             return true;
         }
 
-        // red stub: says yes and does nothing, on purpose. the real code comes in the green step
+        // changes a film (admin only) in the program and in the database.
+        // if the database refuses (or is down) the old film is put back
         public bool EditFilm(Film edited_film, Role role, out string error_message)
         {
+            Film? old_film = _films.Find(edited_film.Id);
+
+            // FilmEditor checks the role, the new details and that the film exists first
+            if (!FilmEditor.Update(_film_service, edited_film, role, out error_message))
+            {
+                return false;
+            }
+
+            bool is_saved;
+            try
+            {
+                is_saved = _database.UpdateFilm(edited_film);
+            }
+            catch (Exception)
+            {
+                is_saved = false;
+            }
+
+            if (!is_saved)
+            {
+                // the database did not keep the change, so the program goes back to the old film
+                FilmEditor.Update(_film_service, old_film, Role.Admin, out _);
+                error_message = UPDATE_FAILED_TEXT;
+                return false;
+            }
+
             error_message = "";
             return true;
         }

@@ -194,7 +194,7 @@ namespace CinemaBooking.UI
             }
         }
 
-        // the boxes are read by FilmInput, the film is added by FilmService, which also checks the role
+        // the boxes are read by FilmInput, the film is added, edited or removed by CatalogStore, which also saves it to the database
         private void ClickAdd()
         {
             Film? film;
@@ -218,7 +218,7 @@ namespace CinemaBooking.UI
 
             if (_editing_film_id != 0)
             {
-                if (!FilmEditor.Update(_film_service, film, _role, out error_message))
+                if (!_catalog_store.EditFilm(film!, _role, out error_message))
                 {
                     ShowError(error_message);
                     return;
@@ -329,7 +329,7 @@ namespace CinemaBooking.UI
 
             string error_message;
 
-            if (!_film_service.RemoveFilm(film.Id, _role, out error_message))
+            if (!_catalog_store.RemoveFilm(film.Id, _role, out error_message))
             {
                 ShowError(error_message);
                 return;
