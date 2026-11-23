@@ -5,6 +5,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+using CinemaBooking.Algorithms;
 using CinemaBooking.Data;
 using CinemaBooking.Models;
 using CinemaBooking.Services;
@@ -44,6 +45,7 @@ namespace CinemaBooking.UI
         private readonly Panel pnlTopBar = new Panel();
         private readonly TextBox txtSearch = new TextBox();
         private readonly ComboBox cmbGenre = new ComboBox();
+        private readonly ComboBox cmbSort = new ComboBox();
         private readonly Button btnLoadFile = FormParts.MakeButton("Load film file", UiTheme.ACCENT_RED);
         private readonly Label lblStatus = new Label();
         private readonly FlowLayoutPanel flpCards = new SmoothFlowPanel();
@@ -73,7 +75,7 @@ namespace CinemaBooking.UI
             txtSearch.BorderStyle = BorderStyle.FixedSingle;
             txtSearch.BackColor = UiTheme.INPUT;
             txtSearch.ForeColor = UiTheme.TEXT;
-            txtSearch.SetBounds(0, 12, 260, 30);
+            txtSearch.SetBounds(0, 12, 220, 30);
             // the list updates while the user types, there is no search button to forget
             txtSearch.TextChanged += (sender, e) => ShowFilms();
 
@@ -81,7 +83,7 @@ namespace CinemaBooking.UI
             cmbGenre.FlatStyle = FlatStyle.Flat;
             cmbGenre.BackColor = UiTheme.INPUT;
             cmbGenre.ForeColor = UiTheme.TEXT;
-            cmbGenre.SetBounds(272, 12, 180, 30);
+            cmbGenre.SetBounds(232, 12, 150, 30);
             cmbGenre.SelectedIndexChanged += (sender, e) =>
             {
                 if (!_is_filling_genres)
@@ -90,8 +92,18 @@ namespace CinemaBooking.UI
                 }
             };
 
+            // the sort dropdown: the labels come from SortChoice, the first one (title) is chosen at start
+            cmbSort.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbSort.FlatStyle = FlatStyle.Flat;
+            cmbSort.BackColor = UiTheme.INPUT;
+            cmbSort.ForeColor = UiTheme.TEXT;
+            cmbSort.SetBounds(394, 12, 180, 30);
+            cmbSort.Items.AddRange(SortChoice.LABELS);
+            cmbSort.SelectedIndex = 0;
+            cmbSort.SelectedIndexChanged += (sender, e) => ShowFilms();
+
             // the button keeps a few pixels around it for its glow
-            btnLoadFile.SetBounds(464 - UiTheme.GLOW_SPREAD, 10 - UiTheme.GLOW_SPREAD, 160 + (2 * UiTheme.GLOW_SPREAD),
+            btnLoadFile.SetBounds(586 - UiTheme.GLOW_SPREAD, 10 - UiTheme.GLOW_SPREAD, 160 + (2 * UiTheme.GLOW_SPREAD),
                 34 + (2 * UiTheme.GLOW_SPREAD));
             btnLoadFile.Click += (sender, e) => LoadFilmFile();
             btnLoadFile.Visible = FilmPageRules.CanLoadFilms(_role);
@@ -100,12 +112,13 @@ namespace CinemaBooking.UI
             lblStatus.Font = UiTheme.SMALL_FONT;
             lblStatus.AutoEllipsis = true;
             // without the button the status text moves left, so there is no gap
-            int status_left = FilmPageRules.CanLoadFilms(_role) ? 636 : 464;
-            lblStatus.SetBounds(status_left, 17, 300, 24);
+            int status_left = FilmPageRules.CanLoadFilms(_role) ? 758 : 586;
+            lblStatus.SetBounds(status_left, 17, 200, 24);
             lblStatus.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
             pnlTopBar.Controls.Add(txtSearch);
             pnlTopBar.Controls.Add(cmbGenre);
+            pnlTopBar.Controls.Add(cmbSort);
             pnlTopBar.Controls.Add(btnLoadFile);
             pnlTopBar.Controls.Add(lblStatus);
 
@@ -171,7 +184,10 @@ namespace CinemaBooking.UI
         {
             string? chosen_genre = cmbGenre.SelectedItem as string;
             string genre_filter = chosen_genre == null || chosen_genre == ALL_GENRES ? "" : chosen_genre;
-            Film[] films = _film_service.Search(txtSearch.Text, genre_filter);
+            Film[] found_films = _film_service.Search(txtSearch.Text, genre_filter);
+
+            // sort what was found, with the merge sort from SortHelper
+            Film[] films = SortHelper.MergeSort(found_films, SortChoice.KeyFor(cmbSort.SelectedItem as string));
 
             // suspend layout so the page is drawn once, not once per card
             flpCards.SuspendLayout();

@@ -14,8 +14,17 @@ namespace CinemaBooking.UI
         // anything unknown, empty or null gives "title"
         public static string KeyFor(string? label)
         {
-            // red stub: wrong on purpose
-            return "";
+            if (label == YEAR_LABEL)
+            {
+                return "year";
+            }
+
+            if (label == RATING_LABEL)
+            {
+                return "rating";
+            }
+
+            return "title";
         }
     }
 }
