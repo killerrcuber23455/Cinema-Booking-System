@@ -130,5 +130,29 @@ namespace CinemaBooking.Tests
             Assert.IsTrue(_repository.WriteAudit(null, "login_failed", "nobody@x.com"));
             Assert.AreEqual(1, _repository.CountAuditRows("login_failed"));
         }
+
+        [TestMethod]
+        public void HasAnyAdmin_NoUsers_ReturnsFalse()
+        {
+            Assert.IsFalse(_repository.HasAnyAdmin());
+        }
+
+        [TestMethod]
+        public void HasAnyAdmin_WithAdmin_ReturnsTrue()
+        {
+            _repository.SaveUser("staff@x.com", "h", "s", Role.Staff, null);
+            _repository.SaveUser("boss@x.com", "h", "s", Role.Admin, null);
+
+            Assert.IsTrue(_repository.HasAnyAdmin());
+        }
+
+        [TestMethod]
+        public void HasAnyAdmin_OnlyCustomerAndStaff_ReturnsFalse()
+        {
+            _repository.SaveUser("cust@x.com", "h", "s", Role.Customer, null);
+            _repository.SaveUser("staff@x.com", "h", "s", Role.Staff, null);
+
+            Assert.IsFalse(_repository.HasAnyAdmin());
+        }
     }
 }

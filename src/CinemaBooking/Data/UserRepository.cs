@@ -6,14 +6,20 @@ using System;
 
 namespace CinemaBooking.Data
 {
+    // sql for the users and audit_log tables, used by the login service through IUserRepository
     public class UserRepository : IUserRepository
     {
         // sql server error numbers for a unique rule being broken
         private const int UNIQUE_KEY_ERROR = 2627;
         private const int UNIQUE_INDEX_ERROR = 2601;
+        // more sql server error numbers: check rule or foreign key, text too long
+        private const int CHECK_OR_FOREIGN_KEY_ERROR = 547;
+        private const int TEXT_TOO_LONG_ERROR = 8152;
+        private const int TEXT_TOO_LONG_ERROR_NEW = 2628;
 
         private readonly string _connection_string;
 
+        // reads the connection string from the config file
         public UserRepository(AppConfig config)
         {
             _connection_string = config.GetConnectionString();
@@ -50,6 +56,16 @@ namespace CinemaBooking.Data
             return email.Trim().ToLowerInvariant();
         }
 
+        // true when the database refused the data because of one of its rules
+        private static bool IsRuleError(SqlException error)
+        {
+            return error.Number == UNIQUE_KEY_ERROR
+                || error.Number == UNIQUE_INDEX_ERROR
+                || error.Number == CHECK_OR_FOREIGN_KEY_ERROR
+                || error.Number == TEXT_TOO_LONG_ERROR
+                || error.Number == TEXT_TOO_LONG_ERROR_NEW;
+        }
+
         // writes one audit row using a connection (and transaction) that is already open
         private static void InsertAudit(SqlConnection connection, SqlTransaction? transaction,
             int? user_id, string action, string details)
@@ -66,7 +82,7 @@ namespace CinemaBooking.Data
         }
 
         // saves a user and an audit row in one transaction. returns the new id,
-        // or -1 if the email is empty or already used
+        // or -1 if the email is empty or the database refuses the data (duplicate email, bad role, text too long, unknown member)
         public int SaveUser(string email, string password_hash, string salt, Role role, int? member_id)
         {
             if (string.IsNullOrWhiteSpace(email))
@@ -107,7 +123,7 @@ namespace CinemaBooking.Data
                 {
                     transaction.Rollback();
 
-                    if (error.Number == UNIQUE_KEY_ERROR || error.Number == UNIQUE_INDEX_ERROR)
+                    if (IsRuleError(error))
                     {
                         return -1;
                     }
@@ -157,7 +173,7 @@ namespace CinemaBooking.Data
         }
 
         // saves the failed login count and the lock time in one call. pass null to clear the lock.
-        // returns false if the user does not exist.
+        // returns false if the user does not exist or the database refuses the numbers (for example a negative count).
         public bool SetFailedAttempts(int user_id, int failed_attempts, DateTime? locked_until)
         {
             using (SqlConnection connection = OpenConnection())
@@ -169,7 +185,19 @@ namespace CinemaBooking.Data
                 command.Parameters.AddWithValue("@locked_until", locked_until.HasValue ? locked_until.Value : DBNull.Value);
                 command.Parameters.AddWithValue("@id", user_id);
 
-                return command.ExecuteNonQuery() > 0;
+                try
+                {
+                    return command.ExecuteNonQuery() > 0;
+                }
+                catch (SqlException error)
+                {
+                    if (IsRuleError(error))
+                    {
+                        return false;
+                    }
+
+                    throw;
+                }
             }
         }
 
@@ -199,6 +227,19 @@ namespace CinemaBooking.Data
                 command.Parameters.AddWithValue("@action", action);
 
                 return Convert.ToInt32(command.ExecuteScalar());
+            }
+        }
+
+        // returns true if at least one user has the role Admin
+        public bool HasAnyAdmin()
+        {
+            using (SqlConnection connection = OpenConnection())
+            using (SqlCommand command = new SqlCommand(
+                "SELECT COUNT(*) FROM users WHERE role = @role", connection))
+            {
+                command.Parameters.AddWithValue("@role", Role.Admin.ToString());
+
+                return Convert.ToInt32(command.ExecuteScalar()) > 0;
             }
         }
     }
