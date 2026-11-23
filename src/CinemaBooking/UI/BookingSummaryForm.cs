@@ -16,7 +16,8 @@ namespace CinemaBooking.UI
         private const int PAGE_WIDTH = 600;
         private const int BOX_LEFT = 120;
         private const int BOX_WIDTH = 300;
-        private const int BOX_ROW_HEIGHT = 40;
+        private const int BOX_ROW_HEIGHT = 58;
+        private const int MESSAGE_WIDTH = 480;
 
         private readonly Film _film;
         private readonly Showing _showing;
@@ -38,7 +39,8 @@ namespace CinemaBooking.UI
         private readonly TextBox txtGuestName = new TextBox();
         private readonly TextBox txtGuestEmail = new TextBox();
         private readonly TextBox txtGuestPhone = new TextBox();
-        private readonly Label lblMessage = new Label();
+        // the red message under each guest box, in page order (name, email, phone)
+        private readonly Label[] _box_messages = new Label[GuestDetails.BOX_COUNT];
 
         public BookingSummaryForm(Film film, Showing showing, string[] seats, Member? member,
             Action go_back, Action sign_in, Action<GuestDetails?> confirm_booking)
@@ -74,15 +76,10 @@ namespace CinemaBooking.UI
                 next_top = BuildGuestBoxes(next_top);
             }
 
-            // the message sits under the confirm button and can have up to three lines, one for each wrong box
-            lblMessage.ForeColor = UiTheme.ACCENT_RED;
-            lblMessage.SetBounds(PAGE_PADDING, next_top + 52, PAGE_WIDTH, 80);
-
             Button btnConfirm = FormParts.MakeButton("Confirm booking", UiTheme.ACCENT_RED);
             btnConfirm.SetBounds(PAGE_PADDING + PAGE_WIDTH - 208 + UiTheme.GLOW_SPREAD, next_top - UiTheme.GLOW_SPREAD, 208, 48);
             btnConfirm.Click += (sender, e) => ClickConfirm();
 
-            Controls.Add(lblMessage);
             Controls.Add(btnConfirm);
         }
 
@@ -114,14 +111,14 @@ namespace CinemaBooking.UI
             Controls.Add(btnSignIn);
 
             int box_top = top + 40;
-            AddBoxRow("Name", txtGuestName, box_top);
-            AddBoxRow("Email", txtGuestEmail, box_top + BOX_ROW_HEIGHT);
-            AddBoxRow("Phone", txtGuestPhone, box_top + (2 * BOX_ROW_HEIGHT));
+            AddBoxRow("Name", txtGuestName, box_top, GuestDetails.BOX_NAME);
+            AddBoxRow("Email", txtGuestEmail, box_top + BOX_ROW_HEIGHT, GuestDetails.BOX_EMAIL);
+            AddBoxRow("Phone", txtGuestPhone, box_top + (2 * BOX_ROW_HEIGHT), GuestDetails.BOX_PHONE);
 
             return box_top + (3 * BOX_ROW_HEIGHT) + 12;
         }
 
-        private void AddBoxRow(string label_text, TextBox box, int top)
+        private void AddBoxRow(string label_text, TextBox box, int top, int box_index)
         {
             Label lblName = new Label();
             lblName.Text = label_text;
@@ -133,8 +130,16 @@ namespace CinemaBooking.UI
             box.BorderStyle = BorderStyle.FixedSingle;
             box.SetBounds(BOX_LEFT, top, BOX_WIDTH, 28);
 
+            // the red message for this box sits right under it
+            Label lblBoxMessage = new Label();
+            lblBoxMessage.ForeColor = UiTheme.ACCENT_RED;
+            lblBoxMessage.Font = UiTheme.SMALL_FONT;
+            lblBoxMessage.SetBounds(BOX_LEFT, top + 30, MESSAGE_WIDTH, 20);
+            _box_messages[box_index] = lblBoxMessage;
+
             Controls.Add(lblName);
             Controls.Add(box);
+            Controls.Add(lblBoxMessage);
             FocusGlow.AddTo(this, box);
         }
 
@@ -147,14 +152,19 @@ namespace CinemaBooking.UI
                 return;
             }
 
-            if (!GuestDetails.TryCreate(txtGuestName.Text, txtGuestEmail.Text, txtGuestPhone.Text,
-                out GuestDetails? details, out string error_message))
+            // each wrong box shows its own message under it
+            string[] box_errors = GuestDetails.CheckBoxes(txtGuestName.Text, txtGuestEmail.Text, txtGuestPhone.Text);
+            if (FormParts.ShowBoxMessages(_box_messages, box_errors))
             {
-                lblMessage.Text = error_message;
                 return;
             }
 
-            lblMessage.Text = "";
+            if (!GuestDetails.TryCreate(txtGuestName.Text, txtGuestEmail.Text, txtGuestPhone.Text,
+                out GuestDetails? details, out _))
+            {
+                return;
+            }
+
             _confirm_booking(details);
         }
     }
