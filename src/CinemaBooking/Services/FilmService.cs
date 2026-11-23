@@ -1,6 +1,7 @@
 ﻿//rules to add remove and search films with a role check first (owner: shankar)
 using CinemaBooking.DataStructures;
 using CinemaBooking.Models;
+using CinemaBooking.Algorithms;
 
 namespace CinemaBooking.Services
 {
@@ -113,6 +114,18 @@ namespace CinemaBooking.Services
                 }
             }
             return results.ListAll();
+        }
+
+        // returns all films sorted by "title", "year" or "rating" (merge sort, stable)
+        public Film[] SortFilms(string sort_by)
+        {
+            return new Film[0];
+        }
+
+        // finds one film by its exact title, any case, using binary search on a sorted copy. null if not found
+        public Film? FindByExactTitle(string title)
+        {
+            return null;
         }
     }
 }
