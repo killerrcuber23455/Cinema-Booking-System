@@ -11,6 +11,10 @@ namespace CinemaBooking.Data
         // sql server error numbers for a unique rule being broken
         private const int UNIQUE_KEY_ERROR = 2627;
         private const int UNIQUE_INDEX_ERROR = 2601;
+        // more sql server error numbers: check rule or foreign key, text too long
+        private const int CHECK_OR_FOREIGN_KEY_ERROR = 547;
+        private const int TEXT_TOO_LONG_ERROR = 8152;
+        private const int TEXT_TOO_LONG_ERROR_NEW = 2628;
 
         private readonly string _connection_string;
 
@@ -48,6 +52,16 @@ namespace CinemaBooking.Data
         private static string MakeEmailKey(string email)
         {
             return email.Trim().ToLowerInvariant();
+        }
+
+        // true when the database refused the data because of one of its rules
+        private static bool IsRuleError(SqlException error)
+        {
+            return error.Number == UNIQUE_KEY_ERROR
+                || error.Number == UNIQUE_INDEX_ERROR
+                || error.Number == CHECK_OR_FOREIGN_KEY_ERROR
+                || error.Number == TEXT_TOO_LONG_ERROR
+                || error.Number == TEXT_TOO_LONG_ERROR_NEW;
         }
 
         // writes one audit row using a connection (and transaction) that is already open
@@ -107,7 +121,7 @@ namespace CinemaBooking.Data
                 {
                     transaction.Rollback();
 
-                    if (error.Number == UNIQUE_KEY_ERROR || error.Number == UNIQUE_INDEX_ERROR)
+                    if (IsRuleError(error))
                     {
                         return -1;
                     }
@@ -169,7 +183,19 @@ namespace CinemaBooking.Data
                 command.Parameters.AddWithValue("@locked_until", locked_until.HasValue ? locked_until.Value : DBNull.Value);
                 command.Parameters.AddWithValue("@id", user_id);
 
-                return command.ExecuteNonQuery() > 0;
+                try
+                {
+                    return command.ExecuteNonQuery() > 0;
+                }
+                catch (SqlException error)
+                {
+                    if (IsRuleError(error))
+                    {
+                        return false;
+                    }
+
+                    throw;
+                }
             }
         }
 
