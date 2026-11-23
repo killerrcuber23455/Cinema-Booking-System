@@ -10,6 +10,9 @@ namespace CinemaBooking.Services
         //database used to save and read members
         private IDatabase _database;
 
+        //the words agreed with Divyesh for every "no match"
+        private const string MEMBER_NOT_FOUND_MESSAGE = "no member found with this email";
+
         //uses the database given so everyone shares the same data
         public MemberService(IDatabase database)
         {
@@ -82,10 +85,39 @@ namespace CinemaBooking.Services
             return _database.GetAllMembers();
         }
 
-        //finding a member
+        //finding a member by email, only staff or admin can do it
+        //returns the member, or null with a reason
         public Member? FindMember(Role role, string email, out string error_message)
         {
-            error_message = "find member is not built yet";
+            //GetAllMembers already holds the rule "only staff and admin", so we reuse it
+            //this way the role rule and its message stay in one place
+            Member[] all_members = GetAllMembers(role, out error_message);
+
+            if (error_message != "")
+            {
+                return null;
+            }
+
+            //a null email counts as blank, a blank email never matches anything
+            string wanted = (email ?? "").Trim().ToLowerInvariant();
+
+            if (wanted == "")
+            {
+                error_message = MEMBER_NOT_FOUND_MESSAGE;
+                return null;
+            }
+
+            //the whole email must match, ignoring upper and lower case
+            for (int index = 0; index < all_members.Length; index++)
+            {
+                if (all_members[index].Email.Trim().ToLowerInvariant() == wanted)
+                {
+                    error_message = "";
+                    return all_members[index];
+                }
+            }
+
+            error_message = MEMBER_NOT_FOUND_MESSAGE;
             return null;
         }
 
