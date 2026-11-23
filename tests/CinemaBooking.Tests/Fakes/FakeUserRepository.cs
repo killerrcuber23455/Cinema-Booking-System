@@ -30,7 +30,7 @@ public class FakeUserRepository : IUserRepository
     // same rule as the real table: the email is trimmed and lowercase, and it must be unique
     private static string MakeEmailKey(string email)
     {
-        return email.Trim().ToLower();
+        return email.Trim().ToLowerInvariant();
     }
 
     public int SaveUser(string email, string password_hash, string salt, Role role, int? member_id)
@@ -102,5 +102,8 @@ public class FakeUserRepository : IUserRepository
 
         return false;
     }
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/feature/shankar
 }

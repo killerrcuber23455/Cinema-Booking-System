@@ -99,6 +99,12 @@ public class BookingConcurrencyTests
         {
             return 0;
         }
+
+        // the concurrency tests do not use films, this only has to compile since IDatabase has SaveFilm
+        public bool SaveFilm(Film film)
+        {
+            return true;
+        }
     }
 
     // what one thread got back from BookSeats
