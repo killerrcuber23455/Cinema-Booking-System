@@ -89,4 +89,18 @@ public class FakeUserRepository : IUserRepository
         AuditRows.Add(new AuditRow(user_id, action, details));
         return true;
     }
+
+    public bool HasAnyAdmin()
+    {
+        for (int index = 0; index < _users.Count; index++)
+        {
+            if (_users[index].Role == Role.Admin)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }

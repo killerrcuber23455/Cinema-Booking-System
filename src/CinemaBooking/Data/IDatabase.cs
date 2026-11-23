@@ -8,7 +8,6 @@ namespace CinemaBooking.Data
     {
         // reads every film into the hash table, returns how many were added
         int LoadFilms(HashTable<int, Film> film_table);
-        bool SaveFilm(Film film);
 
         // saves a film with the id it already has, false if the id exists
         bool SaveFilm(Film film);
