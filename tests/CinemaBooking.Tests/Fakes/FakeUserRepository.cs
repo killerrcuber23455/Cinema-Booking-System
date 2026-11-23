@@ -102,8 +102,4 @@ public class FakeUserRepository : IUserRepository
 
         return false;
     }
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/feature/shankar
 }
