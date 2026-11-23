@@ -6,6 +6,12 @@ namespace CinemaBooking.UI
 {
     public class GuestDetails
     {
+        // the place of each box in the list that CheckBoxes gives back, in page order
+        public const int BOX_NAME = 0;
+        public const int BOX_EMAIL = 1;
+        public const int BOX_PHONE = 2;
+        public const int BOX_COUNT = 3;
+
         public string Name { get; }
         public string Email { get; }
         public string Phone { get; }
@@ -15,6 +21,14 @@ namespace CinemaBooking.UI
             Name = name;
             Email = email;
             Phone = phone;
+        }
+
+        // one message for each box, in page order, and an empty text for a box that is fine
+        // the page shows each message under its box. a missing value counts as empty
+        public static string[] CheckBoxes(string name, string email, string phone)
+        {
+            // red stub: wrong on purpose
+            return new string[] { "stub", "stub", "stub" };
         }
 
         // spaces around the text are removed first, so " Anna " and "Anna" are the same
