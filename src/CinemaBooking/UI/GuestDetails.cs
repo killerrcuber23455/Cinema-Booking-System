@@ -27,8 +27,32 @@ namespace CinemaBooking.UI
         // the page shows each message under its box. a missing value counts as empty
         public static string[] CheckBoxes(string name, string email, string phone)
         {
-            // red stub: wrong on purpose
-            return new string[] { "stub", "stub", "stub" };
+            string clean_name = (name ?? "").Trim();
+            string clean_email = (email ?? "").Trim();
+            string clean_phone = (phone ?? "").Trim();
+            string[] messages = new string[BOX_COUNT];
+            string rule_message;
+
+            // null as member id means a guest, so the guest rules are checked
+            messages[BOX_NAME] = "";
+            if (!Booking.IsValidGuestName(null, clean_name, out rule_message))
+            {
+                messages[BOX_NAME] = rule_message.TrimEnd('\n');
+            }
+
+            messages[BOX_EMAIL] = "";
+            if (!Booking.IsValidGuestEmail(null, clean_email, out rule_message))
+            {
+                messages[BOX_EMAIL] = rule_message.TrimEnd('\n');
+            }
+
+            messages[BOX_PHONE] = "";
+            if (!Booking.IsValidGuestPhone(null, clean_phone, out rule_message))
+            {
+                messages[BOX_PHONE] = rule_message.TrimEnd('\n');
+            }
+
+            return messages;
         }
 
         // spaces around the text are removed first, so " Anna " and "Anna" are the same
@@ -41,23 +65,14 @@ namespace CinemaBooking.UI
             details = null;
 
             // every wrong box is added, in page order, so the user sees all the problems together
-            // null as member id means a guest, so the guest rules are checked
             string all_errors = "";
-            string rule_message;
-
-            if (!Booking.IsValidGuestName(null, clean_name, out rule_message))
+            string[] box_messages = CheckBoxes(clean_name, clean_email, clean_phone);
+            for (int index = 0; index < box_messages.Length; index++)
             {
-                all_errors += rule_message + "\n";
-            }
-
-            if (!Booking.IsValidGuestEmail(null, clean_email, out rule_message))
-            {
-                all_errors += rule_message + "\n";
-            }
-
-            if (!Booking.IsValidGuestPhone(null, clean_phone, out rule_message))
-            {
-                all_errors += rule_message + "\n";
+                if (box_messages[index] != "")
+                {
+                    all_errors += box_messages[index] + "\n";
+                }
             }
 
             if (all_errors != "")
