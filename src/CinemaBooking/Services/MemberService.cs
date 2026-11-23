@@ -105,5 +105,27 @@ namespace CinemaBooking.Services
             return null;
         }
 
+        // checks name, email and phone of a new member without saving anything
+        internal bool IsValidNewMember(string name, string email, string phone, out string error_message)
+        {
+            return TryBuildNewMember(name, email, phone, out _, out error_message);
+        }
+
+        // true if a member already has this email (trimmed, ignoring case)
+        internal bool IsEmailUsed(string email)
+        {
+            string wanted = email.Trim().ToLowerInvariant();
+
+            foreach (Member member in _database.GetAllMembers())
+            {
+                if (member.Email.Trim().ToLowerInvariant() == wanted)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
     }
 }

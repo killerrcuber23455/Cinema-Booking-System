@@ -182,8 +182,35 @@ namespace CinemaBooking.Services
 
         public bool SignUp(string name, string email, string phone, string password, out string error_message)
         {
-            error_message = "sign up is not built yet";
-            return false;
+            // a null email counts as empty, we trim the email but never the password
+            string clean_email = (email ?? "").Trim();
+
+            // the member rules come first (name, email, phone), nothing is saved yet
+            if (!_member_service.IsValidNewMember(name, clean_email, phone, out error_message))
+            {
+                return false;
+            }
+
+            if (!IsValidPassword(password, out error_message))
+            {
+                return false;
+            }
+
+            // both emails are checked before anything is saved, so we never save a member that has no account
+            if (_user_repository.FindByEmail(clean_email) != null || _member_service.IsEmailUsed(clean_email))
+            {
+                error_message = EMAIL_USED_MESSAGE;
+                return false;
+            }
+
+            int member_id = _member_service.RegisterMember(name, clean_email, phone, out error_message);
+
+            if (member_id == -1)
+            {
+                return false;
+            }
+
+            return SaveNewUser(clean_email, password, Role.Customer, member_id, out error_message);
         }
 
         public bool HasAnyAdmin()
