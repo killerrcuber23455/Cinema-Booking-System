@@ -9,14 +9,7 @@ namespace CinemaBooking.Data
     // sql for the users and audit_log tables, used by the login service through IUserRepository
     public class UserRepository : IUserRepository
     {
-        // sql server error numbers for a unique rule being broken
-        private const int UNIQUE_KEY_ERROR = 2627;
-        private const int UNIQUE_INDEX_ERROR = 2601;
-        // more sql server error numbers: check rule or foreign key, text too long
-        private const int CHECK_OR_FOREIGN_KEY_ERROR = 547;
-        private const int TEXT_TOO_LONG_ERROR = 8152;
-        private const int TEXT_TOO_LONG_ERROR_NEW = 2628;
-
+        
         private readonly string _connection_string;
 
         // reads the connection string from the config file
@@ -59,11 +52,7 @@ namespace CinemaBooking.Data
         // true when the database refused the data because of one of its rules
         private static bool IsRuleError(SqlException error)
         {
-            return error.Number == UNIQUE_KEY_ERROR
-                || error.Number == UNIQUE_INDEX_ERROR
-                || error.Number == CHECK_OR_FOREIGN_KEY_ERROR
-                || error.Number == TEXT_TOO_LONG_ERROR
-                || error.Number == TEXT_TOO_LONG_ERROR_NEW;
+            return SqlErrors.IsRuleError(error);
         }
 
         // writes one audit row using a connection (and transaction) that is already open
@@ -233,6 +222,8 @@ namespace CinemaBooking.Data
         // returns true if at least one user has the role Admin
         public bool HasAnyAdmin()
         {
+
+
             using (SqlConnection connection = OpenConnection())
             using (SqlCommand command = new SqlCommand(
                 "SELECT COUNT(*) FROM users WHERE role = @role", connection))
@@ -240,6 +231,55 @@ namespace CinemaBooking.Data
                 command.Parameters.AddWithValue("@role", Role.Admin.ToString());
 
                 return Convert.ToInt32(command.ExecuteScalar()) > 0;
+            }
+        }
+
+        // changes the role of a user and writes an audit row in one transaction.
+        // returns false if the user is not found, the role is not a real role, or the database refuses it
+        public bool SetRole(int user_id, Role role)
+        {
+            if (!Enum.IsDefined(role))
+            {
+                return false;
+            }
+
+            using (SqlConnection connection = OpenConnection())
+            using (SqlTransaction transaction = connection.BeginTransaction())
+            {
+                try
+                {
+                    int changed;
+
+                    using (SqlCommand command = new SqlCommand(
+                        "UPDATE users SET role = @role WHERE id = @id", connection, transaction))
+                    {
+                        command.Parameters.AddWithValue("@role", role.ToString());
+                        command.Parameters.AddWithValue("@id", user_id);
+                        changed = command.ExecuteNonQuery();
+                    }
+
+                    if (changed == 0)
+                    {
+                        transaction.Rollback();
+                        return false;
+                    }
+
+                    InsertAudit(connection, transaction, user_id, "role_changed", "role set to " + role);
+
+                    transaction.Commit();
+                    return true;
+                }
+                catch (SqlException error)
+                {
+                    transaction.Rollback();
+
+                    if (SqlErrors.IsRuleError(error))
+                    {
+                        return false;
+                    }
+
+                    throw;
+                }
             }
         }
     }

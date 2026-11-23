@@ -78,7 +78,7 @@ namespace CinemaBooking.Tests
         public void GetTakenSeats_NoBookings_ReturnsEmpty()
         {
             _database.SaveShowing(MakeShowing(1, 18));
-            Assert.AreEqual(0, _database.GetTakenSeats(1).Length);
+            Assert.IsEmpty(_database.GetTakenSeats(1));
         }
 
         [TestMethod]
@@ -90,7 +90,7 @@ namespace CinemaBooking.Tests
 
             string[] taken = _database.GetTakenSeats(1);
 
-            Assert.AreEqual(2, taken.Length);
+            Assert.HasCount(2, taken);
             Assert.AreEqual("A1", taken[0]);
             Assert.AreEqual("C5", taken[1]);
         }
@@ -102,7 +102,7 @@ namespace CinemaBooking.Tests
             int id = SaveConfirmedBooking("T-0003", 1, "B2");
             _database.CancelBooking(id);
 
-            Assert.AreEqual(0, _database.GetTakenSeats(1).Length);
+            Assert.IsEmpty(_database.GetTakenSeats(1));
         }
 
         [TestMethod]

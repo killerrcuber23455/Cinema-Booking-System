@@ -50,7 +50,7 @@ namespace CinemaBooking.Tests
         public void SaveUser_New_ReturnsId()
         {
             int id = _repository.SaveUser("ann@x.com", "hash1", "salt1", Role.Customer, null);
-            Assert.IsTrue(id > 0);
+            Assert.IsGreaterThan(0, id);
         }
 
         [TestMethod]
@@ -153,6 +153,47 @@ namespace CinemaBooking.Tests
             _repository.SaveUser("staff@x.com", "h", "s", Role.Staff, null);
 
             Assert.IsFalse(_repository.HasAnyAdmin());
+        }
+
+
+        [TestMethod]
+        public void SetRole_ExistingUser_ReturnsTrueAndSavesRole()
+        {
+            int id = _repository.SaveUser("eve@x.com", "h", "s", Role.Customer, null);
+
+            Assert.IsTrue(_repository.SetRole(id, Role.Staff));
+
+            UserRecord? user = _repository.FindByEmail("eve@x.com");
+            Assert.IsNotNull(user);
+            Assert.AreEqual(Role.Staff, user.Role);
+        }
+
+        [TestMethod]
+        public void SetRole_UnknownUser_ReturnsFalse()
+        {
+            Assert.IsFalse(_repository.SetRole(99999, Role.Admin));
+        }
+
+        [TestMethod]
+        public void SetRole_UndefinedRole_ReturnsFalseAndKeepsOldRole()
+        {
+            int id = _repository.SaveUser("fay@x.com", "h", "s", Role.Customer, null);
+
+            Assert.IsFalse(_repository.SetRole(id, (Role)99));
+
+            UserRecord? user = _repository.FindByEmail("fay@x.com");
+            Assert.IsNotNull(user);
+            Assert.AreEqual(Role.Customer, user.Role);
+        }
+
+        [TestMethod]
+        public void SetRole_WritesAuditRow()
+        {
+            int id = _repository.SaveUser("gus@x.com", "h", "s", Role.Customer, null);
+
+            _repository.SetRole(id, Role.Admin);
+
+            Assert.AreEqual(1, _repository.CountAuditRows("role_changed"));
         }
     }
 }

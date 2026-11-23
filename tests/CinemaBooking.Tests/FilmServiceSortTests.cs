@@ -56,7 +56,7 @@ namespace CinemaBooking.Tests
         {
             Film[] result = MakeService().SortFilms("rating");
 
-            Assert.AreEqual(4, result.Length);
+            Assert.HasCount(4, result);
             Assert.AreEqual(12, result[0].AgeRating);
             Assert.AreEqual(12, result[1].AgeRating);
             Assert.AreEqual(15, result[2].AgeRating);
@@ -68,7 +68,7 @@ namespace CinemaBooking.Tests
         {
             FilmService service = new FilmService(new HashTable<int, Film>());
 
-            Assert.AreEqual(0, service.SortFilms("title").Length);
+            Assert.IsEmpty(service.SortFilms("title"));
         }
 
         [TestMethod]

@@ -9,9 +9,6 @@ namespace CinemaBooking.Data
     // the only class that talks to sql server. every query uses parameters, never text joining.
     public class Database : IDatabase
     {
-        // sql server error numbers for a unique rule being broken
-        private const int UNIQUE_KEY_ERROR = 2627;
-        private const int UNIQUE_INDEX_ERROR = 2601;
 
         // the name of the unique rule that stops a seat being booked twice
         private const string SEAT_RULE_NAME = "uq_booked_seats_showing_seat";
@@ -53,7 +50,7 @@ namespace CinemaBooking.Data
         // checks whether a sql error means a unique rule was broken
         private static bool IsUniqueError(SqlException error)
         {
-            return error.Number == UNIQUE_KEY_ERROR || error.Number == UNIQUE_INDEX_ERROR;
+            return SqlErrors.IsUniqueError(error);
         }
 
         // makes a bigger array and copies the old items into it
@@ -157,6 +154,69 @@ namespace CinemaBooking.Data
                 catch (SqlException error)
                 {
                     if (IsUniqueError(error))
+                    {
+                        return false;
+                    }
+
+                    throw;
+                }
+            }
+        }
+
+
+
+        // updates an existing film, false if the id is not found
+        public bool UpdateFilm(Film film)
+        {
+            using (SqlConnection connection = OpenConnection())
+            using (SqlCommand command = new SqlCommand(
+                "UPDATE films SET title = @title, genre = @genre, [year] = @year, " +
+                "duration_minutes = @duration_minutes, age_rating = @age_rating, " +
+                "description = @description, poster_file = @poster_file WHERE id = @id",
+                connection))
+            {
+                command.Parameters.AddWithValue("@id", film.Id);
+                command.Parameters.AddWithValue("@title", film.Title);
+                command.Parameters.AddWithValue("@genre", film.Genre);
+                command.Parameters.AddWithValue("@year", film.Year);
+                command.Parameters.AddWithValue("@duration_minutes", film.DurationMinutes);
+                command.Parameters.AddWithValue("@age_rating", film.AgeRating);
+                command.Parameters.AddWithValue("@description", film.Description ?? "");
+                command.Parameters.AddWithValue("@poster_file", film.PosterFile ?? "");
+
+                try
+                {
+                    return command.ExecuteNonQuery() > 0;
+                }
+                catch (SqlException error)
+                {
+                    if (SqlErrors.IsRuleError(error))
+                    {
+                        return false;
+                    }
+
+                    throw;
+                }
+            }
+        }
+
+        // deletes a film by id, false if it is not found or a showing still uses it
+        public bool DeleteFilm(int film_id)
+        {
+            using (SqlConnection connection = OpenConnection())
+            using (SqlCommand command = new SqlCommand(
+                "DELETE FROM films WHERE id = @id", connection))
+            {
+                command.Parameters.AddWithValue("@id", film_id);
+
+                try
+                {
+                    return command.ExecuteNonQuery() > 0;
+                }
+                catch (SqlException error)
+                {
+                    // the foreign key from showings refuses the delete: a normal problem, not a crash
+                    if (SqlErrors.IsRuleError(error))
                     {
                         return false;
                     }

@@ -12,6 +12,12 @@ namespace CinemaBooking.Data
         // saves a film with the id it already has, false if the id exists
         bool SaveFilm(Film film);
 
+        // updates an existing film, false if the id is not found
+        bool UpdateFilm(Film film);
+
+        // deletes a film by id, false if it is not found or a showing still uses it
+        bool DeleteFilm(int film_id);
+
         // returns the new id, or -1 if the email already exists
         int SaveMember(Member member);
 
