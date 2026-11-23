@@ -8,6 +8,29 @@ namespace CinemaBooking.UI
 {
     public static class FilmInput
     {
+        // the place of each box in the list that CheckBoxes gives back, in page order
+        public const int BOX_ID = 0;
+        public const int BOX_TITLE = 1;
+        public const int BOX_GENRE = 2;
+        public const int BOX_YEAR = 3;
+        public const int BOX_DURATION = 4;
+        public const int BOX_AGE_RATING = 5;
+        public const int BOX_DESCRIPTION = 6;
+        public const int BOX_POSTER = 7;
+        public const int BOX_COUNT = 8;
+
+        // red stub: gives a wrong value on purpose, the real code comes in the green step
+        public static string[] CheckBoxes(string id_text, string title, string genre, string year_text,
+            string duration_text, string age_rating_text, string description, string poster_file)
+        {
+            string[] messages = new string[BOX_COUNT];
+            for (int index = 0; index < BOX_COUNT; index++)
+            {
+                messages[index] = "stub";
+            }
+            return messages;
+        }
+
         public static bool TryRead(string id_text, string title, string genre, string year_text,
             string duration_text, string age_rating_text, string description, string poster_file,
             out Film? film, out string error_message)
