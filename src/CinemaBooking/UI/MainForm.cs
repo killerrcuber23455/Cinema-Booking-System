@@ -140,7 +140,7 @@ namespace CinemaBooking.UI
             AddMenuButton(btnFilms, "Films", UiTheme.ICON_FILMS, MakeFilmsPage);
             AddMenuButton(btnShowings, "Showings", UiTheme.ICON_SHOWINGS, MakeShowingsPage);
             AddMenuButton(btnBookSeats, "Book seats", UiTheme.ICON_BOOK_SEATS, () => MakePlaceholderPage("Choosing a showing and seats will be done here."));
-            AddMenuButton(btnMyBookings, "My bookings", UiTheme.ICON_MY_BOOKINGS, () => MakePlaceholderPage("Your bookings and cancelling will be shown here."));
+            AddMenuButton(btnMyBookings, "My bookings", UiTheme.ICON_MY_BOOKINGS, MakeMyBookingsPage);
             AddMenuButton(btnCancel, "Cancel booking", UiTheme.ICON_CANCEL, MakeFindBookingPage);
             AddMenuButton(btnMembers, "Members", UiTheme.ICON_MEMBERS, () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
             AddMenuButton(btnAdmin, "Admin", UiTheme.ICON_ADMIN, MakeAdminPage);
@@ -339,6 +339,33 @@ namespace CinemaBooking.UI
                 (reference, email) =>
                 {
                     bool is_cancelled = _booking_service.CancelBooking(Role.Guest, null, email, reference, out string cancel_error);
+                    return (is_cancelled, cancel_error);
+                },
+                DescribeShowingById,
+                ShowGoodToast);
+        }
+
+        // the page where a signed in customer sees their bookings and can cancel one
+        // the page gets small functions, so it holds no rules and no database of its own
+        private Control MakeMyBookingsPage()
+        {
+            int? member_id = _current_member?.Id;
+            Role role = _current_role;
+
+            if (member_id == null)
+            {
+                return MakePlaceholderPage(MyBookingList.SIGN_IN_TEXT);
+            }
+
+            return new MyBookingsForm(
+                () =>
+                {
+                    Booking[] found = MyBookingList.ForMember(_database, member_id, out string list_message);
+                    return (found, list_message);
+                },
+                reference =>
+                {
+                    bool is_cancelled = _booking_service.CancelBooking(role, member_id, "", reference, out string cancel_error);
                     return (is_cancelled, cancel_error);
                 },
                 DescribeShowingById,
