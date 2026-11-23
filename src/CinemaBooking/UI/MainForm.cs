@@ -55,6 +55,7 @@ namespace CinemaBooking.UI
         // every page shares one film table, so films loaded once are seen on every page
         private readonly HashTable<int, Film> _films = new HashTable<int, Film>();
         private readonly FilmService _film_service;
+        private readonly CatalogStore _catalog_store;
         private readonly ShowingService _showing_service;
         private readonly ShowingAdminService _showing_admin_service;
         private readonly AuthService _auth_service;
@@ -79,12 +80,17 @@ namespace CinemaBooking.UI
             _database = database;
             _showing_table = showing_table;
             _film_service = new FilmService(_films);
+            _catalog_store = new CatalogStore(database, _films, showing_table, _film_service);
             _showing_admin_service = new ShowingAdminService(showing_table, FilmExists);
 
             BuildWindow();
             BuildSideMenu();
             BuildContentArea();
             _toast = new ToastBanner(this);
+            if (!_catalog_store.LoadAll(out string load_message))
+            {
+                _toast.ShowMessage(load_message, true);
+            }
             ShowPage(btnFilms, "Films", MakeFilmsPage());
         }
 
@@ -390,7 +396,7 @@ namespace CinemaBooking.UI
                 return MakePlaceholderPage("Sign in as an admin to manage films.");
             }
 
-            return new AdminFilmsForm(_film_service, _current_role, ShowGoodToast);
+            return new AdminFilmsForm(_film_service, _catalog_store, _current_role, ShowGoodToast);
         }
 
         // the seat map of the chosen showing (card 348), back goes to the film's detail page

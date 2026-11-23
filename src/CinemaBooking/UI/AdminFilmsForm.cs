@@ -23,6 +23,7 @@ namespace CinemaBooking.UI
         private const string POSTER_FOLDER = "posters";
 
         private readonly FilmService _film_service;
+        private readonly CatalogStore _catalog_store;
 
         // the role of the person using the page, FilmService refuses add and remove unless it is Admin
         private readonly Role _role;
@@ -50,9 +51,10 @@ namespace CinemaBooking.UI
         // shows a good news message as a toast in the main window
         private readonly Action<string> _show_toast;
 
-        public AdminFilmsForm(FilmService film_service, Role role, Action<string> show_toast)
+        public AdminFilmsForm(FilmService film_service, CatalogStore catalog_store, Role role, Action<string> show_toast)
         {
             _film_service = film_service;
+            _catalog_store = catalog_store;
             _role = role;
             _show_toast = show_toast;
 
@@ -205,7 +207,7 @@ namespace CinemaBooking.UI
                 return;
             }
 
-            if (!_film_service.AddFilm(film!, _role, out error_message))
+            if (!_catalog_store.AddFilm(film!, _role, out error_message))
             {
                 ShowError(error_message);
                 return;

@@ -16,9 +16,6 @@ namespace CinemaBooking
             // one showing table for the whole program, the booking service must be given this same one
             ShowingTable showing_table = new ShowingTable();
 
-#if DEBUG
-            DemoShowings.Load(showing_table);
-#endif
             // the login needs the database, so read appsettings.json first
             AuthService auth_service;
             BookingService booking_service;
