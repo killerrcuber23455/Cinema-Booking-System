@@ -43,6 +43,7 @@ public class FakeDatabase : IDatabase
     public bool ThrowOnDeleteFilm { get; set; }
     public bool ShowingSaveFails { get; set; }
     public bool ThrowOnSaveShowing { get; set; }
+    public bool ThrowOnLoadBookings { get; set; }
 
     // the real Database.SaveFilm: false if the id is already used
     public bool SaveFilm(Film film)
@@ -215,6 +216,11 @@ public class FakeDatabase : IDatabase
     // honest limit: the real database sorts newest first, the fake does not sort, so tests must not check the order
     public Booking[] GetBookingsForMember(int member_id)
     {
+        if (ThrowOnLoadBookings)
+        {
+            throw new InvalidOperationException("database is down");
+        }
+
         Booking[] all_bookings = _bookings.ListAll();
         ChainList<Booking> results = new ChainList<Booking>();
 
