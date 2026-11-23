@@ -1,6 +1,5 @@
-// tests for when the landing page is shown, card 345 (owner: divyesh)
+// tests for what the landing window leads to, card 345 (owner: divyesh)
 // written before the code, so they fail first (red) and pass after (green)
-using CinemaBooking.Models;
 using CinemaBooking.UI;
 
 namespace CinemaBooking.Tests;
@@ -9,38 +8,47 @@ namespace CinemaBooking.Tests;
 public class LandingRulesTests
 {
     [TestMethod]
-    public void ShouldShow_GuestWhoHasNotChosenYet_ReturnsTrue()
+    public void ShouldOpenMain_WindowClosedWithoutAChoice_ReturnsFalse()
     {
-        Assert.IsTrue(LandingRules.ShouldShow(Role.Guest, false));
+        Assert.IsFalse(LandingRules.ShouldOpenMain(LandingChoice.None));
     }
 
     [TestMethod]
-    public void ShouldShow_GuestWhoAlreadyChose_ReturnsFalse()
+    public void ShouldOpenMain_EveryRealChoice_ReturnsTrue()
     {
-        Assert.IsFalse(LandingRules.ShouldShow(Role.Guest, true));
+        Assert.IsTrue(LandingRules.ShouldOpenMain(LandingChoice.Guest));
+        Assert.IsTrue(LandingRules.ShouldOpenMain(LandingChoice.LogIn));
+        Assert.IsTrue(LandingRules.ShouldOpenMain(LandingChoice.SignUp));
+        Assert.IsTrue(LandingRules.ShouldOpenMain(LandingChoice.Staff));
     }
 
     [TestMethod]
-    public void ShouldShow_SignedInCustomer_ReturnsFalse()
+    public void FirstPageFor_Guest_IsTheFilms()
     {
-        Assert.IsFalse(LandingRules.ShouldShow(Role.Customer, false));
+        Assert.AreEqual(FirstPage.Films, LandingRules.FirstPageFor(LandingChoice.Guest));
     }
 
     [TestMethod]
-    public void ShouldShow_Staff_ReturnsFalse()
+    public void FirstPageFor_LogIn_IsTheLoginPage()
     {
-        Assert.IsFalse(LandingRules.ShouldShow(Role.Staff, false));
+        Assert.AreEqual(FirstPage.Login, LandingRules.FirstPageFor(LandingChoice.LogIn));
     }
 
     [TestMethod]
-    public void ShouldShow_Admin_ReturnsFalse()
+    public void FirstPageFor_SignUp_IsTheSignUpPage()
     {
-        Assert.IsFalse(LandingRules.ShouldShow(Role.Admin, false));
+        Assert.AreEqual(FirstPage.SignUp, LandingRules.FirstPageFor(LandingChoice.SignUp));
     }
 
     [TestMethod]
-    public void ShouldShow_TheStartingRoleSeesItOnFirstOpen()
+    public void FirstPageFor_Staff_IsTheStaffLoginPage()
     {
-        Assert.IsTrue(LandingRules.ShouldShow(MenuRules.STARTING_ROLE, false));
+        Assert.AreEqual(FirstPage.StaffLogin, LandingRules.FirstPageFor(LandingChoice.Staff));
+    }
+
+    [TestMethod]
+    public void StaffNotice_HasATextForTheStaffLoginPage()
+    {
+        Assert.AreNotEqual("", LandingRules.STAFF_NOTICE);
     }
 }
