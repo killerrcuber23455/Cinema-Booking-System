@@ -64,7 +64,7 @@ namespace CinemaBooking.UI
         private readonly ShowingTable _showing_table;
 
         // who is signed in now, a guest until the login works
-        private Role _current_role = Role.Admin;
+        private Role _current_role = MenuRules.STARTING_ROLE;
         private Member? _current_member;
         private string _current_email = "";
 

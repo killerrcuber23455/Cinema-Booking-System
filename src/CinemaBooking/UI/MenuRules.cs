@@ -21,7 +21,7 @@ namespace CinemaBooking.UI
     public static class MenuRules
     {
         // the role the program starts with, before anyone signs in
-        public const Role STARTING_ROLE = Role.Admin;
+        public const Role STARTING_ROLE = Role.Guest;
 
         // a guest can look at films, find a booking and sign in
         private static readonly MenuItem[] GUEST_ITEMS =
