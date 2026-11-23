@@ -19,15 +19,72 @@ namespace CinemaBooking.UI
         public const int BOX_POSTER = 7;
         public const int BOX_COUNT = 8;
 
-        // red stub: gives a wrong value on purpose, the real code comes in the green step
+        // one message for each box and an empty text for a box that is fine
+        // the page shows each message under its box. a missing value counts as empty
         public static string[] CheckBoxes(string id_text, string title, string genre, string year_text,
             string duration_text, string age_rating_text, string description, string poster_file)
         {
+            string clean_title = (title ?? "").Trim();
+            string clean_genre = (genre ?? "").Trim();
+            string clean_description = (description ?? "").Trim();
+            string clean_poster = (poster_file ?? "").Trim();
+
             string[] messages = new string[BOX_COUNT];
             for (int index = 0; index < BOX_COUNT; index++)
             {
-                messages[index] = "stub";
+                messages[index] = "";
             }
+
+            string message;
+
+            int id = 0;
+            if (!InputCheck.TryReadWholeNumber(id_text ?? "", "id", out id, out message)
+                || !Film.IsValidId(id, out message))
+            {
+                messages[BOX_ID] = message.TrimEnd('\n');
+            }
+
+            if (!Film.IsValidTitle(clean_title, out message))
+            {
+                messages[BOX_TITLE] = message.TrimEnd('\n');
+            }
+
+            if (!Film.IsValidGenre(clean_genre, out message))
+            {
+                messages[BOX_GENRE] = message.TrimEnd('\n');
+            }
+
+            int year = 0;
+            if (!InputCheck.TryReadWholeNumber(year_text ?? "", "year", out year, out message)
+                || !Film.IsValidYear(year, out message))
+            {
+                messages[BOX_YEAR] = message.TrimEnd('\n');
+            }
+
+            int duration_minutes = 0;
+            if (!InputCheck.TryReadWholeNumber(duration_text ?? "", "duration", out duration_minutes, out message)
+                || !Film.IsValidDuration(duration_minutes, out message))
+            {
+                messages[BOX_DURATION] = message.TrimEnd('\n');
+            }
+
+            int age_rating = 0;
+            if (!InputCheck.TryReadWholeNumber(age_rating_text ?? "", "age rating", out age_rating, out message)
+                || !Film.IsValidAgeRating(age_rating, out message))
+            {
+                messages[BOX_AGE_RATING] = message.TrimEnd('\n');
+            }
+
+            if (!Film.IsValidDescription(clean_description, out message))
+            {
+                messages[BOX_DESCRIPTION] = message.TrimEnd('\n');
+            }
+
+            if (!Film.IsValidPosterFile(clean_poster, out message))
+            {
+                messages[BOX_POSTER] = message.TrimEnd('\n');
+            }
+
             return messages;
         }
 
@@ -37,62 +94,16 @@ namespace CinemaBooking.UI
         {
             film = null;
 
-            // spaces around the text are removed, a missing value counts as empty
-            string clean_title = (title ?? "").Trim();
-            string clean_genre = (genre ?? "").Trim();
-            string clean_description = (description ?? "").Trim();
-            string clean_poster = (poster_file ?? "").Trim();
-
             // one line for each wrong box, in the order the boxes are on the page
             string all_errors = "";
-            string message;
-
-            int id = 0;
-            if (!InputCheck.TryReadWholeNumber(id_text, "id", out id, out message)
-                || !Film.IsValidId(id, out message))
+            string[] box_messages = CheckBoxes(id_text, title, genre, year_text, duration_text,
+                age_rating_text, description, poster_file);
+            for (int index = 0; index < box_messages.Length; index++)
             {
-                all_errors += message.TrimEnd('\n') + "\n";
-            }
-
-            if (!Film.IsValidTitle(clean_title, out message))
-            {
-                all_errors += message.TrimEnd('\n') + "\n";
-            }
-
-            if (!Film.IsValidGenre(clean_genre, out message))
-            {
-                all_errors += message.TrimEnd('\n') + "\n";
-            }
-
-            int year = 0;
-            if (!InputCheck.TryReadWholeNumber(year_text, "year", out year, out message)
-                || !Film.IsValidYear(year, out message))
-            {
-                all_errors += message.TrimEnd('\n') + "\n";
-            }
-
-            int duration_minutes = 0;
-            if (!InputCheck.TryReadWholeNumber(duration_text, "duration", out duration_minutes, out message)
-                || !Film.IsValidDuration(duration_minutes, out message))
-            {
-                all_errors += message.TrimEnd('\n') + "\n";
-            }
-
-            int age_rating = 0;
-            if (!InputCheck.TryReadWholeNumber(age_rating_text, "age rating", out age_rating, out message)
-                || !Film.IsValidAgeRating(age_rating, out message))
-            {
-                all_errors += message.TrimEnd('\n') + "\n";
-            }
-
-            if (!Film.IsValidDescription(clean_description, out message))
-            {
-                all_errors += message.TrimEnd('\n') + "\n";
-            }
-
-            if (!Film.IsValidPosterFile(clean_poster, out message))
-            {
-                all_errors += message.TrimEnd('\n') + "\n";
+                if (box_messages[index] != "")
+                {
+                    all_errors += box_messages[index] + "\n";
+                }
             }
 
             if (all_errors != "")
@@ -101,8 +112,19 @@ namespace CinemaBooking.UI
                 return false;
             }
 
-            film = new Film(id, clean_title, clean_genre, year, duration_minutes, age_rating,
-                clean_description, clean_poster);
+            // every box is good, so the numbers can be read again without a message
+            string ignored;
+            int id;
+            int year;
+            int duration_minutes;
+            int age_rating;
+            InputCheck.TryReadWholeNumber(id_text, "id", out id, out ignored);
+            InputCheck.TryReadWholeNumber(year_text, "year", out year, out ignored);
+            InputCheck.TryReadWholeNumber(duration_text, "duration", out duration_minutes, out ignored);
+            InputCheck.TryReadWholeNumber(age_rating_text, "age rating", out age_rating, out ignored);
+
+            film = new Film(id, (title ?? "").Trim(), (genre ?? "").Trim(), year, duration_minutes, age_rating,
+                (description ?? "").Trim(), (poster_file ?? "").Trim());
             error_message = "";
             return true;
         }

@@ -18,7 +18,10 @@ namespace CinemaBooking.UI
         private const int LABEL_WIDTH = 110;
         private const int BOX_LEFT = FORM_LEFT + LABEL_WIDTH;
         private const int BOX_WIDTH = 300;
-        private const int ROW_HEIGHT = 36;
+        private const int BOX_HEIGHT = 28;
+        private const int MESSAGE_HEIGHT = 20;
+        // one row is the box, a gap of 2 pixels, the red message under it and a gap of 4 pixels
+        private const int ROW_HEIGHT = BOX_HEIGHT + 2 + MESSAGE_HEIGHT + 4;
         private const int CHOOSE_WIDTH = 104;
         private const string POSTER_FOLDER = "posters";
 
@@ -38,6 +41,9 @@ namespace CinemaBooking.UI
         private readonly TextBox txtDescription = new TextBox();
         private readonly TextBox txtPoster = new TextBox();
         private readonly Label lblMessage = new Label();
+
+        // the red message under each box, the place of each one is the BOX_ number in FilmInput
+        private readonly Label[] _box_messages = new Label[FilmInput.BOX_COUNT];
         private readonly Label lblFormHeading = new Label();
         private Button btnAdd = null!;
         private Button btnCancelEdit = null!;
@@ -100,26 +106,26 @@ namespace CinemaBooking.UI
             Controls.Add(lblFormHeading);
 
             int box_top = 40;
-            AddRow("Id", txtId, box_top, 28);
-            AddRow("Title", txtTitle, box_top + ROW_HEIGHT, 28);
-            AddRow("Genre", txtGenre, box_top + (2 * ROW_HEIGHT), 28);
-            AddRow("Year", txtYear, box_top + (3 * ROW_HEIGHT), 28);
-            AddRow("Duration (min)", txtDuration, box_top + (4 * ROW_HEIGHT), 28);
-            AddRow("Age rating", txtAgeRating, box_top + (5 * ROW_HEIGHT), 28);
-            AddRow("Poster file", txtPoster, box_top + (6 * ROW_HEIGHT), 28);
+            AddRow("Id", txtId, box_top, BOX_HEIGHT, FilmInput.BOX_ID);
+            AddRow("Title", txtTitle, box_top + ROW_HEIGHT, BOX_HEIGHT, FilmInput.BOX_TITLE);
+            AddRow("Genre", txtGenre, box_top + (2 * ROW_HEIGHT), BOX_HEIGHT, FilmInput.BOX_GENRE);
+            AddRow("Year", txtYear, box_top + (3 * ROW_HEIGHT), BOX_HEIGHT, FilmInput.BOX_YEAR);
+            AddRow("Duration (min)", txtDuration, box_top + (4 * ROW_HEIGHT), BOX_HEIGHT, FilmInput.BOX_DURATION);
+            AddRow("Age rating", txtAgeRating, box_top + (5 * ROW_HEIGHT), BOX_HEIGHT, FilmInput.BOX_AGE_RATING);
+            AddRow("Poster file", txtPoster, box_top + (6 * ROW_HEIGHT), BOX_HEIGHT, FilmInput.BOX_POSTER);
 
             // the poster box is a bit shorter so the choose button fits on the same row
             txtPoster.Width = BOX_WIDTH - CHOOSE_WIDTH - 6;
             Button btnChoose = MakeButton("Choose...", UiTheme.CARD);
-            btnChoose.SetBounds(BOX_LEFT + BOX_WIDTH - CHOOSE_WIDTH, box_top + (6 * ROW_HEIGHT), CHOOSE_WIDTH, 28);
+            btnChoose.SetBounds(BOX_LEFT + BOX_WIDTH - CHOOSE_WIDTH, box_top + (6 * ROW_HEIGHT), CHOOSE_WIDTH, BOX_HEIGHT);
             btnChoose.Click += (sender, e) => ClickChoosePoster();
             Controls.Add(btnChoose);
 
             // the description is taller than the other boxes
             txtDescription.Multiline = true;
-            AddRow("Description", txtDescription, box_top + (7 * ROW_HEIGHT), 90);
+            AddRow("Description", txtDescription, box_top + (7 * ROW_HEIGHT), 90, FilmInput.BOX_DESCRIPTION);
 
-            int button_top = box_top + (7 * ROW_HEIGHT) + 104;
+            int button_top = box_top + (7 * ROW_HEIGHT) + 90 + 2 + MESSAGE_HEIGHT + 10;
             btnAdd = MakeButton("Add film", UiTheme.ACCENT_RED);
             btnAdd.SetBounds(BOX_LEFT + BOX_WIDTH - 160, button_top, 160, 40);
             btnAdd.Click += (sender, e) => ClickAdd();
@@ -132,14 +138,15 @@ namespace CinemaBooking.UI
             btnCancelEdit.Click += (sender, e) => StopEditing();
             Controls.Add(btnCancelEdit);
 
-            // the message sits under the add button and can have several lines, one for each wrong box
+            // this message sits under the add button, it is for problems that are not about one box
+            // (for example a wrong role or an id that is already used). the box problems show under their box
             lblMessage.ForeColor = UiTheme.ACCENT_RED;
-            lblMessage.SetBounds(FORM_LEFT, button_top + 50, BOX_LEFT + BOX_WIDTH - FORM_LEFT, 130);
+            lblMessage.SetBounds(FORM_LEFT, button_top + 50, BOX_LEFT + BOX_WIDTH - FORM_LEFT, 60);
             Controls.Add(lblMessage);
         }
 
-        // one label and one box on the same row
-        private void AddRow(string label_text, TextBox box, int top, int box_height)
+        // one label, one box and an empty red message under it on the same row
+        private void AddRow(string label_text, TextBox box, int top, int box_height, int box_number)
         {
             Label lblName = new Label();
             lblName.Text = label_text;
@@ -151,8 +158,15 @@ namespace CinemaBooking.UI
             box.BorderStyle = BorderStyle.FixedSingle;
             box.SetBounds(BOX_LEFT, top, BOX_WIDTH, box_height);
 
+            Label lblBoxMessage = new Label();
+            lblBoxMessage.ForeColor = UiTheme.ACCENT_RED;
+            lblBoxMessage.Font = UiTheme.SMALL_FONT;
+            lblBoxMessage.SetBounds(BOX_LEFT, top + box_height + 2, BOX_WIDTH, MESSAGE_HEIGHT);
+            _box_messages[box_number] = lblBoxMessage;
+
             Controls.Add(lblName);
             Controls.Add(box);
+            Controls.Add(lblBoxMessage);
         }
 
         private Button MakeButton(string text, Color colour)
@@ -185,6 +199,15 @@ namespace CinemaBooking.UI
         {
             Film? film;
             string error_message;
+            lblMessage.Text = "";
+
+            // every wrong box shows its own message under it, and nothing is saved while one is wrong
+            string[] box_errors = FilmInput.CheckBoxes(txtId.Text, txtTitle.Text, txtGenre.Text, txtYear.Text,
+                txtDuration.Text, txtAgeRating.Text, txtDescription.Text, txtPoster.Text);
+            if (FormParts.ShowBoxMessages(_box_messages, box_errors))
+            {
+                return;
+            }
 
             if (!FilmInput.TryRead(txtId.Text, txtTitle.Text, txtGenre.Text, txtYear.Text, txtDuration.Text,
                     txtAgeRating.Text, txtDescription.Text, txtPoster.Text, out film, out error_message))
@@ -246,6 +269,7 @@ namespace CinemaBooking.UI
             btnAdd.Text = "Save changes";
             btnCancelEdit.Visible = true;
             lblMessage.Text = "";
+            ClearBoxMessages();
         }
 
         // back to the add form with empty boxes
@@ -315,8 +339,18 @@ namespace CinemaBooking.UI
             ShowGood("Film removed: " + film.Title);
         }
 
+        // empties the red message under every box
+        private void ClearBoxMessages()
+        {
+            for (int box_index = 0; box_index < _box_messages.Length; box_index++)
+            {
+                _box_messages[box_index].Text = "";
+            }
+        }
+
         private void ClearBoxes()
         {
+            ClearBoxMessages();
             txtId.Text = "";
             txtTitle.Text = "";
             txtGenre.Text = "";
