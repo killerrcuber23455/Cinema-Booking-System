@@ -141,5 +141,12 @@ namespace CinemaBooking.Services
             error_message = "";
             return true;
         }
+
+        // red stub: says yes and does nothing, on purpose. the real code comes in the green step
+        public bool LoadFilmFile(string file_path, out string message)
+        {
+            message = "";
+            return true;
+        }
     }
 }
