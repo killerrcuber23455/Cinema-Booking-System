@@ -54,6 +54,16 @@ public class BookingConcurrencyTests
             return 0;
         }
 
+        public bool UpdateFilm(Film film)
+        {
+            return true;
+        }
+
+        public bool DeleteFilm(int film_id)
+        {
+            return true;
+        }
+
         public int SaveMember(Member member)
         {
             return 1;

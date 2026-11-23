@@ -37,6 +37,10 @@ public class FakeDatabase : IDatabase
     public bool ThrowOnLoad { get; set; }
     public bool FilmSaveFails { get; set; }
     public bool ThrowOnSaveFilm { get; set; }
+    public bool FilmUpdateFails { get; set; }
+    public bool ThrowOnUpdateFilm { get; set; }
+    public bool FilmDeleteFails { get; set; }
+    public bool ThrowOnDeleteFilm { get; set; }
 
     // the real Database.SaveFilm: false if the id is already used
     public bool SaveFilm(Film film)
@@ -52,6 +56,48 @@ public class FakeDatabase : IDatabase
         }
 
         return _films.Add(film.Id, film);
+    }
+
+    // the real Database.UpdateFilm: false if the id is not found
+    public bool UpdateFilm(Film film)
+    {
+        if (ThrowOnUpdateFilm)
+        {
+            throw new InvalidOperationException("database is down");
+        }
+
+        if (FilmUpdateFails || _films.Find(film.Id) == null)
+        {
+            return false;
+        }
+
+        _films.Remove(film.Id);
+        return _films.Add(film.Id, film);
+    }
+
+    // the real Database.DeleteFilm: false if the id is not found or a showing still uses the film
+    public bool DeleteFilm(int film_id)
+    {
+        if (ThrowOnDeleteFilm)
+        {
+            throw new InvalidOperationException("database is down");
+        }
+
+        if (FilmDeleteFails || _films.Find(film_id) == null)
+        {
+            return false;
+        }
+
+        Showing[] all_showings = _showings.ListAll();
+        for (int index = 0; index < all_showings.Length; index++)
+        {
+            if (all_showings[index].FilmId == film_id)
+            {
+                return false;
+            }
+        }
+
+        return _films.Remove(film_id);
     }
 
     // only for tests: puts a film in the fake (the real database gets films from the sql script)

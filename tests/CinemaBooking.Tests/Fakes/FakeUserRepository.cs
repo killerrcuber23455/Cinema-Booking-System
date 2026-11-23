@@ -1,4 +1,4 @@
-﻿// a fake user repository that keeps users and audit rows in memory
+// a fake user repository that keeps users and audit rows in memory
 // so login can be tested without sql server (owner: shankar)
 using CinemaBooking.Data;
 using CinemaBooking.Models;
@@ -88,6 +88,28 @@ public class FakeUserRepository : IUserRepository
     {
         AuditRows.Add(new AuditRow(user_id, action, details));
         return true;
+    }
+
+    // like the real SetRole: false if the user is not found or the role is not a real role,
+    // otherwise the role is changed and a "role_changed" audit row is written
+    public bool SetRole(int user_id, Role role)
+    {
+        if (!Enum.IsDefined(role))
+        {
+            return false;
+        }
+
+        for (int index = 0; index < _users.Count; index++)
+        {
+            if (_users[index].Id == user_id)
+            {
+                _users[index].Role = role;
+                AuditRows.Add(new AuditRow(user_id, "role_changed", role.ToString()));
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public bool HasAnyAdmin()
