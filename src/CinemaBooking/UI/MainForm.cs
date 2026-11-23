@@ -73,7 +73,7 @@ namespace CinemaBooking.UI
         private bool _is_booking;
 
         public MainForm(ShowingService showing_service, AuthService auth_service, ShowingTable showing_table,
-            BookingService booking_service, IDatabase database)
+            BookingService booking_service, IDatabase database, FirstPage first_page = FirstPage.Films)
         {
             _showing_service = showing_service;
             _auth_service = auth_service;
@@ -93,7 +93,29 @@ namespace CinemaBooking.UI
             {
                 _toast.ShowMessage(load_message, true);
             }
-            ShowPage(btnFilms, "Films", MakeFilmsPage());
+            ShowFirstPage(first_page);
+        }
+
+        // the page the landing window asked for: the films for a guest, otherwise the sign in or sign up page
+        private void ShowFirstPage(FirstPage first_page)
+        {
+            string account_title = MenuRules.AccountLabel(_current_role);
+
+            switch (first_page)
+            {
+                case FirstPage.Login:
+                    ShowPage(btnAccount, account_title, MakeLoginPage(""));
+                    break;
+                case FirstPage.SignUp:
+                    ShowPage(btnAccount, "Sign up", MakeSignUpPage());
+                    break;
+                case FirstPage.StaffLogin:
+                    ShowPage(btnAccount, account_title, MakeLoginPage(LandingRules.STAFF_NOTICE));
+                    break;
+                default:
+                    ShowPage(btnFilms, "Films", MakeFilmsPage());
+                    break;
+            }
         }
 
         // sets up the window itself
@@ -542,12 +564,18 @@ namespace CinemaBooking.UI
             return new LoginForm(
                 _auth_service,
                 SignedIn,
-                () => ShowPage(btnAccount, "Sign up", new SignUpForm(
-                    _auth_service,
-                    email => ShowPage(btnAccount, btnAccount.Text, MakeLoginPage("Account created for " + email + ", sign in now")),
-                    () => ShowPage(btnAccount, btnAccount.Text, MakeLoginPage("")))),
+                () => ShowPage(btnAccount, "Sign up", MakeSignUpPage()),
                 go_first_admin,
                 notice);
+        }
+
+        // the sign up page: after it works the login page opens with a notice
+        private Control MakeSignUpPage()
+        {
+            return new SignUpForm(
+                _auth_service,
+                email => ShowPage(btnAccount, btnAccount.Text, MakeLoginPage("Account created for " + email + ", sign in now")),
+                () => ShowPage(btnAccount, btnAccount.Text, MakeLoginPage("")));
         }
 
         // the login worked, so the window remembers who it is, updates the menu and shows the account page

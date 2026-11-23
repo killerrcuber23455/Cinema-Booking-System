@@ -24,17 +24,29 @@ namespace CinemaBooking.UI
 
     public static class LandingRules
     {
-        // red stubs: wrong values on purpose. the real code comes in the green step
-        public const string STAFF_NOTICE = "";
+        // shown above the boxes when staff or admin come in from the landing window
+        public const string STAFF_NOTICE = "Staff and admin: sign in with your work email and password";
 
+        // closing the landing window without a choice ends the program, every real choice opens the main window
         public static bool ShouldOpenMain(LandingChoice choice)
         {
-            return true;
+            return choice != LandingChoice.None;
         }
 
+        // the guest starts on the films, the others start on the page they asked for
         public static FirstPage FirstPageFor(LandingChoice choice)
         {
-            return FirstPage.Films;
+            switch (choice)
+            {
+                case LandingChoice.LogIn:
+                    return FirstPage.Login;
+                case LandingChoice.SignUp:
+                    return FirstPage.SignUp;
+                case LandingChoice.Staff:
+                    return FirstPage.StaffLogin;
+                default:
+                    return FirstPage.Films;
+            }
         }
     }
 }

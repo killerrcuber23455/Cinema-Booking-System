@@ -1,4 +1,4 @@
-// starts the program and opens the main window (owner: divyesh)
+// starts the program: the landing window first, then the main window (owner: divyesh)
 using CinemaBooking.Data;
 using CinemaBooking.DataStructures;
 using CinemaBooking.Services;
@@ -38,7 +38,21 @@ namespace CinemaBooking
             }
 
             ShowingService showing_service = new ShowingService(showing_table);
-            Application.Run(new UI.MainForm(showing_service, auth_service, showing_table, booking_service, booking_database));
+            // the landing window comes first and gives one choice back, closing it without a choice ends the program
+            UI.LandingChoice choice;
+            using (UI.LandingWindow landing = new UI.LandingWindow())
+            {
+                landing.ShowDialog();
+                choice = landing.Choice;
+            }
+
+            if (!UI.LandingRules.ShouldOpenMain(choice))
+            {
+                return;
+            }
+
+            Application.Run(new UI.MainForm(showing_service, auth_service, showing_table, booking_service, booking_database,
+                UI.LandingRules.FirstPageFor(choice)));
         }
     }
 }
