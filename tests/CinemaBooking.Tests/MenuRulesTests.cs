@@ -162,4 +162,19 @@ public class MenuRulesTests
         Assert.AreEqual("My account", MenuRules.AccountLabel(Role.Staff));
         Assert.AreEqual("My account", MenuRules.AccountLabel(Role.Admin));
     }
+
+    // the role at start
+
+    [TestMethod]
+    public void StartingRole_IsGuest()
+    {
+        Assert.AreEqual(Role.Guest, MenuRules.STARTING_ROLE);
+    }
+
+    [TestMethod]
+    public void ItemsFor_StartingRole_DoesNotShowAdminOrMembers()
+    {
+        Assert.IsFalse(MenuRules.IsVisible(MenuItem.Admin, MenuRules.STARTING_ROLE));
+        Assert.IsFalse(MenuRules.IsVisible(MenuItem.Members, MenuRules.STARTING_ROLE));
+    }
 }
