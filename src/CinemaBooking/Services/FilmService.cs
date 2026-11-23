@@ -119,13 +119,23 @@ namespace CinemaBooking.Services
         // returns all films sorted by "title", "year" or "rating" (merge sort, stable)
         public Film[] SortFilms(string sort_by)
         {
-            return new Film[0];
+            Film[] all_films = _films.ListAll();
+
+            return SortHelper.MergeSort(all_films, sort_by);
         }
 
         // finds one film by its exact title, any case, using binary search on a sorted copy. null if not found
         public Film? FindByExactTitle(string title)
         {
-            return null;
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return null;
+            }
+
+            Film[] sorted_films = SortHelper.MergeSort(_films.ListAll(), "title");
+            int index = SortHelper.BinarySearch(sorted_films, title.Trim());
+
+            return index == -1 ? null : sorted_films[index];
         }
     }
 }
