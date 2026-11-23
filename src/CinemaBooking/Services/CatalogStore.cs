@@ -26,17 +26,50 @@ namespace CinemaBooking.Services
         // fills the film and showing tables from the database. false with a message if the database fails
         public bool LoadAll(out string message)
         {
-            // red stub: wrong on purpose
+            try
+            {
+                _database.LoadFilms(_films);
+                _database.LoadShowings(_showings);
+            }
+            catch (Exception)
+            {
+                message = DATABASE_DOWN_TEXT;
+                return false;
+            }
+
             message = "";
-            return false;
+            return true;
         }
 
         // adds a film (admin only) and saves it to the database. if the save fails the film is taken back out
         public bool AddFilm(Film film, Role role, out string error_message)
         {
-            // red stub: wrong on purpose
+            // FilmService checks the role and the film first, nothing is saved if it refuses
+            if (!_film_service.AddFilm(film, role, out error_message))
+            {
+                return false;
+            }
+
+            bool is_saved;
+            try
+            {
+                is_saved = _database.SaveFilm(film);
+            }
+            catch (Exception)
+            {
+                is_saved = false;
+            }
+
+            if (!is_saved)
+            {
+                // the database did not keep it, so the program must not show it either
+                _film_service.RemoveFilm(film.Id, Role.Admin, out _);
+                error_message = SAVE_FAILED_TEXT;
+                return false;
+            }
+
             error_message = "";
-            return false;
+            return true;
         }
     }
 }
