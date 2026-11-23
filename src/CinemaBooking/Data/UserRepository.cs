@@ -234,10 +234,53 @@ namespace CinemaBooking.Data
             }
         }
 
-        // changes the role of a user and writes an audit row, false if the user is not found
+        // changes the role of a user and writes an audit row in one transaction.
+        // returns false if the user is not found, the role is not a real role, or the database refuses it
         public bool SetRole(int user_id, Role role)
         {
-            return false;
+            if (!Enum.IsDefined(role))
+            {
+                return false;
+            }
+
+            using (SqlConnection connection = OpenConnection())
+            using (SqlTransaction transaction = connection.BeginTransaction())
+            {
+                try
+                {
+                    int changed;
+
+                    using (SqlCommand command = new SqlCommand(
+                        "UPDATE users SET role = @role WHERE id = @id", connection, transaction))
+                    {
+                        command.Parameters.AddWithValue("@role", role.ToString());
+                        command.Parameters.AddWithValue("@id", user_id);
+                        changed = command.ExecuteNonQuery();
+                    }
+
+                    if (changed == 0)
+                    {
+                        transaction.Rollback();
+                        return false;
+                    }
+
+                    InsertAudit(connection, transaction, user_id, "role_changed", "role set to " + role);
+
+                    transaction.Commit();
+                    return true;
+                }
+                catch (SqlException error)
+                {
+                    transaction.Rollback();
+
+                    if (SqlErrors.IsRuleError(error))
+                    {
+                        return false;
+                    }
+
+                    throw;
+                }
+            }
         }
     }
 }
