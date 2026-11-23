@@ -41,6 +41,8 @@ public class FakeDatabase : IDatabase
     public bool ThrowOnUpdateFilm { get; set; }
     public bool FilmDeleteFails { get; set; }
     public bool ThrowOnDeleteFilm { get; set; }
+    public bool ShowingSaveFails { get; set; }
+    public bool ThrowOnSaveShowing { get; set; }
 
     // the real Database.SaveFilm: false if the id is already used
     public bool SaveFilm(Film film)
@@ -288,6 +290,16 @@ public class FakeDatabase : IDatabase
     // saves a showing, false if the id is used or the screen is already busy at that time
     public bool SaveShowing(Showing showing)
     {
+        if (ThrowOnSaveShowing)
+        {
+            throw new InvalidOperationException("database is down");
+        }
+
+        if (ShowingSaveFails)
+        {
+            return false;
+        }
+
         if (_showings.Find(showing.Id) != null)
         {
             return false;
