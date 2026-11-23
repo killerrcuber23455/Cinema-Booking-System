@@ -21,6 +21,8 @@ namespace CinemaBooking
 #endif
             // the login needs the database, so read appsettings.json first
             AuthService auth_service;
+            BookingService booking_service;
+            IDatabase booking_database;
             try
             {
                 AppConfig config = new AppConfig();
@@ -28,6 +30,8 @@ namespace CinemaBooking
                 UserRepository users = new UserRepository(config);
                 MemberService member_service = new MemberService(database);
                 auth_service = new AuthService(users, member_service);
+                booking_database = database;
+                booking_service = new BookingService(database, showing_table);
             }
             catch (Exception ex)
             {
@@ -37,7 +41,7 @@ namespace CinemaBooking
             }
 
             ShowingService showing_service = new ShowingService(showing_table);
-            Application.Run(new UI.MainForm(showing_service, auth_service, showing_table));
+            Application.Run(new UI.MainForm(showing_service, auth_service, showing_table, booking_service, booking_database));
         }
     }
 }

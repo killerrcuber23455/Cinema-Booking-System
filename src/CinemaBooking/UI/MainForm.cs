@@ -2,6 +2,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using CinemaBooking.Data;
 using CinemaBooking.DataStructures;
 using CinemaBooking.Models;
 using CinemaBooking.Services;
@@ -57,16 +58,23 @@ namespace CinemaBooking.UI
         private readonly ShowingService _showing_service;
         private readonly ShowingAdminService _showing_admin_service;
         private readonly AuthService _auth_service;
+        private readonly BookingService _booking_service;
+        private readonly IDatabase _database;
+        private readonly ShowingTable _showing_table;
 
         // who is signed in now, a guest until the login works
         private Role _current_role = Role.Guest;
         private Member? _current_member;
         private string _current_email = "";
 
-        public MainForm(ShowingService showing_service, AuthService auth_service, ShowingTable showing_table)
+        public MainForm(ShowingService showing_service, AuthService auth_service, ShowingTable showing_table,
+            BookingService booking_service, IDatabase database)
         {
             _showing_service = showing_service;
             _auth_service = auth_service;
+            _booking_service = booking_service;
+            _database = database;
+            _showing_table = showing_table;
             _film_service = new FilmService(_films);
             _showing_admin_service = new ShowingAdminService(showing_table, FilmExists);
 
@@ -122,7 +130,7 @@ namespace CinemaBooking.UI
             AddMenuButton(btnShowings, "Showings", UiTheme.ICON_SHOWINGS, MakeShowingsPage);
             AddMenuButton(btnBookSeats, "Book seats", UiTheme.ICON_BOOK_SEATS, () => MakePlaceholderPage("Choosing a showing and seats will be done here."));
             AddMenuButton(btnMyBookings, "My bookings", UiTheme.ICON_MY_BOOKINGS, () => MakePlaceholderPage("Your bookings and cancelling will be shown here."));
-            AddMenuButton(btnCancel, "Cancel booking", UiTheme.ICON_CANCEL, () => MakePlaceholderPage("A booking is cancelled here with its reference."));
+            AddMenuButton(btnCancel, "Cancel booking", UiTheme.ICON_CANCEL, MakeFindBookingPage);
             AddMenuButton(btnMembers, "Members", UiTheme.ICON_MEMBERS, () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
             AddMenuButton(btnAdmin, "Admin", UiTheme.ICON_ADMIN, MakeAdminPage);
             AddMenuButton(btnAccount, "My account", UiTheme.ICON_ACCOUNT, MakeAccountPage);
@@ -305,6 +313,48 @@ namespace CinemaBooking.UI
             }
 
             return new AdminShowingsForm(_showing_admin_service, _current_role, ShowGoodToast);
+        }
+
+        // the page where a guest finds a booking with the reference and email and can cancel it
+        // the page gets small functions, so it holds no rules and no database of its own
+        private Control MakeFindBookingPage()
+        {
+            return new FindBookingForm(
+                (reference, email) =>
+                {
+                    Booking? found = BookingLookup.Find(_database, reference, email, out string find_error);
+                    return (found, find_error);
+                },
+                (reference, email) =>
+                {
+                    bool is_cancelled = _booking_service.CancelBooking(Role.Guest, null, email, reference, out string cancel_error);
+                    return (is_cancelled, cancel_error);
+                },
+                DescribeShowingById,
+                ShowGoodToast);
+        }
+
+        // the film name and the time of a showing, for the booking card
+        private string DescribeShowingById(int showing_id)
+        {
+            Showing? showing = _showing_table.FindShowing(showing_id);
+
+            if (showing == null)
+            {
+                return "Showing " + showing_id;
+            }
+
+            Film[] all_films = _film_service.Search("", "");
+
+            for (int film_index = 0; film_index < all_films.Length; film_index++)
+            {
+                if (all_films[film_index].Id == showing.FilmId)
+                {
+                    return all_films[film_index].Title + " · " + showing.StartsAt.ToString("ddd d MMM yyyy · HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
+
+            return "Showing " + showing_id + " · " + showing.StartsAt.ToString("ddd d MMM yyyy · HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         // tells the showing rules if a film id exists, by looking at the films the film service knows

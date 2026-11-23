@@ -12,11 +12,33 @@ namespace CinemaBooking.Services
         public const string NOT_FOUND_TEXT = "No booking found with this reference and email";
 
         // gives back the guest booking, or null with the reason
-        // this is only a stub for the red step, it finds nothing
+        // a cancelled booking is still found, so the page can say it is cancelled
         public static Booking? Find(IDatabase database, string? reference, string? guest_email, out string error_message)
         {
+            if (!Booking.IsValidReference(reference ?? "", out error_message))
+            {
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(guest_email))
+            {
+                error_message = EMAIL_TEXT;
+                return null;
+            }
+
+            Booking? booking = database.FindBooking(reference!.Trim());
+
+            // a member booking is never shown here, members use My bookings
+            if (booking == null
+                || !booking.IsGuest
+                || !string.Equals(booking.GuestEmail, guest_email.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                error_message = NOT_FOUND_TEXT;
+                return null;
+            }
+
             error_message = "";
-            return null;
+            return booking;
         }
     }
 }
