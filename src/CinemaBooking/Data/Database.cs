@@ -1,9 +1,8 @@
-// all sql server code: reads films, saves and loads members and bookings (owner: kushal)
+// all sql server code for films, members, bookings, showings and seats (owner: kushal)
 using CinemaBooking.DataStructures;
 using CinemaBooking.Models;
 using Microsoft.Data.SqlClient;
 using System;
-using System.Data;
 
 namespace CinemaBooking.Data
 {

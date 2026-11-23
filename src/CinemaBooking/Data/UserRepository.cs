@@ -6,6 +6,7 @@ using System;
 
 namespace CinemaBooking.Data
 {
+    // sql for the users and audit_log tables, used by the login service through IUserRepository
     public class UserRepository : IUserRepository
     {
         // sql server error numbers for a unique rule being broken
@@ -18,6 +19,7 @@ namespace CinemaBooking.Data
 
         private readonly string _connection_string;
 
+        // reads the connection string from the config file
         public UserRepository(AppConfig config)
         {
             _connection_string = config.GetConnectionString();
@@ -80,7 +82,7 @@ namespace CinemaBooking.Data
         }
 
         // saves a user and an audit row in one transaction. returns the new id,
-        // or -1 if the email is empty or already used
+        // or -1 if the email is empty or the database refuses the data (duplicate email, bad role, text too long, unknown member)
         public int SaveUser(string email, string password_hash, string salt, Role role, int? member_id)
         {
             if (string.IsNullOrWhiteSpace(email))
@@ -171,7 +173,7 @@ namespace CinemaBooking.Data
         }
 
         // saves the failed login count and the lock time in one call. pass null to clear the lock.
-        // returns false if the user does not exist.
+        // returns false if the user does not exist or the database refuses the numbers (for example a negative count).
         public bool SetFailedAttempts(int user_id, int failed_attempts, DateTime? locked_until)
         {
             using (SqlConnection connection = OpenConnection())
@@ -228,7 +230,6 @@ namespace CinemaBooking.Data
             }
         }
 
-        // returns true if at least one user has the role Admin
         // returns true if at least one user has the role Admin
         public bool HasAnyAdmin()
         {
