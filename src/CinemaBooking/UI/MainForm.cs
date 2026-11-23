@@ -1,4 +1,4 @@
-﻿// the main window with the side menu, every function is reached from here (owner: divyesh)
+// the main window with the side menu, every function is reached from here (owner: divyesh)
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -58,6 +58,7 @@ namespace CinemaBooking.UI
         private readonly CatalogStore _catalog_store;
         private readonly ShowingService _showing_service;
         private readonly ShowingAdminService _showing_admin_service;
+        private readonly ShowingStore _showing_store;
         private readonly AuthService _auth_service;
         private readonly BookingService _booking_service;
         private readonly IDatabase _database;
@@ -82,6 +83,7 @@ namespace CinemaBooking.UI
             _film_service = new FilmService(_films);
             _catalog_store = new CatalogStore(database, _films, showing_table, _film_service);
             _showing_admin_service = new ShowingAdminService(showing_table, FilmExists);
+            _showing_store = new ShowingStore(database, _showing_admin_service, showing_table);
 
             BuildWindow();
             BuildSideMenu();
@@ -321,7 +323,7 @@ namespace CinemaBooking.UI
                 return MakePlaceholderPage("Sign in as staff or an admin to manage showings.");
             }
 
-            return new AdminShowingsForm(_showing_admin_service, _current_role, ShowGoodToast);
+            return new AdminShowingsForm(_showing_admin_service, _showing_store, _current_role, ShowGoodToast);
         }
 
         // the page where a guest finds a booking with the reference and email and can cancel it

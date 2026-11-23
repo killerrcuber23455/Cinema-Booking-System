@@ -18,6 +18,7 @@ namespace CinemaBooking.UI
         private const int LIST_HEIGHT = 330;
 
         private readonly ShowingAdminService _showing_admin_service;
+        private readonly ShowingStore _showing_store;
 
         // the role of the person using the page, the service refuses add and remove unless it is Staff or Admin
         private readonly Role _role;
@@ -39,9 +40,10 @@ namespace CinemaBooking.UI
         // shows a good news message as a toast in the main window
         private readonly Action<string> _show_toast;
 
-        public AdminShowingsForm(ShowingAdminService showing_admin_service, Role role, Action<string> show_toast)
+        public AdminShowingsForm(ShowingAdminService showing_admin_service, ShowingStore showing_store, Role role, Action<string> show_toast)
         {
             _showing_admin_service = showing_admin_service;
+            _showing_store = showing_store;
             _role = role;
             _show_toast = show_toast;
 
@@ -117,7 +119,7 @@ namespace CinemaBooking.UI
             }
         }
 
-        // the boxes are checked by ShowingInput, the showing is added by ShowingAdminService, which also checks the role
+        // the boxes are checked by ShowingInput, the showing is added by ShowingStore, which also checks the role and saves it to the database
         private void ClickAdd()
         {
             lblMessage.Text = "";
@@ -140,7 +142,7 @@ namespace CinemaBooking.UI
                 return;
             }
 
-            if (!_showing_admin_service.AddShowing(input!.Id, input.FilmId, input.ScreenId, input.StartsAt,
+            if (!_showing_store.AddShowing(input!.Id, input.FilmId, input.ScreenId, input.StartsAt,
                     input.Price, _role, out error_message))
             {
                 ShowError(error_message);
