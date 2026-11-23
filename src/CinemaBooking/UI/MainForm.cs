@@ -321,7 +321,7 @@ namespace CinemaBooking.UI
         // the films page, it only gets the film service, never the hash table (card 347)
         private Control MakeFilmsPage()
         {
-            return new FilmBrowseForm(_film_service, _current_role, OpenFilmDetail);
+            return new FilmBrowseForm(_film_service, _catalog_store, _current_role, OpenFilmDetail);
         }
 
         // the detail page of the film that was clicked (card 402), with the showings of that film

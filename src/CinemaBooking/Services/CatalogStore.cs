@@ -1,4 +1,4 @@
-// loads films and showings from the database at startup and saves added, edited and removed films to it (owner: divyesh)
+// loads films and showings from the database at startup and saves added, edited, removed and file-loaded films to it (owner: divyesh)
 using CinemaBooking.Data;
 using CinemaBooking.DataStructures;
 using CinemaBooking.Models;
@@ -11,6 +11,8 @@ namespace CinemaBooking.Services
         public const string SAVE_FAILED_TEXT = "The film could not be saved to the database, so it was not added.";
         public const string UPDATE_FAILED_TEXT = "The changes could not be saved to the database, so the film was not changed.";
         public const string DELETE_FAILED_TEXT = "The film could not be removed from the database (a showing may still use it), so it was not removed.";
+
+        public const string FILE_SAVE_FAILED_TEXT = "The films in the file could not be saved to the database (an id may already be used there), so none were loaded.";
 
         private readonly IDatabase _database;
         private readonly HashTable<int, Film> _films;
@@ -142,10 +144,111 @@ namespace CinemaBooking.Services
             return true;
         }
 
-        // red stub: says yes and does nothing, on purpose. the real code comes in the green step
+        // loads the films of a film file into the program and saves each new film to the database too.
+        // a film whose id is already known is skipped (the known film is kept). if the database refuses one,
+        // every film of this file is taken back out (and out of the database) so the program and the database agree
         public bool LoadFilmFile(string file_path, out string message)
         {
-            message = "";
+            if (string.IsNullOrWhiteSpace(file_path))
+            {
+                message = "no film file was chosen";
+                return false;
+            }
+
+            // the file is read into a table of its own first, so the program's films are not touched until the database agrees
+            HashTable<int, Film> incoming = new HashTable<int, Film>();
+            int skipped;
+
+            try
+            {
+                FileLoader file_loader = new FileLoader(file_path);
+                (_, skipped) = file_loader.LoadFilms(incoming);
+            }
+            catch (FileNotFoundException)
+            {
+                message = "the film file was not found: " + Path.GetFileName(file_path);
+                return false;
+            }
+            catch (IOException)
+            {
+                // the file is open in another program, for example excel
+                message = "the film file could not be read, close it in other programs and try again";
+                return false;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                message = "you do not have permission to read this film file";
+                return false;
+            }
+
+            Film[] films_in_file = incoming.ListAll();
+            List<int> added_ids = new List<int>();
+            List<int> saved_ids = new List<int>();
+            bool is_all_saved = true;
+
+            for (int film_index = 0; film_index < films_in_file.Length && is_all_saved; film_index++)
+            {
+                Film film = films_in_file[film_index];
+
+                if (_films.Find(film.Id) != null)
+                {
+                    skipped++;
+                    continue;
+                }
+
+                if (!_film_service.AddFilm(film, Role.Admin, out _))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                added_ids.Add(film.Id);
+
+                bool is_saved;
+                try
+                {
+                    is_saved = _database.SaveFilm(film);
+                }
+                catch (Exception)
+                {
+                    is_saved = false;
+                }
+
+                if (is_saved)
+                {
+                    saved_ids.Add(film.Id);
+                }
+                else
+                {
+                    is_all_saved = false;
+                }
+            }
+
+            if (!is_all_saved)
+            {
+                // take every film of this file back out, of the program and of the database
+                for (int added_index = 0; added_index < added_ids.Count; added_index++)
+                {
+                    _film_service.RemoveFilm(added_ids[added_index], Role.Admin, out _);
+                }
+
+                for (int saved_index = 0; saved_index < saved_ids.Count; saved_index++)
+                {
+                    try
+                    {
+                        _database.DeleteFilm(saved_ids[saved_index]);
+                    }
+                    catch (Exception)
+                    {
+                        // the database is not reachable now, nothing more can be done here
+                    }
+                }
+
+                message = FILE_SAVE_FAILED_TEXT;
+                return false;
+            }
+
+            message = "loaded " + added_ids.Count + " films, skipped " + skipped + " rows from " + Path.GetFileName(file_path);
             return true;
         }
     }

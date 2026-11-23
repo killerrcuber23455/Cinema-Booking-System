@@ -32,6 +32,9 @@ namespace CinemaBooking.UI
 
         private readonly FilmService _film_service;
 
+        // loads the film file into the program and the database
+        private readonly CatalogStore _catalog_store;
+
         // who is looking at the page, only staff and admin see the button that loads the film file (card 437)
         private readonly Role _role;
 
@@ -49,9 +52,10 @@ namespace CinemaBooking.UI
         private readonly Button btnLoadFile = FormParts.MakeButton("Load film file", UiTheme.ACCENT_RED);
         private readonly Label lblStatus = new Label();
         private readonly FlowLayoutPanel flpCards = new SmoothFlowPanel();
-        public FilmBrowseForm(FilmService film_service, Role role, Action<Film> open_film)
+        public FilmBrowseForm(FilmService film_service, CatalogStore catalog_store, Role role, Action<Film> open_film)
         {
             _film_service = film_service;
+            _catalog_store = catalog_store;
             _role = role;
             _open_film = open_film;
             DoubleBuffered = true;
@@ -136,7 +140,7 @@ namespace CinemaBooking.UI
         }
 
         // asks the user which film file to load, so the file name is never typed in the code
-        private void LoadFilmFile()
+        private async void LoadFilmFile()
         {
             using (OpenFileDialog dlgOpenFile = new OpenFileDialog())
             {
@@ -148,14 +152,39 @@ namespace CinemaBooking.UI
                     return;
                 }
 
-                bool is_loaded = _film_service.LoadFromFile(dlgOpenFile.FileName, out string message);
+                string file_name = dlgOpenFile.FileName;
+
+                // the database save can be slow, so it runs in the background and the page waits with a loading text
+                SetLoading(true);
+                CallResult<(bool Ok, string Message)> result = await BackgroundCall.RunAsync(() =>
+                {
+                    bool is_loaded = _catalog_store.LoadFilmFile(file_name, out string load_message);
+                    return (is_loaded, load_message);
+                });
+                SetLoading(false);
 
                 FillGenres();
                 ShowFilms();
 
                 // the load message is shown last so the film count does not hide it
-                lblStatus.ForeColor = is_loaded ? UiTheme.TEXT_MUTED : UiTheme.ACCENT_RED;
-                lblStatus.Text = message;
+                bool is_good = result.IsOk && result.Value.Ok;
+                lblStatus.ForeColor = is_good ? UiTheme.TEXT_MUTED : UiTheme.ACCENT_RED;
+                lblStatus.Text = result.IsOk ? result.Value.Message : result.ErrorText;
+            }
+        }
+
+        // while the file loads the boxes and the button are switched off, so nothing reads the films half way
+        private void SetLoading(bool is_loading)
+        {
+            btnLoadFile.Enabled = !is_loading;
+            txtSearch.Enabled = !is_loading;
+            cmbGenre.Enabled = !is_loading;
+            cmbSort.Enabled = !is_loading;
+
+            if (is_loading)
+            {
+                lblStatus.ForeColor = UiTheme.TEXT_MUTED;
+                lblStatus.Text = "Loading films...";
             }
         }
 
