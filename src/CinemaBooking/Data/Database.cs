@@ -9,9 +9,6 @@ namespace CinemaBooking.Data
     // the only class that talks to sql server. every query uses parameters, never text joining.
     public class Database : IDatabase
     {
-        // sql server error numbers for a unique rule being broken
-        private const int UNIQUE_KEY_ERROR = 2627;
-        private const int UNIQUE_INDEX_ERROR = 2601;
 
         // the name of the unique rule that stops a seat being booked twice
         private const string SEAT_RULE_NAME = "uq_booked_seats_showing_seat";
@@ -53,7 +50,7 @@ namespace CinemaBooking.Data
         // checks whether a sql error means a unique rule was broken
         private static bool IsUniqueError(SqlException error)
         {
-            return error.Number == UNIQUE_KEY_ERROR || error.Number == UNIQUE_INDEX_ERROR;
+            return SqlErrors.IsUniqueError(error);
         }
 
         // makes a bigger array and copies the old items into it

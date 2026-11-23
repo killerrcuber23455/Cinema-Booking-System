@@ -9,14 +9,7 @@ namespace CinemaBooking.Data
     // sql for the users and audit_log tables, used by the login service through IUserRepository
     public class UserRepository : IUserRepository
     {
-        // sql server error numbers for a unique rule being broken
-        private const int UNIQUE_KEY_ERROR = 2627;
-        private const int UNIQUE_INDEX_ERROR = 2601;
-        // more sql server error numbers: check rule or foreign key, text too long
-        private const int CHECK_OR_FOREIGN_KEY_ERROR = 547;
-        private const int TEXT_TOO_LONG_ERROR = 8152;
-        private const int TEXT_TOO_LONG_ERROR_NEW = 2628;
-
+        
         private readonly string _connection_string;
 
         // reads the connection string from the config file
@@ -59,11 +52,7 @@ namespace CinemaBooking.Data
         // true when the database refused the data because of one of its rules
         private static bool IsRuleError(SqlException error)
         {
-            return error.Number == UNIQUE_KEY_ERROR
-                || error.Number == UNIQUE_INDEX_ERROR
-                || error.Number == CHECK_OR_FOREIGN_KEY_ERROR
-                || error.Number == TEXT_TOO_LONG_ERROR
-                || error.Number == TEXT_TOO_LONG_ERROR_NEW;
+            return SqlErrors.IsRuleError(error);
         }
 
         // writes one audit row using a connection (and transaction) that is already open
