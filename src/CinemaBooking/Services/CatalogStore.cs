@@ -1,4 +1,4 @@
-// loads films and showings from the database at startup and saves a new film to it (owner: divyesh)
+// loads films and showings from the database at startup and saves added, edited and removed films to it (owner: divyesh)
 using CinemaBooking.Data;
 using CinemaBooking.DataStructures;
 using CinemaBooking.Models;
@@ -9,6 +9,8 @@ namespace CinemaBooking.Services
     {
         public const string DATABASE_DOWN_TEXT = "Could not reach the database. Only the films already in the program are shown.";
         public const string SAVE_FAILED_TEXT = "The film could not be saved to the database, so it was not added.";
+        public const string UPDATE_FAILED_TEXT = "The changes could not be saved to the database, so the film was not changed.";
+        public const string DELETE_FAILED_TEXT = "The film could not be removed from the database (a showing may still use it), so it was not removed.";
 
         private readonly IDatabase _database;
         private readonly HashTable<int, Film> _films;
@@ -68,6 +70,20 @@ namespace CinemaBooking.Services
                 return false;
             }
 
+            error_message = "";
+            return true;
+        }
+
+        // red stub: says yes and does nothing, on purpose. the real code comes in the green step
+        public bool RemoveFilm(int film_id, Role role, out string error_message)
+        {
+            error_message = "";
+            return true;
+        }
+
+        // red stub: says yes and does nothing, on purpose. the real code comes in the green step
+        public bool EditFilm(Film edited_film, Role role, out string error_message)
+        {
             error_message = "";
             return true;
         }
