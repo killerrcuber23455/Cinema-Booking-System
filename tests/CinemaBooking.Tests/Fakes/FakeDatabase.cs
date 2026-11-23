@@ -33,6 +33,27 @@ public class FakeDatabase : IDatabase
 
     // ---------- films ----------
 
+    // switches for tests: make the fake fail the way sql server can
+    public bool ThrowOnLoad { get; set; }
+    public bool FilmSaveFails { get; set; }
+    public bool ThrowOnSaveFilm { get; set; }
+
+    // the real Database.SaveFilm: false if the id is already used
+    public bool SaveFilm(Film film)
+    {
+        if (ThrowOnSaveFilm)
+        {
+            throw new InvalidOperationException("database is down");
+        }
+
+        if (FilmSaveFails)
+        {
+            return false;
+        }
+
+        return _films.Add(film.Id, film);
+    }
+
     // only for tests: puts a film in the fake (the real database gets films from the sql script)
     public bool AddFilm(Film film)
     {
@@ -42,6 +63,11 @@ public class FakeDatabase : IDatabase
     // copies every film into the given table and returns how many were added
     public int LoadFilms(HashTable<int, Film> film_table)
     {
+        if (ThrowOnLoad)
+        {
+            throw new InvalidOperationException("database is down");
+        }
+
         Film[] all_films = _films.ListAll();
         int loaded = 0;
 
@@ -233,6 +259,11 @@ public class FakeDatabase : IDatabase
     // puts every showing in the table with a new seat grid that has its taken seats marked
     public int LoadShowings(ShowingTable showing_table)
     {
+        if (ThrowOnLoad)
+        {
+            throw new InvalidOperationException("database is down");
+        }
+
         Showing[] all_showings = _showings.ListAll();
         int added = 0;
 

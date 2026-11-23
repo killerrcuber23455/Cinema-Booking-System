@@ -33,7 +33,7 @@ public class BookingConcurrencyTests
     private class FakeDatabase : IDatabase
     {
         private int _last_id = 0;
-
+        public bool SaveFilm(Film film) { return true; }
         // how many bookings were saved
         public int SaveCount
         {
