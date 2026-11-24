@@ -58,6 +58,7 @@ namespace CinemaBooking.UI
         public const string ICON_CANCEL = "\uE711";
         public const string ICON_MEMBERS = "\uE716";
         public const string ICON_ADMIN = "\uE713";
+        public const string ICON_TIER_RULES = "\uE734";
         public const string ICON_ACCOUNT = "\uE77B";
         public const string ICON_EXIT = "\uE7E8";
     }

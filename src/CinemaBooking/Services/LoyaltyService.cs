@@ -47,15 +47,18 @@ namespace CinemaBooking.Services
             return (int)Math.Floor(multiplied_points);
         }
 
-        //red stubs for card 408: wrong values on purpose, the real code comes in the green step
+        //the lifetime points where a tier starts (the tier rules window shows these)
         public static int PointsNeededFor(Tier tier)
         {
-            return -1;
+            if (tier == Tier.Gold) return GOLD_FROM_POINTS;
+            if (tier == Tier.Silver) return SILVER_FROM_POINTS;
+            return 0;
         }
 
+        //how many rupees paid give one point
         public static decimal RupeesPerPoint
         {
-            get { return 0m; }
+            get { return RUPEES_PER_POINT; }
         }
 
         //the tier a member reaches from all points he ever earned

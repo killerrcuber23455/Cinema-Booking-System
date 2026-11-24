@@ -42,6 +42,7 @@ namespace CinemaBooking.UI
         private readonly MenuButton btnMyBookings = new MenuButton();
         private readonly MenuButton btnCancel = new MenuButton();
         private readonly MenuButton btnMembers = new MenuButton();
+        private readonly MenuButton btnTiers = new MenuButton();
         private readonly MenuButton btnAdmin = new MenuButton();
         private readonly MenuButton btnAccount = new MenuButton();
         private readonly MenuButton btnExit = new MenuButton();
@@ -165,6 +166,7 @@ namespace CinemaBooking.UI
             AddMenuButton(btnMyBookings, "My bookings", UiTheme.ICON_MY_BOOKINGS, MakeMyBookingsPage);
             AddMenuButton(btnCancel, "Cancel booking", UiTheme.ICON_CANCEL, MakeFindBookingPage);
             AddMenuButton(btnMembers, "Members", UiTheme.ICON_MEMBERS, () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
+            AddMenuButton(btnTiers, "Tier rules", UiTheme.ICON_TIER_RULES, MakeTierRulesPage);
             AddMenuButton(btnAdmin, "Admin", UiTheme.ICON_ADMIN, MakeAdminPage);
             AddMenuButton(btnAccount, "My account", UiTheme.ICON_ACCOUNT, MakeAccountPage);
 
@@ -309,6 +311,8 @@ namespace CinemaBooking.UI
                     return btnCancel;
                 case MenuItem.Members:
                     return btnMembers;
+                case MenuItem.TierRules:
+                    return btnTiers;
                 case MenuItem.Admin:
                     return btnAdmin;
                 case MenuItem.Account:
@@ -437,6 +441,17 @@ namespace CinemaBooking.UI
         private void ShowGoodToast(string message)
         {
             _toast.ShowMessage(message, false);
+        }
+
+        // the tier rules window (card 408) opens only for an admin, it only shows the rules, nothing can be changed
+        private Control MakeTierRulesPage()
+        {
+            if (_current_role != Role.Admin)
+            {
+                return MakePlaceholderPage("Sign in as an admin to see the tier rules.");
+            }
+
+            return new AdminTiersForm();
         }
 
         // the admin page opens only when an admin is signed in
