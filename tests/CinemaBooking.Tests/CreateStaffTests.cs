@@ -15,7 +15,7 @@ public class CreateStaffTests
     private const string NEW_EMAIL = "new@x.com";
     private const string PASSWORD = "Secret123";
 
-    private const string NOT_ADMIN_MESSAGE = "only an admin can ceate staff accounts";
+    private const string NOT_ADMIN_MESSAGE = "only an admin can create staff accounts";
     private const string BAD_NEW_ROLE_MESSAGE = "a new account must be staff or admin";
     private const string SHORT_PASSWORD_MESSAGE = "password must be at least 8 characters";
     private const string EMAIL_USED_MESSAGE = "this email is already used";
