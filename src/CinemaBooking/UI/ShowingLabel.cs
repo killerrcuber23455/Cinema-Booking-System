@@ -23,7 +23,8 @@ namespace CinemaBooking.UI
         }
 
         // free seats are all the seats minus the taken ones
-        private static string DescribeSeatsLeft(Showing showing)
+        // public since UI upgrade step 3, the showing cards on the film page show the same words
+        public static string DescribeSeatsLeft(Showing showing)
         {
             int all_seats = showing.SeatGrid.Rows * showing.SeatGrid.SeatsPerRow;
             int seats_left = all_seats - showing.SeatGrid.ListTakenSeats().Length;

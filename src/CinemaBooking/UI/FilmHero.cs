@@ -13,7 +13,7 @@ namespace CinemaBooking.UI
 {
     public class FilmHero : Control
     {
-        public const int BASE_HEIGHT = 440;
+        public const int BASE_HEIGHT = 400;
 
         // below this width the sharp poster is left out, so the text has room
         private const int POSTER_FROM_WIDTH = 760;
@@ -226,7 +226,7 @@ namespace CinemaBooking.UI
                 _poster_area = Rectangle.Empty;
             }
 
-            float text_width = Math.Max(120, Math.Min(text_right - side, UiScale.Pixels(640, _step)));
+            float text_width = Math.Max(120, Math.Min(text_right - side, UiScale.Pixels(780, _step)));
 
             using (Graphics measure = Graphics.FromImage(MEASURE_BITMAP))
             {

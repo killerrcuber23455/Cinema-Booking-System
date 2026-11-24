@@ -1,24 +1,19 @@
-// the film detail page: poster, the title in a marquee frame, film details and the showings of one film (owner: divyesh)
-// the page takes a faint tint from the poster's main colour, so each film feels a little different.
+// the film detail page: the film banner at the top, then the showings of one film as cards (owner: divyesh)
+// UI upgrade step 3: the page fills the window from edge to edge and grows with it, in the same style as the films page.
 // it is a page shown inside the main window. it only shows what it is given, the showings come from the ShowingService
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using CinemaBooking.Models;
 
 namespace CinemaBooking.UI
 {
-    public class FilmDetailForm : UserControl
+    public class FilmDetailForm : UserControl, IFullBleedPage
     {
-        private const int POSTER_WIDTH = 260;
-        private const int POSTER_HEIGHT = 380;
-        private const int PAGE_PADDING = 8;
-        private const int TEXT_WIDTH = 620;
-        private const int SHOWING_ROW_WIDTH = 600;
-        private const int SHOWING_ROW_HEIGHT = 72;
-
-        // how much of the poster colour goes into the page, small so the text stays easy to read
-        private const double POSTER_TINT = 0.12;
+        // sizes at the small step, they grow with the window step
+        private const int BASE_BACK_BAR_HEIGHT = 60;
+        private const int BASE_BOTTOM_ROOM = 48;
 
         private readonly Film _film;
 
@@ -28,152 +23,223 @@ namespace CinemaBooking.UI
         // called with the showing the user chose, the main window opens the seat map
         private readonly Action<Showing> _open_seat_map;
 
-        private readonly FlowLayoutPanel flpShowings = new FlowLayoutPanel();
+        private readonly FilmBrowseForm.SmoothScrollPanel pnlScroll = new FilmBrowseForm.SmoothScrollPanel();
+        private readonly Panel pnlBackBar = new Panel();
+        private readonly ChipButton btnBack = new ChipButton("Back to films");
+        private readonly FilmHero _hero;
+        private readonly Panel pnlShowings = new Panel();
+        private readonly Label lblHeading = new Label();
+        private readonly Label lblCount = new Label();
+        private readonly Label lblNone = new Label();
+        private readonly List<ShowingCard> _cards = new List<ShowingCard>();
+        private Image? _poster;
+        private float _step = -1f;
 
         public FilmDetailForm(Film film, Action go_back, Action<Showing> open_seat_map)
         {
             _film = film;
             _go_back = go_back;
             _open_seat_map = open_seat_map;
+
+            // the banner reads the poster once, the same picture is freed when the page closes
+            _poster = FilmBrowseForm.LoadPoster(film.PosterFile);
+            _hero = new FilmHero(PosterFor, ScrollToShowings);
+
+            DoubleBuffered = true;
             BuildPage();
             ShowShowings(new Showing[0]);
+            UpdateStep();
         }
 
-        // poster on the left, the marquee title, details and showings on the right
+        private Image? PosterFor(Film film)
+        {
+            return _poster;
+        }
+
+        // the back button on top, the banner under it and the showings under the banner
         private void BuildPage()
         {
-            BackColor = UiTheme.PANEL;
+            BackColor = UiTheme.BACKGROUND;
             ForeColor = UiTheme.TEXT;
             Font = UiTheme.BODY_FONT;
-            Padding = new Padding(PAGE_PADDING);
-            AutoScroll = true;
 
-            Button btnBack = FormParts.MakeButton("< Back to films", UiTheme.CARD);
-            btnBack.SetBounds(PAGE_PADDING - UiTheme.GLOW_SPREAD, PAGE_PADDING - UiTheme.GLOW_SPREAD, 150, 42);
+            pnlScroll.Dock = DockStyle.Fill;
+            pnlScroll.AutoScroll = true;
+            pnlScroll.BackColor = UiTheme.BACKGROUND;
+            DarkScroll.Apply(pnlScroll);
+
             btnBack.Click += (sender, e) => _go_back();
+            pnlBackBar.Dock = DockStyle.Top;
+            pnlBackBar.BackColor = UiTheme.BACKGROUND;
+            pnlBackBar.Controls.Add(btnBack);
 
-            PictureBox picPoster = new PictureBox();
-            picPoster.SetBounds(PAGE_PADDING, 56, POSTER_WIDTH, POSTER_HEIGHT);
-            picPoster.SizeMode = PictureBoxSizeMode.Zoom;
-            picPoster.BackColor = UiTheme.BACKGROUND;
+            _hero.Dock = DockStyle.Top;
+            _hero.SetFilms(new Film[] { _film });
 
-            Image? poster = FilmBrowseForm.LoadPoster(_film.PosterFile);
-            if (poster != null)
-            {
-                picPoster.Image = poster;
+            pnlShowings.Dock = DockStyle.Top;
+            pnlShowings.BackColor = UiTheme.BACKGROUND;
+            pnlShowings.Resize += (sender, e) => LayoutShowings();
 
-                // the page takes a little of the poster's colour
-                Bitmap? poster_bitmap = poster as Bitmap;
-                if (poster_bitmap != null)
-                {
-                    BackColor = ColorMath.Blend(UiTheme.PANEL, ColorMath.Average(poster_bitmap), POSTER_TINT);
-                }
-            }
-            else
-            {
-                Label lblNoPoster = new Label();
-                lblNoPoster.Dock = DockStyle.Fill;
-                lblNoPoster.TextAlign = ContentAlignment.MiddleCenter;
-                lblNoPoster.ForeColor = UiTheme.TEXT_MUTED;
-                lblNoPoster.Text = _film.Title + "\n\n(no poster)";
-                picPoster.Controls.Add(lblNoPoster);
-            }
+            lblHeading.Text = "Showings";
+            lblHeading.AutoSize = true;
+            lblHeading.ForeColor = UiTheme.TEXT;
+            lblHeading.BackColor = UiTheme.BACKGROUND;
 
-            int text_left = PAGE_PADDING + POSTER_WIDTH + 24;
+            lblCount.AutoSize = true;
+            lblCount.ForeColor = UiTheme.TEXT_FAINT;
+            lblCount.BackColor = UiTheme.BACKGROUND;
 
-            MarqueeTitle marqueeTitle = new MarqueeTitle();
-            marqueeTitle.Text = _film.Title;
-            marqueeTitle.SetBounds(text_left - 8, 48, TEXT_WIDTH, 70);
+            lblNone.ForeColor = UiTheme.TEXT_MUTED;
+            lblNone.BackColor = UiTheme.BACKGROUND;
+            lblNone.Text = "No showings for this film yet. Staff add them on the Showings page.";
+            lblNone.Visible = false;
 
-            // age 0 means anyone can watch it
-            string age_text = _film.AgeRating == 0 ? "all ages" : "age " + _film.AgeRating + "+";
+            pnlShowings.Controls.Add(lblHeading);
+            pnlShowings.Controls.Add(lblCount);
+            pnlShowings.Controls.Add(lblNone);
 
-            Label lblFacts = new Label();
-            lblFacts.ForeColor = UiTheme.TEXT_MUTED;
-            lblFacts.Text = _film.Genre + " · " + _film.Year + " · " + _film.DurationMinutes + " min · " + age_text;
-            lblFacts.SetBounds(text_left, 126, TEXT_WIDTH, 24);
-
-            Label lblDescription = new Label();
-            lblDescription.Text = _film.Description;
-            lblDescription.SetBounds(text_left, 154, TEXT_WIDTH, 80);
-
-            Label lblShowingsTitle = new Label();
-            lblShowingsTitle.Font = UiTheme.CARD_TITLE_FONT;
-            lblShowingsTitle.Text = "Showings";
-            lblShowingsTitle.SetBounds(text_left, 240, 300, 26);
-
-            flpShowings.FlowDirection = FlowDirection.TopDown;
-            flpShowings.WrapContents = false;
-            flpShowings.AutoScroll = true;
-            flpShowings.BackColor = BackColor;
-            flpShowings.SetBounds(text_left, 270, TEXT_WIDTH, 240);
-
-            Controls.Add(btnBack);
-            Controls.Add(picPoster);
-            Controls.Add(marqueeTitle);
-            Controls.Add(lblFacts);
-            Controls.Add(lblDescription);
-            Controls.Add(lblShowingsTitle);
-            Controls.Add(flpShowings);
+            // docked to the top in this order: the first added is placed last
+            pnlScroll.Controls.Add(pnlShowings);
+            pnlScroll.Controls.Add(_hero);
+            pnlScroll.Controls.Add(pnlBackBar);
+            Controls.Add(pnlScroll);
         }
 
-        // draws one row for each showing, the main window gives them in time order
+        // the button of the banner scrolls down to the showings
+        private void ScrollToShowings(Film film)
+        {
+            pnlScroll.ScrollControlIntoView(pnlShowings);
+        }
+
+        // the window crossed a size step: every part of the page grows or shrinks together
+        private void UpdateStep()
+        {
+            Form? window = FindForm();
+            float step = UiScale.StepFor(window != null ? window.ClientSize.Width : Width);
+
+            if (step == _step)
+            {
+                return;
+            }
+
+            _step = step;
+            _hero.SetStep(step);
+            btnBack.SetStep(step);
+
+            lblHeading.Font = FontCache.Scaled(FontCache.DISPLAY, UiTheme.SIZE_TITLE, step);
+            lblCount.Font = FontCache.Scaled(FontCache.MEDIUM, UiTheme.SIZE_BODY, step);
+            lblNone.Font = FontCache.Scaled(FontCache.REGULAR, UiTheme.SIZE_BODY, step);
+            pnlBackBar.Height = UiScale.Pixels(BASE_BACK_BAR_HEIGHT, step);
+
+            foreach (ShowingCard card in _cards)
+            {
+                card.ApplyStep(step);
+            }
+
+            LayoutBackBar();
+            LayoutShowings();
+        }
+
+        protected override void OnSizeChanged(EventArgs e)
+        {
+            base.OnSizeChanged(e);
+            UpdateStep();
+        }
+
+        protected override void OnParentChanged(EventArgs e)
+        {
+            base.OnParentChanged(e);
+            UpdateStep();
+        }
+
+        private void LayoutBackBar()
+        {
+            float step = Math.Max(UiScale.SMALL_STEP, _step);
+            btnBack.Location = new Point(UiScale.Pixels(UiTheme.PAGE_SIDE_PADDING, step),
+                (pnlBackBar.Height - btnBack.Height) / 2);
+        }
+
+        // puts the heading and one card under the other, as wide as the page without the side space
+        private void LayoutShowings()
+        {
+            float step = Math.Max(UiScale.SMALL_STEP, _step);
+            int side = UiScale.Pixels(UiTheme.PAGE_SIDE_PADDING, step);
+            int width = pnlShowings.Width;
+
+            if (width <= 0)
+            {
+                return;
+            }
+
+            int top = UiScale.Pixels(UiTheme.SPACE_XL, step);
+            lblHeading.Location = new Point(side - 2, top);
+            lblCount.Location = new Point(lblHeading.Right + UiScale.Pixels(UiTheme.SPACE_M, step),
+                lblHeading.Bottom - lblCount.Height - UiScale.Pixels(3, step));
+
+            int y = lblHeading.Bottom + UiScale.Pixels(UiTheme.SPACE_L, step);
+            int card_width = Math.Max(200, width - (2 * side));
+
+            if (_cards.Count == 0)
+            {
+                lblNone.SetBounds(side, y, card_width, UiScale.Pixels(30, step));
+                y = lblNone.Bottom;
+            }
+
+            foreach (ShowingCard card in _cards)
+            {
+                card.SetBounds(side, y, card_width, card.Height);
+                y = card.Bottom + UiScale.Pixels(UiTheme.SPACE_M, step);
+            }
+
+            int height = y + UiScale.Pixels(BASE_BOTTOM_ROOM, step);
+            if (pnlShowings.Height != height)
+            {
+                pnlShowings.Height = height;
+            }
+        }
+
+        // draws one card for each showing, the main window gives them in time order
         public void ShowShowings(Showing[] showings)
         {
-            flpShowings.SuspendLayout();
-            flpShowings.Controls.Clear();
+            pnlShowings.SuspendLayout();
+
+            foreach (ShowingCard old_card in _cards)
+            {
+                pnlShowings.Controls.Remove(old_card);
+                old_card.Dispose();
+            }
+
+            _cards.Clear();
 
             for (int showing_index = 0; showing_index < showings.Length; showing_index++)
             {
-                flpShowings.Controls.Add(BuildShowingRow(showings[showing_index]));
+                ShowingCard card = new ShowingCard(showings[showing_index], _open_seat_map);
+
+                if (_step > 0)
+                {
+                    card.ApplyStep(_step);
+                }
+
+                _cards.Add(card);
+                pnlShowings.Controls.Add(card);
             }
 
-            if (showings.Length == 0)
-            {
-                Label lblNone = new Label();
-                lblNone.AutoSize = true;
-                lblNone.ForeColor = UiTheme.TEXT_MUTED;
-                lblNone.Text = "No showings for this film yet. Staff add them on the Showings page.";
-                flpShowings.Controls.Add(lblNone);
-            }
-
-            flpShowings.ResumeLayout();
+            lblNone.Visible = showings.Length == 0;
+            lblCount.Text = showings.Length + (showings.Length == 1 ? " showing" : " showings");
+            pnlShowings.ResumeLayout();
+            LayoutShowings();
         }
 
-        // one row: the showing text, how soon it starts, how full it is, and a button that opens the seat map
-        private RoundedPanel BuildShowingRow(Showing showing)
+        // the page frees its poster when the main window opens another page
+        protected override void Dispose(bool disposing)
         {
-            RoundedPanel pnlRow = new RoundedPanel();
-            pnlRow.BackColor = UiTheme.CARD;
-            pnlRow.Size = new Size(SHOWING_ROW_WIDTH, SHOWING_ROW_HEIGHT);
-            pnlRow.Margin = new Padding(0, 0, 0, 8);
+            if (disposing)
+            {
+                _poster?.Dispose();
+                _poster = null;
+            }
 
-            Label lblText = new Label();
-            lblText.Text = ShowingLabel.Describe(showing);
-            lblText.AutoEllipsis = true;
-            lblText.BackColor = Color.Transparent;
-            lblText.SetBounds(14, 8, 400, 24);
-
-            // only showings later today get a countdown
-            Label lblStartsIn = new Label();
-            lblStartsIn.Text = ShowingTimes.StartsIn(showing.StartsAt, DateTime.Now);
-            lblStartsIn.Font = UiTheme.SMALL_FONT;
-            lblStartsIn.ForeColor = UiTheme.AMBER;
-            lblStartsIn.BackColor = Color.Transparent;
-            lblStartsIn.SetBounds(14, 33, 300, 18);
-
-            FillBar fillBar = new FillBar(ShowingTimes.FillFraction(showing));
-            fillBar.SetBounds(14, 56, 400, 5);
-
-            Button btnChoose = FormParts.MakeButton("Choose seats", UiTheme.ACCENT_RED);
-            btnChoose.SetBounds(SHOWING_ROW_WIDTH - 172, 12, 160, 48);
-            btnChoose.Click += (sender, e) => _open_seat_map(showing);
-
-            pnlRow.Controls.Add(lblText);
-            pnlRow.Controls.Add(lblStartsIn);
-            pnlRow.Controls.Add(fillBar);
-            pnlRow.Controls.Add(btnChoose);
-            return pnlRow;
+            base.Dispose(disposing);
         }
     }
 }

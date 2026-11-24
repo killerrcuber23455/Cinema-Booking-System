@@ -1,9 +1,11 @@
 // the drawn seat map: a curved glowing screen at the top that lights the room, and every seat under it (owner: divyesh)
+// UI upgrade step 3: the map fills the space it is given and the seats grow with it (SeatMapGeometry does the sums).
 // seats nearer the screen and nearer the centre catch more of its light. free seats have a thin glowing outline,
 // chosen seats glow red, taken seats are dim. it works with the mouse and with the arrow keys and space.
 // it only draws and reads clicks and keys, SeatSelection decides what a click does and SeatGuide gives the words
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 using System.Windows.Forms;
 using CinemaBooking.Models;
 
@@ -11,17 +13,12 @@ namespace CinemaBooking.UI
 {
     public class SeatMapCanvas : Control
     {
-        private const int SEAT_WIDTH = 38;
-        private const int SEAT_HEIGHT = 32;
-        private const int SEAT_GAP = 6;
-        private const int SEAT_RADIUS = 7;
-        private const int ROW_LABEL_WIDTH = 30;
-        private const int SIDE_SPACE = 24;
         private const int SCREEN_TOP = 16;
         private const int SCREEN_CURVE = 14;
         private const int SCREEN_THICKNESS = 6;
-        private const int GRID_TOP = 96;
-        private const int LEGEND_SPACE = 52;
+
+        // the seats were first drawn 38 wide, every size that is not the seat itself grows with this
+        private const double FIRST_SEAT_WIDTH = 38.0;
 
         // how much light a seat gets: the front row and the centre get the most
         private const double LIGHT_LOST_TO_THE_BACK = 0.55;
@@ -39,8 +36,7 @@ namespace CinemaBooking.UI
 
         private readonly int _rows;
         private readonly int _seats_per_row;
-        private readonly int _grid_left;
-        private readonly int _grid_width;
+        private SeatMapGeometry _geometry;
 
         // the seat under the mouse, -1 when there is none
         private int _hover_row = -1;
@@ -64,26 +60,40 @@ namespace CinemaBooking.UI
                 | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
             TabStop = true;
             Cursor = Cursors.Hand;
-            BackColor = UiTheme.PANEL;
+            BackColor = UiTheme.BACKGROUND;
 
-            _grid_left = SIDE_SPACE + ROW_LABEL_WIDTH;
-            _grid_width = (_seats_per_row * (SEAT_WIDTH + SEAT_GAP)) - SEAT_GAP;
+            _geometry = SeatMapGeometry.Make(Width, Height, _rows, _seats_per_row);
 
             // the middle of the front row is a good place to start with the keys
             _key_seat = _seats_per_row / 2;
-
-            Size = new Size(_grid_left + _grid_width + SIDE_SPACE, GRID_TOP + GridHeight() + LEGEND_SPACE);
         }
 
-        private int GridHeight()
+        protected override void OnSizeChanged(EventArgs e)
         {
-            return (_rows * (SEAT_HEIGHT + SEAT_GAP)) - SEAT_GAP;
+            base.OnSizeChanged(e);
+            _geometry = SeatMapGeometry.Make(Width, Height, _rows, _seats_per_row);
+            Invalidate();
         }
 
-        private Rectangle SeatArea(int row_index, int seat_index)
+        // how much bigger than the first drawing the seats are now
+        private float Grow
         {
-            return new Rectangle(_grid_left + (seat_index * (SEAT_WIDTH + SEAT_GAP)),
-                GRID_TOP + (row_index * (SEAT_HEIGHT + SEAT_GAP)), SEAT_WIDTH, SEAT_HEIGHT);
+            get { return (float)(_geometry.SeatWidth / FIRST_SEAT_WIDTH); }
+        }
+
+        private int Scaled(int first_size)
+        {
+            return (int)Math.Round(first_size * Grow);
+        }
+
+        private Font NumberFont
+        {
+            get { return FontCache.Get(FontCache.MEDIUM, UiScale.Size(Math.Max(8f, _geometry.SeatWidth * 0.2f), 1f)); }
+        }
+
+        private Font LabelFont
+        {
+            get { return FontCache.Get(FontCache.MEDIUM, UiScale.Size(Math.Max(9f, _geometry.SeatWidth * 0.22f), 1f)); }
         }
 
         // ---- drawing ----
@@ -93,6 +103,7 @@ namespace CinemaBooking.UI
             Graphics graphics = e.Graphics;
             graphics.Clear(BackColor);
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
 
             DrawLightCone(graphics);
             DrawScreen(graphics);
@@ -114,18 +125,25 @@ namespace CinemaBooking.UI
         private void DrawLightCone(Graphics graphics)
         {
             int cone_top = SCREEN_TOP + SCREEN_CURVE;
-            int cone_bottom = GRID_TOP + (GridHeight() * 2 / 3);
-            int spill = SIDE_SPACE / 2;
+            int cone_bottom = _geometry.GridTop + (_geometry.GridHeight * 2 / 3);
+            int spill = SeatMapGeometry.SIDE_SPACE / 2;
+            int left = _geometry.GridLeft;
+            int width = _geometry.GridWidth;
+
+            if (cone_bottom <= cone_top)
+            {
+                return;
+            }
 
             PointF[] cone =
             {
-                new PointF(_grid_left, cone_top),
-                new PointF(_grid_left + _grid_width, cone_top),
-                new PointF(_grid_left + _grid_width + spill, cone_bottom),
-                new PointF(_grid_left - spill, cone_bottom)
+                new PointF(left, cone_top),
+                new PointF(left + width, cone_top),
+                new PointF(left + width + spill, cone_bottom),
+                new PointF(left - spill, cone_bottom)
             };
 
-            Rectangle fade_area = new Rectangle(_grid_left, cone_top, _grid_width, cone_bottom - cone_top);
+            Rectangle fade_area = new Rectangle(left, cone_top, width, cone_bottom - cone_top);
             using (LinearGradientBrush light = new LinearGradientBrush(fade_area,
                 Color.FromArgb(34, UiTheme.SCREEN_LIGHT), Color.FromArgb(0, UiTheme.SCREEN_LIGHT), LinearGradientMode.Vertical))
             {
@@ -138,23 +156,25 @@ namespace CinemaBooking.UI
         // a thin curved band of light, higher in the middle, with a soft glow
         private void DrawScreen(Graphics graphics)
         {
-            float left = _grid_left;
-            float right = _grid_left + _grid_width;
-            float third = _grid_width / 3f;
+            float left = _geometry.GridLeft;
+            float right = _geometry.GridLeft + _geometry.GridWidth;
+            float third = _geometry.GridWidth / 3f;
+            int curve = Math.Max(SCREEN_CURVE, Scaled(SCREEN_CURVE));
+            int thickness = Math.Max(SCREEN_THICKNESS, Scaled(SCREEN_THICKNESS));
 
             using (GraphicsPath screen = new GraphicsPath())
             {
-                screen.AddBezier(left, SCREEN_TOP + SCREEN_CURVE, left + third, SCREEN_TOP,
-                    right - third, SCREEN_TOP, right, SCREEN_TOP + SCREEN_CURVE);
-                screen.AddLine(right, SCREEN_TOP + SCREEN_CURVE, right, SCREEN_TOP + SCREEN_CURVE + SCREEN_THICKNESS);
-                screen.AddBezier(right, SCREEN_TOP + SCREEN_CURVE + SCREEN_THICKNESS, right - third, SCREEN_TOP + SCREEN_THICKNESS,
-                    left + third, SCREEN_TOP + SCREEN_THICKNESS, left, SCREEN_TOP + SCREEN_CURVE + SCREEN_THICKNESS);
+                screen.AddBezier(left, SCREEN_TOP + curve, left + third, SCREEN_TOP,
+                    right - third, SCREEN_TOP, right, SCREEN_TOP + curve);
+                screen.AddLine(right, SCREEN_TOP + curve, right, SCREEN_TOP + curve + thickness);
+                screen.AddBezier(right, SCREEN_TOP + curve + thickness, right - third, SCREEN_TOP + thickness,
+                    left + third, SCREEN_TOP + thickness, left, SCREEN_TOP + curve + thickness);
                 screen.CloseFigure();
 
                 int[] glow_widths = { 18, 12, 7 };
                 for (int glow_index = 0; glow_index < glow_widths.Length; glow_index++)
                 {
-                    using (Pen glow = new Pen(Color.FromArgb(22, UiTheme.SCREEN_LIGHT), glow_widths[glow_index]))
+                    using (Pen glow = new Pen(Color.FromArgb(22, UiTheme.SCREEN_LIGHT), Scaled(glow_widths[glow_index])))
                     {
                         glow.LineJoin = LineJoin.Round;
                         graphics.DrawPath(glow, screen);
@@ -167,18 +187,19 @@ namespace CinemaBooking.UI
                 }
             }
 
-            Rectangle label_area = new Rectangle(_grid_left, SCREEN_TOP + SCREEN_CURVE + SCREEN_THICKNESS + 8, _grid_width, 20);
-            TextRenderer.DrawText(graphics, "Screen", UiTheme.SMALL_FONT, label_area, UiTheme.TEXT_MUTED,
+            Rectangle label_area = new Rectangle(_geometry.GridLeft, SCREEN_TOP + curve + thickness + 8, _geometry.GridWidth, 22);
+            TextRenderer.DrawText(graphics, "SCREEN", LabelFont, label_area, UiTheme.TEXT_FAINT,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
 
         private void DrawRowLetter(Graphics graphics, int row_index)
         {
-            Rectangle seat = SeatArea(row_index, 0);
-            Rectangle letter_area = new Rectangle(SIDE_SPACE, seat.Top, ROW_LABEL_WIDTH - 6, SEAT_HEIGHT);
+            Rectangle seat = _geometry.SeatArea(row_index, 0);
+            Rectangle letter_area = new Rectangle(_geometry.GridLeft - SeatMapGeometry.ROW_LABEL_WIDTH, seat.Top,
+                SeatMapGeometry.ROW_LABEL_WIDTH - 6, seat.Height);
             string row_letter = ((char)('A' + row_index)).ToString();
 
-            TextRenderer.DrawText(graphics, row_letter, UiTheme.SMALL_FONT, letter_area, UiTheme.TEXT_MUTED,
+            TextRenderer.DrawText(graphics, row_letter, LabelFont, letter_area, UiTheme.TEXT_MUTED,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
 
@@ -196,8 +217,10 @@ namespace CinemaBooking.UI
         private void DrawSeat(Graphics graphics, int row_index, int seat_index)
         {
             string seat_code = SeatSelection.MakeSeatCode(row_index, seat_index);
-            Rectangle seat = SeatArea(row_index, seat_index);
+            Rectangle seat = _geometry.SeatArea(row_index, seat_index);
             RectangleF seat_shape = new RectangleF(seat.X, seat.Y, seat.Width, seat.Height);
+            float radius = Math.Max(5, _geometry.SeatWidth / 5f);
+            int glow_spread = Math.Max(5, Scaled(6));
 
             bool is_chosen = _selection.IsSelected(seat_code);
             bool is_taken = !is_chosen && !_showing.SeatGrid.IsSeatFree(seat_code);
@@ -210,7 +233,7 @@ namespace CinemaBooking.UI
 
             if (is_chosen)
             {
-                GlowPainter.DrawGlow(graphics, seat_shape, SEAT_RADIUS, UiTheme.ACCENT_RED, 4, 6);
+                GlowPainter.DrawGlow(graphics, seat_shape, radius, UiTheme.ACCENT_RED, 4, glow_spread);
                 fill = UiTheme.ACCENT_RED;
             }
             else if (is_taken)
@@ -226,12 +249,12 @@ namespace CinemaBooking.UI
 
                 if (is_hovered)
                 {
-                    GlowPainter.DrawGlow(graphics, seat_shape, SEAT_RADIUS, UiTheme.SCREEN_LIGHT, 3, 4);
+                    GlowPainter.DrawGlow(graphics, seat_shape, radius, UiTheme.SCREEN_LIGHT, 3, Math.Max(4, Scaled(4)));
                     outline = UiTheme.TEXT;
                 }
             }
 
-            using (GraphicsPath shape = GlowPainter.RoundedPath(seat_shape, SEAT_RADIUS))
+            using (GraphicsPath shape = GlowPainter.RoundedPath(seat_shape, radius))
             {
                 using (SolidBrush fill_brush = new SolidBrush(fill))
                 {
@@ -251,27 +274,30 @@ namespace CinemaBooking.UI
             if (_is_using_keys && Focused && row_index == _key_row && seat_index == _key_seat)
             {
                 RectangleF ring = RectangleF.Inflate(seat_shape, 3, 3);
-                using (GraphicsPath ring_path = GlowPainter.RoundedPath(ring, SEAT_RADIUS + 3))
+                using (GraphicsPath ring_path = GlowPainter.RoundedPath(ring, radius + 3))
                 using (Pen ring_pen = new Pen(UiTheme.AMBER, 2f))
                 {
                     graphics.DrawPath(ring_pen, ring_path);
                 }
             }
 
-            TextRenderer.DrawText(graphics, (seat_index + 1).ToString(), UiTheme.SMALL_FONT, seat, number_colour,
+            TextRenderer.DrawText(graphics, (seat_index + 1).ToString(), NumberFont, seat, number_colour,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
 
         // three small seats under the map that say what the colours mean
         private void DrawLegend(Graphics graphics)
         {
-            int legend_top = GRID_TOP + GridHeight() + 20;
+            int legend_top = _geometry.GridTop + _geometry.GridHeight + 20;
             string[] names = { "Free", "Chosen", "Taken" };
+            int swatch_width = Math.Max(22, Scaled(22));
+            int swatch_height = Math.Max(18, Scaled(18));
+            int step = Math.Max(110, Scaled(110));
 
             for (int item_index = 0; item_index < names.Length; item_index++)
             {
-                int left = _grid_left + (item_index * 110);
-                RectangleF swatch = new RectangleF(left, legend_top, 22, 18);
+                int left = _geometry.GridLeft + (item_index * step);
+                RectangleF swatch = new RectangleF(left, legend_top, swatch_width, swatch_height);
 
                 using (GraphicsPath shape = GlowPainter.RoundedPath(swatch, 5))
                 {
@@ -301,42 +327,18 @@ namespace CinemaBooking.UI
                     }
                 }
 
-                TextRenderer.DrawText(graphics, names[item_index], UiTheme.SMALL_FONT,
-                    new Rectangle(left + 30, legend_top - 2, 70, 22), UiTheme.TEXT_MUTED,
+                TextRenderer.DrawText(graphics, names[item_index], LabelFont,
+                    new Rectangle(left + swatch_width + 8, legend_top - 2, step - swatch_width - 12, swatch_height + 4), UiTheme.TEXT_MUTED,
                     TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
             }
         }
 
         // ---- mouse ----
 
-        // finds the seat under a point, false when the point is between seats or outside the grid
-        private bool FindSeat(Point point, out int row_index, out int seat_index)
-        {
-            row_index = -1;
-            seat_index = -1;
-
-            if (point.X < _grid_left || point.Y < GRID_TOP)
-            {
-                return false;
-            }
-
-            int column = (point.X - _grid_left) / (SEAT_WIDTH + SEAT_GAP);
-            int row = (point.Y - GRID_TOP) / (SEAT_HEIGHT + SEAT_GAP);
-
-            if (column >= _seats_per_row || row >= _rows || !SeatArea(row, column).Contains(point))
-            {
-                return false;
-            }
-
-            row_index = row;
-            seat_index = column;
-            return true;
-        }
-
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-            FindSeat(e.Location, out int row_index, out int seat_index);
+            _geometry.FindSeat(e.Location, _rows, _seats_per_row, out int row_index, out int seat_index);
 
             if (row_index == _hover_row && seat_index == _hover_seat)
             {
@@ -364,7 +366,7 @@ namespace CinemaBooking.UI
             base.OnMouseDown(e);
             Focus();
 
-            if (e.Button != MouseButtons.Left || !FindSeat(e.Location, out int row_index, out int seat_index))
+            if (e.Button != MouseButtons.Left || !_geometry.FindSeat(e.Location, _rows, _seats_per_row, out int row_index, out int seat_index))
             {
                 return;
             }
