@@ -243,6 +243,12 @@ namespace CinemaBooking.Services
 
             return SaveNewUser(clean_email, password, Role.Admin, null, out error_message);
         }
+
+        // card 436: an admin creates a staff or admin account (stub, the tests are red until the real code follows)
+        public bool CreateStaff(Role acting_role, string acting_email, string email, Role new_role, string password, out string error_message)
+        {
+            throw new NotImplementedException();
+        }
     }
 
 }
