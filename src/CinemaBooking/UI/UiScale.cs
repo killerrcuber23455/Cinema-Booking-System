@@ -1,5 +1,5 @@
 // how much bigger the text and spaces get when the window is made wider or maximised (owner: divyesh)
-// red stub for the UI upgrade, the real steps follow in the green commit
+// three steps only, so the pages are drawn for three sizes and never for every pixel of width
 using System;
 
 namespace CinemaBooking.UI
@@ -17,22 +17,33 @@ namespace CinemaBooking.UI
         public const float MEDIUM_STEP = 1.15f;
         public const float LARGE_STEP = 1.3f;
 
-        // the step for a window this wide
+        // the step for a window this wide, a minimised window (width 0) keeps the small step
         public static float StepFor(int window_width)
         {
-            return 0f;
+            if (window_width >= LARGE_FROM_WIDTH)
+            {
+                return LARGE_STEP;
+            }
+
+            if (window_width >= MEDIUM_FROM_WIDTH)
+            {
+                return MEDIUM_STEP;
+            }
+
+            return SMALL_STEP;
         }
 
         // a font size made bigger by the step, rounded to half a point so the text stays sharp
         public static float Size(float base_points, float step)
         {
-            return 0f;
+            double grown = (double)base_points * step;
+            return (float)(Math.Round(grown * 2.0, MidpointRounding.AwayFromZero) / 2.0);
         }
 
         // a space or a height in pixels made bigger by the step
         public static int Pixels(int base_pixels, float step)
         {
-            return 0;
+            return (int)Math.Round((double)base_pixels * step, MidpointRounding.AwayFromZero);
         }
     }
 }

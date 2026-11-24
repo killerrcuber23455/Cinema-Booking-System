@@ -1,4 +1,5 @@
 // the main window with the side menu, every function is reached from here (owner: divyesh)
+// UI upgrade: the pages sit straight on the black background (no box around them), and the title grows when the window is maximised
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -18,7 +19,7 @@ namespace CinemaBooking.UI
         private readonly Panel pnlSideMenu = new SideMenuPanel();
         private readonly GlowLogo lblAppName = new GlowLogo();
         private readonly Panel pnlHost = new Panel();
-        private readonly RoundedPanel pnlContent = new RoundedPanel();
+        private readonly Panel pnlContent = new Panel();
         private readonly Label lblPageTitle = new Label();
 
         // the button that opens and closes the menu, the user box at the bottom and the small messages
@@ -73,6 +74,12 @@ namespace CinemaBooking.UI
         // true while a booking is being made on a background task
         private bool _is_booking;
 
+        // how big the text and spaces are now, it changes when the window gets wider or narrower
+        private float _ui_step = UiScale.SMALL_STEP;
+
+        // the title font made for a bigger step, kept so it can be freed when the step changes again
+        private Font? _scaled_title_font;
+
         public MainForm(ShowingService showing_service, AuthService auth_service, ShowingTable showing_table,
             BookingService booking_service, IDatabase database, FirstPage first_page = FirstPage.Films)
         {
@@ -90,6 +97,10 @@ namespace CinemaBooking.UI
             BuildSideMenu();
             BuildContentArea();
             _toast = new ToastBanner(this);
+
+            // maximising or making the window wider makes the title and the spaces bigger
+            Resize += (sender, e) => ApplyUiStep();
+            ApplyUiStep();
             if (!_catalog_store.LoadAll(out string load_message))
             {
                 _toast.ShowMessage(load_message, true);
@@ -191,6 +202,41 @@ namespace CinemaBooking.UI
             Controls.Add(pnlSideMenu);
         }
 
+        // the window got wider or narrower: when it crosses a step, the title and the spaces around the page change size
+        private void ApplyUiStep()
+        {
+            float step = UiScale.StepFor(ClientSize.Width);
+
+            if (step == _ui_step)
+            {
+                return;
+            }
+
+            _ui_step = step;
+
+            Font? old_font = _scaled_title_font;
+
+            if (step == UiScale.SMALL_STEP)
+            {
+                _scaled_title_font = null;
+                lblPageTitle.Font = UiTheme.PAGE_TITLE_FONT;
+            }
+            else
+            {
+                _scaled_title_font = AppFonts.Display(UiScale.Size(UiTheme.SIZE_PAGE_TITLE, step));
+                lblPageTitle.Font = _scaled_title_font;
+            }
+
+            // the shared theme font is never freed, only the one made here
+            old_font?.Dispose();
+
+            lblPageTitle.Height = UiScale.Pixels(UiTheme.PAGE_TITLE_HEIGHT, step);
+
+            int side = UiScale.Pixels(UiTheme.PAGE_SIDE_PADDING, step);
+            int top = UiScale.Pixels(UiTheme.PAGE_TOP_PADDING, step);
+            pnlHost.Padding = new Padding(side, top, side, top);
+        }
+
         // opens a closed menu and closes an open one, the menu slides a few pixels each tick
         private void ToggleMenu()
         {
@@ -227,15 +273,19 @@ namespace CinemaBooking.UI
         private void BuildContentArea()
         {
             pnlHost.Dock = DockStyle.Fill;
-            pnlHost.Padding = new Padding(24);
+            pnlHost.Padding = new Padding(UiTheme.PAGE_SIDE_PADDING, UiTheme.PAGE_TOP_PADDING,
+                UiTheme.PAGE_SIDE_PADDING, UiTheme.PAGE_TOP_PADDING);
             pnlHost.BackColor = UiTheme.BACKGROUND;
 
+            // no box around the page any more, the page sits on the black background
             pnlContent.Dock = DockStyle.Fill;
-            pnlContent.Padding = new Padding(28);
+            pnlContent.Padding = new Padding(0);
+            pnlContent.BackColor = UiTheme.BACKGROUND;
 
             lblPageTitle.Dock = DockStyle.Top;
-            lblPageTitle.Height = 60;
-            lblPageTitle.Font = UiTheme.TITLE_FONT;
+            lblPageTitle.Height = UiTheme.PAGE_TITLE_HEIGHT;
+            lblPageTitle.TextAlign = ContentAlignment.TopLeft;
+            lblPageTitle.Font = UiTheme.PAGE_TITLE_FONT;
             lblPageTitle.ForeColor = UiTheme.TEXT;
             lblPageTitle.BackColor = Color.Transparent;
 
