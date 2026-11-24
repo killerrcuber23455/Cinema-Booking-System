@@ -35,6 +35,9 @@ namespace CinemaBooking.Services
         // the same words as the windows use
         private const string SHORT_PASSWORD_MESSAGE = "password must be at least 8 characters";
         private const string EMAIL_USED_MESSAGE = "this email is already used";
+        private const string NOT_ADMIN_MESSAGE = "only an admin can create staff accounts";
+        private const string BAD_NEW_ROLE_MESSAGE = "a new account must be staff or admin";
+        private const string AUDIT_STAFF_CREATED = "staff_created";
 
         // the normal constructor uses the real time
         public AuthService(IUserRepository user_repository, MemberService member_service)
@@ -242,6 +245,60 @@ namespace CinemaBooking.Services
             }
 
             return SaveNewUser(clean_email, password, Role.Admin, null, out error_message);
+        }
+
+        // card 436: an admin creates a staff or admin account
+        public bool CreateStaff(Role acting_role, string acting_email, string email, Role new_role, string password, out string error_message)
+        {
+            error_message = NOT_ADMIN_MESSAGE;
+
+            if (acting_role != Role.Admin)
+            {
+                return false;
+            }
+
+            //FindByEmail trims then lowercases and returns null for a null or empty email
+            UserRecord? acting_user = _user_repository.FindByEmail(acting_email);
+            if (acting_user == null || acting_user.Role != Role.Admin)
+            {
+                return false;
+            }
+
+            if (new_role != Role.Staff && new_role != Role.Admin)
+            {
+                error_message = BAD_NEW_ROLE_MESSAGE;
+                return false;
+            }
+
+            //we trim the email but never the password, a null email counts as empty
+            string clean_email = (email ?? "").Trim();
+
+            if (!Member.IsValidEmail(clean_email, out error_message))
+            {
+                return false;
+            }
+            if (!IsValidPassword(password, out error_message))
+            {
+                return false;
+            }
+            if (_user_repository.FindByEmail(clean_email) != null)
+            {
+                error_message=EMAIL_USED_MESSAGE;
+                return false;
+            }
+
+            //staff and admin accounts have no member record
+            if (!SaveNewUser(clean_email, password, new_role, null, out error_message))
+            {
+                return false;
+            }
+
+            // SaveUser already wrote user_created for the new user, this row says who made the account
+            // the details hold the new email and role only, never a password or hash
+            _user_repository.WriteAudit(acting_user.Id, AUDIT_STAFF_CREATED, clean_email + " as " + new_role);
+
+            error_message = "";
+            return true;
         }
     }
 

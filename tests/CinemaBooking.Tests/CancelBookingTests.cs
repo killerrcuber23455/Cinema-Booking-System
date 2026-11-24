@@ -312,14 +312,14 @@ public class CancelBookingTests
     public void CancelBooking_BookingUsed20Points_GivesThemBack()
     {
         var service = MakeService();
-        int member_id = AddMember(80, 80);
+        int member_id = AddMember(80, 100);
         var booking = SaveMemberBooking(member_id, "B13", points_earned: 10, points_used: 20);
 
         service.CancelBooking(Role.Customer, member_id, "", booking.Reference, out _);
 
         Member member = GetMember(member_id);
         Assert.AreEqual(90, member.Points);
-        Assert.AreEqual(70, member.LifetimePoints);
+        Assert.AreEqual(90, member.LifetimePoints);
     }
 
     [TestMethod]
