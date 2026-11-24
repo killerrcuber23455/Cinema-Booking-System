@@ -15,6 +15,7 @@ namespace CinemaBooking.UI
         CancelBooking,
         Members,
         TierRules,
+        StaffAccounts,
         Admin,
         Account
     }

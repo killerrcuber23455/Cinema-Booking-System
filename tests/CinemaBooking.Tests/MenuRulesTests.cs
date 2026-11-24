@@ -71,12 +71,13 @@ public class MenuRulesTests
     // admin
 
     [TestMethod]
-    public void ItemsFor_Admin_HasEightButtonsWithTierRulesAndAdminBeforeAccount()
+    public void ItemsFor_Admin_HasNineButtonsWithStaffAccountsBetweenTierRulesAndAdmin()
     {
         MenuItem[] expected =
         {
             MenuItem.Films, MenuItem.Showings, MenuItem.BookSeats,
-            MenuItem.CancelBooking, MenuItem.Members, MenuItem.TierRules, MenuItem.Admin, MenuItem.Account
+            MenuItem.CancelBooking, MenuItem.Members, MenuItem.TierRules, MenuItem.StaffAccounts,
+            MenuItem.Admin, MenuItem.Account
         };
 
         CollectionAssert.AreEqual(expected, MenuRules.ItemsFor(Role.Admin));
@@ -109,6 +110,15 @@ public class MenuRulesTests
         foreach (Role role in ALL_ROLES)
         {
             Assert.AreEqual(role == Role.Admin, MenuRules.IsVisible(MenuItem.TierRules, role), role.ToString());
+        }
+    }
+
+    [TestMethod]
+    public void IsVisible_OnlyAdminSeesTheStaffAccountsButton()
+    {
+        foreach (Role role in ALL_ROLES)
+        {
+            Assert.AreEqual(role == Role.Admin, MenuRules.IsVisible(MenuItem.StaffAccounts, role), role.ToString());
         }
     }
 
