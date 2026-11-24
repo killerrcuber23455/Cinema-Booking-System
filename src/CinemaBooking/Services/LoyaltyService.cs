@@ -47,6 +47,17 @@ namespace CinemaBooking.Services
             return (int)Math.Floor(multiplied_points);
         }
 
+        //red stubs for card 408: wrong values on purpose, the real code comes in the green step
+        public static int PointsNeededFor(Tier tier)
+        {
+            return -1;
+        }
+
+        public static decimal RupeesPerPoint
+        {
+            get { return 0m; }
+        }
+
         //the tier a member reaches from all points he ever earned
         public static Tier TierForLifetimePoints(int lifetime_points)
         {
