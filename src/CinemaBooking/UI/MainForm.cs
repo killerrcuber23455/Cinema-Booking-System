@@ -80,6 +80,9 @@ namespace CinemaBooking.UI
         // the title font made for a bigger step, kept so it can be freed when the step changes again
         private Font? _scaled_title_font;
 
+        // true while the page shown draws its own header from edge to edge (the films page), then there is no title and no space around it
+        private bool _is_full_bleed;
+
         public MainForm(ShowingService showing_service, AuthService auth_service, ShowingTable showing_table,
             BookingService booking_service, IDatabase database, FirstPage first_page = FirstPage.Films)
         {
@@ -231,9 +234,22 @@ namespace CinemaBooking.UI
             old_font?.Dispose();
 
             lblPageTitle.Height = UiScale.Pixels(UiTheme.PAGE_TITLE_HEIGHT, step);
+            ApplyPageSpace();
+        }
 
-            int side = UiScale.Pixels(UiTheme.PAGE_SIDE_PADDING, step);
-            int top = UiScale.Pixels(UiTheme.PAGE_TOP_PADDING, step);
+        // a normal page gets the title and the space around it, a full bleed page gets the whole area
+        private void ApplyPageSpace()
+        {
+            if (_is_full_bleed)
+            {
+                lblPageTitle.Visible = false;
+                pnlHost.Padding = new Padding(0);
+                return;
+            }
+
+            lblPageTitle.Visible = true;
+            int side = UiScale.Pixels(UiTheme.PAGE_SIDE_PADDING, _ui_step);
+            int top = UiScale.Pixels(UiTheme.PAGE_TOP_PADDING, _ui_step);
             pnlHost.Padding = new Padding(side, top, side, top);
         }
 
@@ -688,6 +704,8 @@ namespace CinemaBooking.UI
             _selected_button.IsActive = true;
 
             lblPageTitle.Text = page_title;
+            _is_full_bleed = page is IFullBleedPage;
+            ApplyPageSpace();
 
             // the new page goes in before the old one comes out, so the area is never blank
             pnlContent.SuspendLayout();

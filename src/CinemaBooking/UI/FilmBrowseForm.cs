@@ -1,7 +1,8 @@
-﻿// the films page: poster cards, a title search, a genre filter and loading the film file (owner: divyesh)
-// it is a page shown inside the main window, not a separate window. it only reads input and shows
-// results, the search and the file loading live in FilmService
+// the films page: a big film banner, a search box, genre and sort choices and the poster grid (owner: divyesh)
+// UI upgrade step 2: the page fills the window from edge to edge and grows with it. it only reads input and shows
+// results, the search lives in FilmService, the sorting in SortHelper, and the file loading in CatalogStore
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
@@ -12,20 +13,16 @@ using CinemaBooking.Services;
 
 namespace CinemaBooking.UI
 {
-    public class FilmBrowseForm : UserControl
+    public class FilmBrowseForm : UserControl, IFullBleedPage
     {
-        // the first choice in the genre filter, it means no filter
-        private const string ALL_GENRES = "All genres";
-
         // posters are looked for in this folder next to the program
         private const string POSTER_FOLDER = "posters";
 
-        // card sizes in pixels, kept here so the cards all match
-        private const int CARD_WIDTH = 190;
-        private const int CARD_HEIGHT = 320;
-        private const int POSTER_HEIGHT = 230;
-        private const int CARD_PADDING = 10;
-        private const int TOP_BAR_HEIGHT = 56;
+        // how many films the banner at the top goes through
+        private const int FEATURED_COUNT = 5;
+
+        // the short names on the sort choices, in the same order as SortChoice.LABELS
+        private static readonly string[] SORT_CHIP_TEXTS = { "Title", "Year", "Age rating" };
 
         // checks that a poster file is really in the posters folder, and gives the placeholder when it is not (card 320)
         private static readonly PosterStore POSTERS = new PosterStore(Path.Combine(AppContext.BaseDirectory, POSTER_FOLDER));
@@ -41,102 +38,225 @@ namespace CinemaBooking.UI
         // called with the film the user clicked, the main window opens its detail page (card 402)
         private readonly Action<Film> _open_film;
 
-        // stops the genre filter from searching while we refill it
-        private bool _is_filling_genres;
+        // each poster is read from its file once while the page is open, the banner and the grid share it
+        private readonly Dictionary<int, Image?> _posters = new Dictionary<int, Image?>();
 
-        // the parts of the page
-        private readonly Panel pnlTopBar = new Panel();
-        private readonly TextBox txtSearch = new TextBox();
-        private readonly ComboBox cmbGenre = new ComboBox();
-        private readonly ComboBox cmbSort = new ComboBox();
-        private readonly Button btnLoadFile = FormParts.MakeButton("Load film file", UiTheme.ACCENT_RED);
+        // the genre chosen now, empty means all genres, and the sort chosen now
+        private string _genre = "";
+        private string _sort_label = SortChoice.LABELS[0];
+        private float _step = -1f;
+
+        // the parts of the page, they scroll together
+        private readonly SmoothScrollPanel pnlScroll = new SmoothScrollPanel();
+        private readonly FilmHero _hero;
+        private readonly Panel pnlTools = new Panel();
+        private readonly PosterGrid _grid;
+        private readonly SearchBox _search = new SearchBox("Search films by title");
+        private readonly FlowLayoutPanel flpGenres = new FlowLayoutPanel();
+        private readonly FlowLayoutPanel flpSort = new FlowLayoutPanel();
+        private readonly Label lblHeading = new Label();
+        private readonly Label lblCount = new Label();
         private readonly Label lblStatus = new Label();
-        private readonly FlowLayoutPanel flpCards = new SmoothFlowPanel();
+        private readonly Button btnLoadFile = FormParts.MakeButton("Load film file", UiTheme.ACCENT_RED);
+        private readonly List<ChipButton> _genre_chips = new List<ChipButton>();
+        private readonly List<ChipButton> _sort_chips = new List<ChipButton>();
+
         public FilmBrowseForm(FilmService film_service, CatalogStore catalog_store, Role role, Action<Film> open_film)
         {
             _film_service = film_service;
             _catalog_store = catalog_store;
             _role = role;
             _open_film = open_film;
+            _hero = new FilmHero(PosterFor, open_film);
+            _grid = new PosterGrid(PosterFor, open_film);
+
             DoubleBuffered = true;
             BuildPage();
             FillGenres();
+            _hero.SetFilms(FilmPageRules.FeaturedFilms(_film_service.Search("", ""), FEATURED_COUNT));
             ShowFilms();
+            UpdateStep();
         }
 
-        // places the search bar on top and the card area under it
+        // the banner on top, the choices under it, then the posters, all in one scrolling area
         private void BuildPage()
         {
-            BackColor = UiTheme.PANEL;
+            BackColor = UiTheme.BACKGROUND;
             ForeColor = UiTheme.TEXT;
             Font = UiTheme.BODY_FONT;
 
-            pnlTopBar.Dock = DockStyle.Top;
-            pnlTopBar.Height = TOP_BAR_HEIGHT;
-            pnlTopBar.BackColor = UiTheme.PANEL;
+            pnlScroll.Dock = DockStyle.Fill;
+            pnlScroll.AutoScroll = true;
+            pnlScroll.BackColor = UiTheme.BACKGROUND;
+            DarkScroll.Apply(pnlScroll);
 
-            txtSearch.PlaceholderText = "Search by title";
-            txtSearch.BorderStyle = BorderStyle.FixedSingle;
-            txtSearch.BackColor = UiTheme.INPUT;
-            txtSearch.ForeColor = UiTheme.TEXT;
-            txtSearch.SetBounds(0, 12, 220, 30);
-            // the list updates while the user types, there is no search button to forget
-            txtSearch.TextChanged += (sender, e) => ShowFilms();
+            _hero.Dock = DockStyle.Top;
+            pnlTools.Dock = DockStyle.Top;
+            pnlTools.BackColor = UiTheme.BACKGROUND;
+            _grid.Dock = DockStyle.Top;
 
-            cmbGenre.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbGenre.FlatStyle = FlatStyle.Flat;
-            cmbGenre.BackColor = UiTheme.INPUT;
-            cmbGenre.ForeColor = UiTheme.TEXT;
-            cmbGenre.SetBounds(232, 12, 150, 30);
-            cmbGenre.SelectedIndexChanged += (sender, e) =>
+            _search.SearchChanged += (sender, e) => ShowFilms();
+
+            flpGenres.AutoSize = true;
+            flpGenres.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            flpGenres.WrapContents = true;
+            flpGenres.BackColor = UiTheme.BACKGROUND;
+            flpGenres.Margin = new Padding(0);
+
+            flpSort.AutoSize = true;
+            flpSort.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            flpSort.WrapContents = false;
+            flpSort.BackColor = UiTheme.BACKGROUND;
+
+            for (int sort_index = 0; sort_index < SortChoice.LABELS.Length; sort_index++)
             {
-                if (!_is_filling_genres)
-                {
-                    ShowFilms();
-                }
-            };
+                string sort_label = SortChoice.LABELS[sort_index];
+                ChipButton chip = new ChipButton(SORT_CHIP_TEXTS[sort_index]);
+                chip.IsSelected = sort_label == _sort_label;
+                chip.Click += (sender, e) => ChooseSort(sort_label);
+                _sort_chips.Add(chip);
+                flpSort.Controls.Add(chip);
+            }
 
-            // the sort dropdown: the labels come from SortChoice, the first one (title) is chosen at start
-            cmbSort.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbSort.FlatStyle = FlatStyle.Flat;
-            cmbSort.BackColor = UiTheme.INPUT;
-            cmbSort.ForeColor = UiTheme.TEXT;
-            cmbSort.SetBounds(394, 12, 180, 30);
-            cmbSort.Items.AddRange(SortChoice.LABELS);
-            cmbSort.SelectedIndex = 0;
-            cmbSort.SelectedIndexChanged += (sender, e) => ShowFilms();
+            lblHeading.AutoSize = true;
+            lblHeading.ForeColor = UiTheme.TEXT;
+            lblHeading.BackColor = UiTheme.BACKGROUND;
 
-            // the button keeps a few pixels around it for its glow
-            btnLoadFile.SetBounds(586 - UiTheme.GLOW_SPREAD, 10 - UiTheme.GLOW_SPREAD, 160 + (2 * UiTheme.GLOW_SPREAD),
-                34 + (2 * UiTheme.GLOW_SPREAD));
+            lblCount.AutoSize = true;
+            lblCount.ForeColor = UiTheme.TEXT_FAINT;
+            lblCount.BackColor = UiTheme.BACKGROUND;
+
+            lblStatus.AutoEllipsis = true;
+            lblStatus.ForeColor = UiTheme.TEXT_MUTED;
+            lblStatus.BackColor = UiTheme.BACKGROUND;
+            lblStatus.TextAlign = ContentAlignment.MiddleLeft;
+
             btnLoadFile.Click += (sender, e) => LoadFilmFile();
             btnLoadFile.Visible = FilmPageRules.CanLoadFilms(_role);
 
-            lblStatus.ForeColor = UiTheme.TEXT_MUTED;
-            lblStatus.Font = UiTheme.SMALL_FONT;
-            lblStatus.AutoEllipsis = true;
-            // without the button the status text moves left, so there is no gap
-            int status_left = FilmPageRules.CanLoadFilms(_role) ? 758 : 586;
-            lblStatus.SetBounds(status_left, 17, 200, 24);
-            lblStatus.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            pnlTools.Controls.Add(_search);
+            pnlTools.Controls.Add(lblStatus);
+            pnlTools.Controls.Add(btnLoadFile);
+            pnlTools.Controls.Add(flpGenres);
+            pnlTools.Controls.Add(lblHeading);
+            pnlTools.Controls.Add(lblCount);
+            pnlTools.Controls.Add(flpSort);
+            pnlTools.Resize += (sender, e) => LayoutTools();
 
-            pnlTopBar.Controls.Add(txtSearch);
-            pnlTopBar.Controls.Add(cmbGenre);
-            pnlTopBar.Controls.Add(cmbSort);
-            pnlTopBar.Controls.Add(btnLoadFile);
-            pnlTopBar.Controls.Add(lblStatus);
+            // docked to the top in this order: the first added is placed last, so the grid ends up at the bottom
+            pnlScroll.Controls.Add(_grid);
+            pnlScroll.Controls.Add(pnlTools);
+            pnlScroll.Controls.Add(_hero);
+            Controls.Add(pnlScroll);
+        }
 
-            // the search box glows while the user types in it
-            FocusGlow.AddTo(pnlTopBar, txtSearch);
+        // the window crossed a size step: every part of the page grows or shrinks together
+        private void UpdateStep()
+        {
+            Form? window = FindForm();
+            float step = UiScale.StepFor(window != null ? window.ClientSize.Width : Width);
 
-            flpCards.Dock = DockStyle.Fill;
-            flpCards.AutoScroll = true;
-            flpCards.BackColor = UiTheme.PANEL;
-            flpCards.Padding = new Padding(0, 8, 0, 0);
+            if (step == _step)
+            {
+                return;
+            }
 
-            // fill goes in first, then the top bar, same order as the main window
-            Controls.Add(flpCards);
-            Controls.Add(pnlTopBar);
+            _step = step;
+            _hero.SetStep(step);
+            _grid.SetStep(step);
+            _search.SetStep(step);
+
+            foreach (ChipButton chip in _genre_chips)
+            {
+                chip.SetStep(step);
+            }
+
+            foreach (ChipButton chip in _sort_chips)
+            {
+                chip.SetStep(step);
+            }
+
+            lblHeading.Font = FontCache.Scaled(FontCache.DISPLAY, UiTheme.SIZE_TITLE, step);
+            lblCount.Font = FontCache.Scaled(FontCache.MEDIUM, UiTheme.SIZE_BODY, step);
+            lblStatus.Font = FontCache.Scaled(FontCache.REGULAR, UiTheme.SIZE_SMALL, step);
+            btnLoadFile.Font = FontCache.Scaled(FontCache.SEMIBOLD, UiTheme.SIZE_BODY, step);
+            LayoutTools();
+        }
+
+        protected override void OnSizeChanged(EventArgs e)
+        {
+            base.OnSizeChanged(e);
+            UpdateStep();
+        }
+
+        protected override void OnParentChanged(EventArgs e)
+        {
+            base.OnParentChanged(e);
+            UpdateStep();
+        }
+
+        // places the search, the genres, the heading and the sort choices, and sets the height they need
+        private void LayoutTools()
+        {
+            float step = Math.Max(UiScale.SMALL_STEP, _step);
+            int side = UiScale.Pixels(UiTheme.PAGE_SIDE_PADDING, step);
+            int width = pnlTools.Width;
+
+            if (width <= 0)
+            {
+                return;
+            }
+
+            pnlTools.SuspendLayout();
+
+            int top = UiScale.Pixels(UiTheme.SPACE_S, step);
+            int search_width = Math.Min(UiScale.Pixels(420, step), Math.Max(160, width - (2 * side)));
+            _search.SetBounds(side, top, search_width, _search.Height);
+
+            int right_edge = width - side;
+            if (btnLoadFile.Visible)
+            {
+                int button_width = UiScale.Pixels(160, step) + (2 * UiTheme.GLOW_SPREAD);
+                int button_height = _search.Height + (2 * UiTheme.GLOW_SPREAD);
+                btnLoadFile.SetBounds(right_edge - button_width + UiTheme.GLOW_SPREAD, top - UiTheme.GLOW_SPREAD, button_width, button_height);
+                right_edge = btnLoadFile.Left - UiScale.Pixels(UiTheme.SPACE_L, step);
+            }
+
+            int status_left = _search.Right + UiScale.Pixels(UiTheme.SPACE_L, step);
+            lblStatus.SetBounds(status_left, top, Math.Max(0, right_edge - status_left), _search.Height);
+
+            int genres_top = _search.Bottom + UiScale.Pixels(UiTheme.SPACE_L, step);
+            flpGenres.MaximumSize = new Size(Math.Max(100, width - (2 * side)), 0);
+            flpGenres.Location = new Point(side, genres_top);
+
+            int heading_top = flpGenres.Bottom + UiScale.Pixels(UiTheme.SPACE_XXL, step);
+            lblHeading.Location = new Point(side - 2, heading_top);
+            lblCount.Location = new Point(lblHeading.Right + UiScale.Pixels(UiTheme.SPACE_M, step),
+                lblHeading.Bottom - lblCount.Height - UiScale.Pixels(3, step));
+
+            flpSort.Location = new Point(Math.Max(lblCount.Right + UiScale.Pixels(UiTheme.SPACE_L, step), width - side - flpSort.Width),
+                heading_top + ((lblHeading.Height - flpSort.Height) / 2) + UiScale.Pixels(4, step));
+
+            int bottom = Math.Max(lblHeading.Bottom, flpSort.Bottom) + UiScale.Pixels(UiTheme.SPACE_S, step);
+            pnlTools.ResumeLayout();
+
+            if (pnlTools.Height != bottom)
+            {
+                pnlTools.Height = bottom;
+            }
+        }
+
+        // the poster of a film, read from its file the first time it is needed
+        private Image? PosterFor(Film film)
+        {
+            if (_posters.TryGetValue(film.Id, out Image? found))
+            {
+                return found;
+            }
+
+            Image? poster = LoadPoster(film.PosterFile);
+            _posters[film.Id] = poster;
+            return poster;
         }
 
         // asks the user which film file to load, so the file name is never typed in the code
@@ -164,22 +284,22 @@ namespace CinemaBooking.UI
                 SetLoading(false);
 
                 FillGenres();
+                _hero.SetFilms(FilmPageRules.FeaturedFilms(_film_service.Search("", ""), FEATURED_COUNT));
                 ShowFilms();
 
-                // the load message is shown last so the film count does not hide it
                 bool is_good = result.IsOk && result.Value.Ok;
                 lblStatus.ForeColor = is_good ? UiTheme.TEXT_MUTED : UiTheme.ACCENT_RED;
                 lblStatus.Text = result.IsOk ? result.Value.Message : result.ErrorText;
             }
         }
 
-        // while the file loads the boxes and the button are switched off, so nothing reads the films half way
+        // while the file loads the choices and the button are switched off, so nothing reads the films half way
         private void SetLoading(bool is_loading)
         {
             btnLoadFile.Enabled = !is_loading;
-            txtSearch.Enabled = !is_loading;
-            cmbGenre.Enabled = !is_loading;
-            cmbSort.Enabled = !is_loading;
+            _search.SetEnabled(!is_loading);
+            flpGenres.Enabled = !is_loading;
+            flpSort.Enabled = !is_loading;
 
             if (is_loading)
             {
@@ -188,166 +308,114 @@ namespace CinemaBooking.UI
             }
         }
 
-        // refills the genre filter from the films we have now, and keeps the choice if it still exists
+        // one chip for all genres and one for each genre we have now, the chosen genre stays chosen if it still exists
         private void FillGenres()
         {
-            string? chosen_genre = cmbGenre.SelectedItem as string;
             string[] genres = _film_service.ListGenres();
-
-            _is_filling_genres = true;
-            cmbGenre.Items.Clear();
-            cmbGenre.Items.Add(ALL_GENRES);
+            bool is_still_there = false;
 
             for (int genre_index = 0; genre_index < genres.Length; genre_index++)
             {
-                cmbGenre.Items.Add(genres[genre_index]);
+                if (genres[genre_index] == _genre)
+                {
+                    is_still_there = true;
+                }
             }
 
-            int chosen_index = chosen_genre == null ? -1 : cmbGenre.Items.IndexOf(chosen_genre);
-            cmbGenre.SelectedIndex = chosen_index >= 0 ? chosen_index : 0;
-            _is_filling_genres = false;
+            if (!is_still_there)
+            {
+                _genre = "";
+            }
+
+            flpGenres.SuspendLayout();
+
+            foreach (ChipButton old_chip in _genre_chips)
+            {
+                flpGenres.Controls.Remove(old_chip);
+                old_chip.Dispose();
+            }
+
+            _genre_chips.Clear();
+            AddGenreChip("All", "");
+
+            for (int genre_index = 0; genre_index < genres.Length; genre_index++)
+            {
+                AddGenreChip(genres[genre_index], genres[genre_index]);
+            }
+
+            flpGenres.ResumeLayout();
+            LayoutTools();
         }
 
-        // asks FilmService for the films that match and draws one card for each
+        private void AddGenreChip(string text, string genre)
+        {
+            ChipButton chip = new ChipButton(text);
+            chip.IsSelected = genre == _genre;
+            chip.Tag = genre;
+
+            if (_step > 0)
+            {
+                chip.SetStep(_step);
+            }
+
+            chip.Click += (sender, e) => ChooseGenre(genre);
+            _genre_chips.Add(chip);
+            flpGenres.Controls.Add(chip);
+        }
+
+        private void ChooseGenre(string genre)
+        {
+            _genre = genre;
+
+            foreach (ChipButton chip in _genre_chips)
+            {
+                chip.IsSelected = (chip.Tag as string) == genre;
+            }
+
+            ShowFilms();
+        }
+
+        private void ChooseSort(string sort_label)
+        {
+            _sort_label = sort_label;
+
+            for (int sort_index = 0; sort_index < _sort_chips.Count; sort_index++)
+            {
+                _sort_chips[sort_index].IsSelected = SortChoice.LABELS[sort_index] == sort_label;
+            }
+
+            ShowFilms();
+        }
+
+        // asks FilmService for the films that match and gives them to the grid
         private void ShowFilms()
         {
-            string? chosen_genre = cmbGenre.SelectedItem as string;
-            string genre_filter = chosen_genre == null || chosen_genre == ALL_GENRES ? "" : chosen_genre;
-            Film[] found_films = _film_service.Search(txtSearch.Text, genre_filter);
+            Film[] found_films = _film_service.Search(_search.SearchText, _genre);
 
             // sort what was found, with the merge sort from SortHelper
-            Film[] films = SortHelper.MergeSort(found_films, SortChoice.KeyFor(cmbSort.SelectedItem as string));
+            Film[] films = SortHelper.MergeSort(found_films, SortChoice.KeyFor(_sort_label));
 
-            // suspend layout so the page is drawn once, not once per card
-            flpCards.SuspendLayout();
-            ClearCards();
+            bool is_searching = _search.SearchText.Trim() != "" || _genre != "";
+            string empty_text = is_searching ? "No film matches your search. Try another title or genre." : FilmPageRules.EmptyFilmsText(_role);
+            _grid.SetFilms(films, empty_text);
 
-            for (int film_index = 0; film_index < films.Length; film_index++)
+            if (_search.SearchText.Trim() != "")
             {
-                flpCards.Controls.Add(BuildCard(films[film_index]));
-            }
-
-            if (films.Length == 0)
-            {
-                flpCards.Controls.Add(BuildEmptyMessage(genre_filter));
-            }
-
-            flpCards.ResumeLayout();
-
-            lblStatus.ForeColor = UiTheme.TEXT_MUTED;
-            lblStatus.Text = "showing " + films.Length + (films.Length == 1 ? " film" : " films");
-        }
-
-        // tells the user why the page is empty and what to do next
-        private Label BuildEmptyMessage(string genre_filter)
-        {
-            Label lblEmpty = new Label();
-            lblEmpty.AutoSize = true;
-            lblEmpty.ForeColor = UiTheme.TEXT_MUTED;
-            lblEmpty.Margin = new Padding(0, 20, 0, 0);
-
-            bool is_searching = txtSearch.Text.Trim() != "" || genre_filter != "";
-            lblEmpty.Text = is_searching
-                ? "no film matches your search"
-                : FilmPageRules.EmptyFilmsText(_role);
-            return lblEmpty;
-        }
-
-        // one card: poster on top, then title, genre and year, length and age
-        private RoundedPanel BuildCard(Film film)
-        {
-            RoundedPanel pnlCard = new RoundedPanel();
-            pnlCard.BackColor = UiTheme.CARD;
-            pnlCard.Size = new Size(CARD_WIDTH, CARD_HEIGHT);
-            pnlCard.Margin = new Padding(0, 0, 14, 14);
-            // the film is kept on the card so the detail window (card 402) knows which film was clicked
-            pnlCard.Tag = film;
-
-            int inner_width = CARD_WIDTH - (CARD_PADDING * 2);
-
-            PictureBox picPoster = new PictureBox();
-            picPoster.SetBounds(CARD_PADDING, CARD_PADDING, inner_width, POSTER_HEIGHT);
-            picPoster.SizeMode = PictureBoxSizeMode.Zoom;
-            picPoster.BackColor = UiTheme.BACKGROUND;
-
-            Image? poster = LoadPoster(film.PosterFile);
-            if (poster != null)
-            {
-                picPoster.Image = poster;
+                lblHeading.Text = "Results";
             }
             else
             {
-                // no poster file, so the title stands in for it
-                Label lblNoPoster = new Label();
-                lblNoPoster.Dock = DockStyle.Fill;
-                lblNoPoster.TextAlign = ContentAlignment.MiddleCenter;
-                lblNoPoster.ForeColor = UiTheme.TEXT_MUTED;
-                lblNoPoster.Text = film.Title + "\n\n(no poster)";
-                picPoster.Controls.Add(lblNoPoster);
+                lblHeading.Text = _genre == "" ? "All films" : _genre;
             }
 
-            int text_top = CARD_PADDING + POSTER_HEIGHT + 8;
-
-            Label lblTitle = new Label();
-            lblTitle.Font = UiTheme.CARD_TITLE_FONT;
-            lblTitle.ForeColor = UiTheme.TEXT;
-            lblTitle.BackColor = Color.Transparent;
-            lblTitle.AutoEllipsis = true;
-            lblTitle.Text = film.Title;
-            lblTitle.SetBounds(CARD_PADDING, text_top, inner_width, 24);
-
-            // the genre and the age rating as small tags, the year and the length in a quiet line under them
-            Pill pilGenre = new Pill(film.Genre, ColorMath.Blend(UiTheme.CARD, UiTheme.TEXT, 0.12), UiTheme.TEXT);
-            pilGenre.Location = new Point(CARD_PADDING, text_top + 28);
-
-            // age 0 means anyone can watch it, 16 and over is shown in red
-            string age_text = film.AgeRating == 0 ? "all ages" : film.AgeRating + "+";
-            Color age_colour = film.AgeRating >= 16 ? UiTheme.ACCENT_RED : UiTheme.AMBER;
-            Pill pilAge = new Pill(age_text, ColorMath.Blend(UiTheme.CARD, age_colour, 0.22), age_colour);
-            pilAge.Location = new Point(pilGenre.Right + 6, text_top + 28);
-
-            Label lblYearLength = new Label();
-            lblYearLength.Font = UiTheme.SMALL_FONT;
-            lblYearLength.ForeColor = UiTheme.TEXT_MUTED;
-            lblYearLength.BackColor = Color.Transparent;
-            lblYearLength.Text = film.Year + " · " + film.DurationMinutes + " min";
-            lblYearLength.SetBounds(CARD_PADDING, text_top + 52, inner_width, 18);
-
-            pnlCard.Controls.Add(picPoster);
-            pnlCard.Controls.Add(lblTitle);
-            pnlCard.Controls.Add(pilGenre);
-            pnlCard.Controls.Add(pilAge);
-            pnlCard.Controls.Add(lblYearLength);
-
-            // a click on the card or on any part of it opens the film, the parts swallow clicks otherwise
-            pnlCard.Cursor = Cursors.Hand;
-            pnlCard.Click += (sender, e) => _open_film(film);
-            pnlCard.MouseEnter += (sender, e) => pnlCard.IsHighlighted = true;
-            pnlCard.MouseLeave += (sender, e) => UpdateHighlight(pnlCard);
-
-            for (int part_index = 0; part_index < pnlCard.Controls.Count; part_index++)
-            {
-                Control part = pnlCard.Controls[part_index];
-                part.Cursor = Cursors.Hand;
-                part.Click += (sender, e) => _open_film(film);
-
-                // the parts cover the card, so the mouse on a part also lights the card
-                part.MouseEnter += (sender, e) => pnlCard.IsHighlighted = true;
-                part.MouseLeave += (sender, e) => UpdateHighlight(pnlCard);
-            }
-
-            return pnlCard;
-        }
-
-        // the mouse left the card or one of its parts: the glow goes out only if the mouse is really off the card
-        private static void UpdateHighlight(RoundedPanel card)
-        {
-            Point mouse = card.PointToClient(Cursor.Position);
-            card.IsHighlighted = card.ClientRectangle.Contains(mouse);
+            lblCount.Text = films.Length + (films.Length == 1 ? " film" : " films");
+            lblStatus.ForeColor = UiTheme.TEXT_MUTED;
+            lblStatus.Text = "";
+            LayoutTools();
         }
 
         // reads the poster image, the poster store gives the placeholder file when the film has no poster
-        // null is only returned when even the placeholder is missing, then the card shows the title
+        // null is only returned when even the placeholder is missing, then the card shows an empty frame
         internal static Image? LoadPoster(string poster_file)
         {
             string poster_name = POSTERS.GetPosterFile(poster_file);
@@ -376,41 +444,26 @@ namespace CinemaBooking.UI
             }
         }
 
-        // removes the old cards and frees their posters, so memory does not grow on every search
-        private void ClearCards()
-        {
-            for (int card_index = flpCards.Controls.Count - 1; card_index >= 0; card_index--)
-            {
-                Control old_card = flpCards.Controls[card_index];
-                flpCards.Controls.RemoveAt(card_index);
-
-                for (int part_index = 0; part_index < old_card.Controls.Count; part_index++)
-                {
-                    PictureBox? picOld = old_card.Controls[part_index] as PictureBox;
-                    if (picOld != null && picOld.Image != null)
-                    {
-                        picOld.Image.Dispose();
-                    }
-                }
-
-                old_card.Dispose();
-            }
-        }
-
         // the page frees its posters when the main window opens another page
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                ClearCards();
+                foreach (Image? poster in _posters.Values)
+                {
+                    poster?.Dispose();
+                }
+
+                _posters.Clear();
             }
+
             base.Dispose(disposing);
         }
 
-        // a card area that draws off screen first, so the cards do not flicker
-        internal class SmoothFlowPanel : FlowLayoutPanel
+        // a scrolling area that draws off screen first, so the page does not flicker while it scrolls
+        internal class SmoothScrollPanel : Panel
         {
-            public SmoothFlowPanel()
+            public SmoothScrollPanel()
             {
                 DoubleBuffered = true;
             }
