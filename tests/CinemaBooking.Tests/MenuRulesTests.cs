@@ -69,12 +69,12 @@ public class MenuRulesTests
     // admin
 
     [TestMethod]
-    public void ItemsFor_Admin_HasSevenButtonsWithStaffAccountsBetweenTierRulesAndAdmin()
+    public void ItemsFor_Admin_HasSixButtonsAndNoStaffAccountsPage()
     {
         MenuItem[] expected =
         {
             MenuItem.Films, MenuItem.Showings, MenuItem.CancelBooking, MenuItem.Members,
-            MenuItem.TierRules, MenuItem.StaffAccounts, MenuItem.Admin
+            MenuItem.TierRules, MenuItem.Admin
         };
 
         CollectionAssert.AreEqual(expected, MenuRules.ItemsFor(Role.Admin));
@@ -110,12 +110,19 @@ public class MenuRulesTests
     }
 
     [TestMethod]
-    public void IsVisible_OnlyAdminSeesTheStaffAccountsButton()
+    public void IsVisible_NobodySeesAStaffAccountsButton()
     {
+        // an admin adds accounts in the settings page now
         foreach (Role role in ALL_ROLES)
         {
-            Assert.AreEqual(role == Role.Admin, MenuRules.IsVisible(MenuItem.StaffAccounts, role), role.ToString());
+            Assert.IsFalse(MenuRules.IsVisible(MenuItem.StaffAccounts, role), role.ToString());
         }
+    }
+
+    [TestMethod]
+    public void MenuItem_HasNoStaffAccountsPage()
+    {
+        Assert.IsFalse(Enum.GetNames<MenuItem>().Contains("StaffAccounts"));
     }
 
     [TestMethod]
