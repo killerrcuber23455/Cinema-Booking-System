@@ -112,6 +112,12 @@ public class FakeUserRepository : IUserRepository
         return false;
     }
 
+    // stub for now, the real rules come with the 446 green step
+    public bool UpdatePassword(int user_id, string password_hash, string salt)
+    {
+        return false;
+    }
+
     public bool HasAnyAdmin()
     {
         for (int index = 0; index < _users.Count; index++)

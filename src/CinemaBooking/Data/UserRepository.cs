@@ -282,5 +282,13 @@ namespace CinemaBooking.Data
                 }
             }
         }
+
+
+        // saves a new password hash and salt, clears the failed attempts and the lock,
+        // false if the user is not found
+        public bool UpdatePassword(int user_id, string password_hash, string salt)
+        {
+            return false;
+        }
     }
 }
