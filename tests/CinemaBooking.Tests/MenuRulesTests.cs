@@ -13,9 +13,9 @@ public class MenuRulesTests
     // guest
 
     [TestMethod]
-    public void ItemsFor_Guest_IsFilmsCancelBookingAndAccount()
+    public void ItemsFor_Guest_IsFilmsAndCancelBooking()
     {
-        MenuItem[] expected = { MenuItem.Films, MenuItem.CancelBooking, MenuItem.Account };
+        MenuItem[] expected = { MenuItem.Films, MenuItem.CancelBooking };
 
         CollectionAssert.AreEqual(expected, MenuRules.ItemsFor(Role.Guest));
     }
@@ -31,31 +31,29 @@ public class MenuRulesTests
     // customer
 
     [TestMethod]
-    public void ItemsFor_Customer_IsFilmsMyBookingsAndAccount()
+    public void ItemsFor_Customer_IsFilmsAndMyBookings()
     {
-        MenuItem[] expected = { MenuItem.Films, MenuItem.MyBookings, MenuItem.Account };
+        MenuItem[] expected = { MenuItem.Films, MenuItem.MyBookings };
 
         CollectionAssert.AreEqual(expected, MenuRules.ItemsFor(Role.Customer));
     }
 
     [TestMethod]
-    public void IsVisible_Customer_CannotSeeAdminMembersShowingsOrBookSeats()
+    public void IsVisible_Customer_CannotSeeAdminMembersOrShowings()
     {
         Assert.IsFalse(MenuRules.IsVisible(MenuItem.Admin, Role.Customer));
         Assert.IsFalse(MenuRules.IsVisible(MenuItem.Members, Role.Customer));
         Assert.IsFalse(MenuRules.IsVisible(MenuItem.Showings, Role.Customer));
-        Assert.IsFalse(MenuRules.IsVisible(MenuItem.BookSeats, Role.Customer));
     }
 
     // staff
 
     [TestMethod]
-    public void ItemsFor_Staff_HasSixButtonsAndNoAdmin()
+    public void ItemsFor_Staff_HasFourButtonsAndNoAdmin()
     {
         MenuItem[] expected =
         {
-            MenuItem.Films, MenuItem.Showings, MenuItem.BookSeats,
-            MenuItem.CancelBooking, MenuItem.Members, MenuItem.Account
+            MenuItem.Films, MenuItem.Showings, MenuItem.CancelBooking, MenuItem.Members
         };
 
         CollectionAssert.AreEqual(expected, MenuRules.ItemsFor(Role.Staff));
@@ -71,13 +69,12 @@ public class MenuRulesTests
     // admin
 
     [TestMethod]
-    public void ItemsFor_Admin_HasNineButtonsWithStaffAccountsBetweenTierRulesAndAdmin()
+    public void ItemsFor_Admin_HasSevenButtonsWithStaffAccountsBetweenTierRulesAndAdmin()
     {
         MenuItem[] expected =
         {
-            MenuItem.Films, MenuItem.Showings, MenuItem.BookSeats,
-            MenuItem.CancelBooking, MenuItem.Members, MenuItem.TierRules, MenuItem.StaffAccounts,
-            MenuItem.Admin, MenuItem.Account
+            MenuItem.Films, MenuItem.Showings, MenuItem.CancelBooking, MenuItem.Members,
+            MenuItem.TierRules, MenuItem.StaffAccounts, MenuItem.Admin
         };
 
         CollectionAssert.AreEqual(expected, MenuRules.ItemsFor(Role.Admin));
@@ -86,12 +83,11 @@ public class MenuRulesTests
     // rules for every role
 
     [TestMethod]
-    public void IsVisible_EveryRole_SeesFilmsAndAccount()
+    public void IsVisible_EveryRole_SeesFilms()
     {
         foreach (Role role in ALL_ROLES)
         {
             Assert.IsTrue(MenuRules.IsVisible(MenuItem.Films, role), role.ToString());
-            Assert.IsTrue(MenuRules.IsVisible(MenuItem.Account, role), role.ToString());
         }
     }
 
@@ -123,14 +119,13 @@ public class MenuRulesTests
     }
 
     [TestMethod]
-    public void ItemsFor_EveryRole_StartsWithFilmsAndEndsWithAccount()
+    public void ItemsFor_EveryRole_StartsWithFilms()
     {
         foreach (Role role in ALL_ROLES)
         {
             MenuItem[] items = MenuRules.ItemsFor(role);
 
             Assert.AreEqual(MenuItem.Films, items[0], role.ToString());
-            Assert.AreEqual(MenuItem.Account, items[items.Length - 1], role.ToString());
         }
     }
 
@@ -166,20 +161,15 @@ public class MenuRulesTests
         CollectionAssert.AreEqual(MenuRules.ItemsFor(Role.Guest), MenuRules.ItemsFor((Role)99));
     }
 
-    // the account button text
+    // the menu has no sign in and no account button any more, the user box at the bottom does that
 
     [TestMethod]
-    public void AccountLabel_Guest_IsSignIn()
+    public void MenuItem_HasNoAccountAndNoBookSeatsButton()
     {
-        Assert.AreEqual("Sign in", MenuRules.AccountLabel(Role.Guest));
-    }
+        string[] names = Enum.GetNames<MenuItem>();
 
-    [TestMethod]
-    public void AccountLabel_SignedInRoles_AreMyAccount()
-    {
-        Assert.AreEqual("My account", MenuRules.AccountLabel(Role.Customer));
-        Assert.AreEqual("My account", MenuRules.AccountLabel(Role.Staff));
-        Assert.AreEqual("My account", MenuRules.AccountLabel(Role.Admin));
+        Assert.IsFalse(names.Contains("Account"));
+        Assert.IsFalse(names.Contains("BookSeats"));
     }
 
     // the role at start

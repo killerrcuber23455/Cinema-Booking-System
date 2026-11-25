@@ -1,5 +1,7 @@
-// tests for what the landing window leads to, card 345 (owner: divyesh)
+// tests for what the landing window leads to (owner: divyesh)
 // written before the code, so they fail first (red) and pass after (green)
+// since the sign in moved into the landing window the window gives back an outcome, not only a button
+using CinemaBooking.Models;
 using CinemaBooking.UI;
 
 namespace CinemaBooking.Tests;
@@ -10,45 +12,46 @@ public class LandingRulesTests
     [TestMethod]
     public void ShouldOpenMain_WindowClosedWithoutAChoice_ReturnsFalse()
     {
-        Assert.IsFalse(LandingRules.ShouldOpenMain(LandingChoice.None));
+        Assert.IsFalse(LandingRules.ShouldOpenMain(LandingOutcome.Closed()));
     }
 
     [TestMethod]
-    public void ShouldOpenMain_EveryRealChoice_ReturnsTrue()
+    public void ShouldOpenMain_Guest_ReturnsTrue()
     {
-        Assert.IsTrue(LandingRules.ShouldOpenMain(LandingChoice.Guest));
-        Assert.IsTrue(LandingRules.ShouldOpenMain(LandingChoice.LogIn));
-        Assert.IsTrue(LandingRules.ShouldOpenMain(LandingChoice.SignUp));
-        Assert.IsTrue(LandingRules.ShouldOpenMain(LandingChoice.Staff));
+        Assert.IsTrue(LandingRules.ShouldOpenMain(LandingOutcome.Guest()));
     }
 
     [TestMethod]
-    public void FirstPageFor_Guest_IsTheFilms()
+    public void ShouldOpenMain_SignedIn_ReturnsTrue()
     {
-        Assert.AreEqual(FirstPage.Films, LandingRules.FirstPageFor(LandingChoice.Guest));
+        Assert.IsTrue(LandingRules.ShouldOpenMain(LandingOutcome.SignedIn(Role.Customer, null, "ann@x.com")));
     }
 
     [TestMethod]
-    public void FirstPageFor_LogIn_IsTheLoginPage()
+    public void Closed_HasTheClosedKind()
     {
-        Assert.AreEqual(FirstPage.Login, LandingRules.FirstPageFor(LandingChoice.LogIn));
+        Assert.AreEqual(LandingKind.Closed, LandingOutcome.Closed().Kind);
     }
 
     [TestMethod]
-    public void FirstPageFor_SignUp_IsTheSignUpPage()
+    public void Guest_IsAGuestWithNoMemberAndNoEmail()
     {
-        Assert.AreEqual(FirstPage.SignUp, LandingRules.FirstPageFor(LandingChoice.SignUp));
+        LandingOutcome outcome = LandingOutcome.Guest();
+
+        Assert.AreEqual(LandingKind.Guest, outcome.Kind);
+        Assert.AreEqual(Role.Guest, outcome.Role);
+        Assert.IsNull(outcome.Member);
+        Assert.AreEqual("", outcome.Email);
     }
 
     [TestMethod]
-    public void FirstPageFor_Staff_IsTheStaffLoginPage()
+    public void SignedIn_KeepsTheRoleAndTheEmail()
     {
-        Assert.AreEqual(FirstPage.StaffLogin, LandingRules.FirstPageFor(LandingChoice.Staff));
-    }
+        LandingOutcome outcome = LandingOutcome.SignedIn(Role.Staff, null, "desk@cinema.com");
 
-    [TestMethod]
-    public void StaffNotice_HasATextForTheStaffLoginPage()
-    {
-        Assert.AreNotEqual("", LandingRules.STAFF_NOTICE);
+        Assert.AreEqual(LandingKind.SignedIn, outcome.Kind);
+        Assert.AreEqual(Role.Staff, outcome.Role);
+        Assert.IsNull(outcome.Member);
+        Assert.AreEqual("desk@cinema.com", outcome.Email);
     }
 }
