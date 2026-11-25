@@ -1,7 +1,8 @@
 // the landing window: the first window when the program runs, before the main window (owner: divyesh)
 // it shows the choices. sign in, sign up and the first admin are forms inside the card of this window, so the user
 // is already signed in when the main window opens. what the window gives back is a LandingOutcome, the rules for
-// it are in LandingRules, SignInRules and AuthService, so this window holds no rules.
+// it are in LandingRules and AuthService, the sizes are in LandingLayout (no form needs a scroll bar).
+// staff and admin sign in with the same form as everyone: the role comes from the account
 // two film strips of the real posters drift past on the sides (one up, one down) and a red glow sits behind the card.
 // the strips stop and the window shows at once when Windows has animations switched off.
 using System;
@@ -17,8 +18,8 @@ namespace CinemaBooking.UI
 {
     public class LandingWindow : Form
     {
-        private const int WINDOW_WIDTH = 1000;
-        private const int WINDOW_HEIGHT = 720;
+        private const int WINDOW_WIDTH = LandingLayout.WINDOW_WIDTH;
+        private const int WINDOW_HEIGHT = LandingLayout.WINDOW_HEIGHT;
 
         // the film strips on the left and the right
         private const int STRIP_WIDTH = 240;
@@ -34,11 +35,8 @@ namespace CinemaBooking.UI
         private const int HOLE_GAP = 28;
 
         private const int CARD_WIDTH = 460;
-        private const int CARD_HEIGHT = 500;
 
-        // the card is taller while a form is open, the form starts under the logo
-        private const int CARD_FORM_HEIGHT = 640;
-        private const int FORM_TOP = 96;
+        // the card is taller while a form is open (LandingLayout works out how tall), the form starts under the logo
         private const int FORM_WIDTH = 400;
         private const int BUTTON_WIDTH = 340;
 
@@ -58,12 +56,10 @@ namespace CinemaBooking.UI
 
         private readonly LandingCard _card = new LandingCard();
         private readonly Label lblTagline = new Label();
-        private readonly Label lblStaff = new Label();
         private readonly Label lblClose = new Label();
         private readonly Button btnSignIn = FormParts.MakeButton("Sign in", UiTheme.ACCENT_RED);
         private readonly Button btnSignUp = FormParts.MakeButton("Sign up", UiTheme.CARD);
         private readonly Button btnGuest = FormParts.MakeButton("Continue as guest", UiTheme.PANEL);
-        private readonly Button btnStaff = FormParts.MakeButton("Staff and admin sign in", UiTheme.CARD);
         private readonly Button btnFirstAdmin = FormParts.MakeButton("No admin yet? Set up the first admin", UiTheme.PANEL);
 
         private readonly AuthService _auth_service;
@@ -122,10 +118,10 @@ namespace CinemaBooking.UI
             }
         }
 
-        // the card in the middle: logo, one line about the app and the four ways in
+        // the card in the middle: logo, one line about the app and the three ways in
         private void BuildCard()
         {
-            PlaceCard(CARD_HEIGHT);
+            PlaceCard(LandingLayout.HOME_CARD_HEIGHT);
 
             lblTagline.Text = "Pick a film, choose your seats and keep every ticket in one place.";
             lblTagline.Font = UiTheme.BODY_FONT;
@@ -139,27 +135,16 @@ namespace CinemaBooking.UI
             PlaceButton(btnSignUp, 236, 50, UiTheme.MENU_FONT, UiTheme.TEXT);
             PlaceButton(btnGuest, 300, 50, UiTheme.MENU_FONT, UiTheme.TEXT_MUTED);
 
-            lblStaff.Text = "For staff and admin";
-            lblStaff.Font = UiTheme.SMALL_FONT;
-            lblStaff.ForeColor = UiTheme.TEXT_MUTED;
-            lblStaff.BackColor = Color.Transparent;
-            lblStaff.TextAlign = ContentAlignment.MiddleCenter;
-            lblStaff.SetBounds(60, 398, CARD_WIDTH - 120, 22);
-            _card.Controls.Add(lblStaff);
-
-            PlaceButton(btnStaff, 426, 42, UiTheme.MENU_FONT, UiTheme.TEXT);
-
             // the first admin button only shows while there is no admin yet
-            PlaceButton(btnFirstAdmin, 358, 30, UiTheme.SMALL_FONT, UiTheme.TEXT_MUTED);
+            PlaceButton(btnFirstAdmin, 372, 30, UiTheme.SMALL_FONT, UiTheme.TEXT_MUTED);
             btnFirstAdmin.Visible = !HasAdmin();
             btnFirstAdmin.Click += (sender, e) => ShowFirstAdmin();
 
-            _home_parts.AddRange(new Control[] { lblTagline, btnSignIn, btnSignUp, btnGuest, lblStaff, btnStaff, btnFirstAdmin });
+            _home_parts.AddRange(new Control[] { lblTagline, btnSignIn, btnSignUp, btnGuest, btnFirstAdmin });
 
             btnSignIn.Click += (sender, e) => Choose(LandingChoice.LogIn);
             btnSignUp.Click += (sender, e) => Choose(LandingChoice.SignUp);
             btnGuest.Click += (sender, e) => Choose(LandingChoice.Guest);
-            btnStaff.Click += (sender, e) => Choose(LandingChoice.Staff);
 
             Controls.Add(_card);
         }
@@ -224,22 +209,20 @@ namespace CinemaBooking.UI
                     ShowSignUp();
                     break;
                 case LandingChoice.LogIn:
-                case LandingChoice.Staff:
-                    ShowSignIn(SignInRules.StartingChoice(choice), "");
+                    ShowSignIn("");
                     break;
             }
         }
 
         // the sign in form, the notice is a good message above the boxes like "account created"
-        private void ShowSignIn(SignInAs start_choice, string notice)
+        private void ShowSignIn(string notice)
         {
             ShowForm(new LoginForm(
                 _auth_service,
-                start_choice,
                 SignedIn,
                 ShowSignUp,
                 ShowHome,
-                notice));
+                notice), LoginInput.BOX_COUNT);
         }
 
         // the sign up form, after it works the sign in form opens with a notice
@@ -247,11 +230,11 @@ namespace CinemaBooking.UI
         {
             ShowForm(new SignUpForm(
                 _auth_service,
-                email => ShowSignIn(SignInAs.Customer, "Account created for " + email + ", sign in now"),
-                () => ShowSignIn(SignInAs.Customer, "")));
+                email => ShowSignIn(AuthText.AccountCreatedNotice(email)),
+                () => ShowSignIn("")), SignUpInput.BOX_COUNT);
         }
 
-        // the form for the very first admin, after it works the staff sign in opens with a notice
+        // the form for the very first admin, after it works the sign in form opens with a notice
         private void ShowFirstAdmin()
         {
             ShowForm(new FirstAdminForm(
@@ -259,9 +242,9 @@ namespace CinemaBooking.UI
                 email =>
                 {
                     btnFirstAdmin.Visible = false;
-                    ShowSignIn(SignInAs.Admin, "Admin account created for " + email + ", sign in now");
+                    ShowSignIn(AuthText.AdminCreatedNotice(email));
                 },
-                ShowHome));
+                ShowHome), FirstAdminInput.BOX_COUNT);
         }
 
         // the login worked and the choice fits the account: the window ends with the outcome and the main window opens
@@ -271,8 +254,9 @@ namespace CinemaBooking.UI
             Close();
         }
 
-        // shows a form inside the card instead of the first view, the old form is freed
-        private void ShowForm(Control form)
+        // shows a form inside the card instead of the first view, the old form is freed.
+        // the card is as tall as the form needs (LandingLayout), so the form never has a scroll bar
+        private void ShowForm(Control form, int row_count)
         {
             CloseForm();
 
@@ -281,9 +265,10 @@ namespace CinemaBooking.UI
                 part.Visible = false;
             }
 
-            PlaceCard(CARD_FORM_HEIGHT);
+            int card_height = LandingLayout.CardHeightForForm(row_count);
+            PlaceCard(card_height);
             form.BackColor = _card.BackColor;
-            form.SetBounds((CARD_WIDTH - FORM_WIDTH) / 2, FORM_TOP, FORM_WIDTH, CARD_FORM_HEIGHT - FORM_TOP - 16);
+            form.SetBounds((CARD_WIDTH - FORM_WIDTH) / 2, LandingLayout.FORM_TOP, FORM_WIDTH, LandingLayout.FormHeight(row_count));
             _card.Controls.Add(form);
             _form_view = form;
             form.Focus();
@@ -293,7 +278,7 @@ namespace CinemaBooking.UI
         private void ShowHome()
         {
             CloseForm();
-            PlaceCard(CARD_HEIGHT);
+            PlaceCard(LandingLayout.HOME_CARD_HEIGHT);
 
             foreach (Control part in _home_parts)
             {
@@ -564,7 +549,7 @@ namespace CinemaBooking.UI
             base.Dispose(disposing);
         }
 
-        // the rounded card with the glowing CINEMA name at the top and a line above the staff entry
+        // the rounded card with the glowing CINEMA name at the top
         private class LandingCard : RoundedPanel
         {
             private const float LOGO_SIZE = 48f;
@@ -596,11 +581,6 @@ namespace CinemaBooking.UI
                     {
                         e.Graphics.FillPath(letter_brush, letters);
                     }
-                }
-
-                using (Pen line = new Pen(Color.FromArgb(50, 255, 255, 255), 1))
-                {
-                    e.Graphics.DrawLine(line, 60, 386, Width - 60, 386);
                 }
             }
         }

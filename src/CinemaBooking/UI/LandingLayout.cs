@@ -1,6 +1,5 @@
 // the sizes of the landing window and its card, so a form never needs a scroll bar (owner: divyesh)
-// the card is made as tall as its form needs. the window is made big enough for the tallest form.
-// STUB for the red step: the heights are not worked out yet, so the tests fail first
+// the card is made as tall as its form needs. the window is made big enough for the tallest form (the sign up form).
 namespace CinemaBooking.UI
 {
     public static class LandingLayout
@@ -18,16 +17,22 @@ namespace CinemaBooking.UI
         // the free space the window keeps above and below the card
         public const int WINDOW_MARGIN = 24;
 
+        // the height the form itself needs: its title, rows, button and the room under them (FormParts works it out)
+        public static int FormHeight(int row_count)
+        {
+            return FormParts.HeightForRows(row_count);
+        }
+
         // the height of the card for a form with this many box rows
         public static int CardHeightForForm(int row_count)
         {
-            return 0;
+            return FORM_TOP + FormHeight(row_count) + FORM_BOTTOM_PADDING;
         }
 
         // true when the card for this many rows fits inside the window, so the form needs no scroll bar
         public static bool FormFitsWithoutScrolling(int row_count)
         {
-            return false;
+            return CardHeightForForm(row_count) + (2 * WINDOW_MARGIN) <= WINDOW_HEIGHT;
         }
     }
 }

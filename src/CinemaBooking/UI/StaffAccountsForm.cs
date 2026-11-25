@@ -51,31 +51,21 @@ namespace CinemaBooking.UI
             BackColor = UiTheme.PANEL;
             ForeColor = UiTheme.TEXT;
             Font = UiTheme.BODY_FONT;
-            AutoScroll = true;
+            AutoScroll = false;
 
-            Label lblHeading = new Label();
-            lblHeading.Font = UiTheme.CARD_TITLE_FONT;
-            lblHeading.Text = "Create a staff account";
-            lblHeading.SetBounds(FormParts.PAGE_PADDING, FormParts.PAGE_PADDING, FormParts.FORM_WIDTH, 26);
-            Controls.Add(lblHeading);
+            FormParts.AddHeading(this, "Add an account", "Staff manage showings and bookings, admins manage everything.");
 
-            Label lblHelp = new Label();
-            lblHelp.ForeColor = UiTheme.TEXT_MUTED;
-            lblHelp.Text = "The person signs in with this email and password. Staff manage showings and bookings, admins manage everything.";
-            lblHelp.SetBounds(FormParts.PAGE_PADDING, 34, FormParts.FORM_WIDTH + 200, 20);
-            Controls.Add(lblHelp);
-
-            _box_messages[StaffInput.BOX_EMAIL] = FormParts.AddRow(this, "Email", txtEmail, StaffInput.BOX_EMAIL);
+            _box_messages[StaffInput.BOX_EMAIL] = FormParts.AddRow(this, "Email", txtEmail, StaffInput.BOX_EMAIL, "person@example.com");
 
             cmbRole.Items.AddRange(StaffAccountText.RoleOptions());
             cmbRole.SelectedIndex = 0;
             _box_messages[StaffInput.BOX_ROLE] = FormParts.AddListRow(this, "Role", cmbRole, StaffInput.BOX_ROLE);
 
             txtPassword.UseSystemPasswordChar = true;
-            _box_messages[StaffInput.BOX_PASSWORD] = FormParts.AddRow(this, "Password (at least 8 characters)", txtPassword, StaffInput.BOX_PASSWORD);
+            _box_messages[StaffInput.BOX_PASSWORD] = FormParts.AddRow(this, "Password", txtPassword, StaffInput.BOX_PASSWORD, "At least 8 characters");
 
             txtConfirm.UseSystemPasswordChar = true;
-            _box_messages[StaffInput.BOX_CONFIRM_PASSWORD] = FormParts.AddRow(this, "Password again", txtConfirm, StaffInput.BOX_CONFIRM_PASSWORD);
+            _box_messages[StaffInput.BOX_CONFIRM_PASSWORD] = FormParts.AddRow(this, "Password again", txtConfirm, StaffInput.BOX_CONFIRM_PASSWORD, "Repeat the password");
 
             // pressing Enter in the last box is the same as clicking the create button
             txtConfirm.KeyDown += (sender, e) =>
@@ -89,13 +79,14 @@ namespace CinemaBooking.UI
 
             int buttons_top = FormParts.TopUnderRows(StaffInput.BOX_COUNT);
 
-            btnCreate.SetBounds(FormParts.PAGE_PADDING, buttons_top, 180, 40);
+            FormParts.PlaceWide(btnCreate, buttons_top);
             btnCreate.Click += (sender, e) => ClickCreate();
+            Controls.Add(btnCreate);
 
             lblMessage.ForeColor = UiTheme.ACCENT_RED;
-            lblMessage.SetBounds(FormParts.PAGE_PADDING, buttons_top + 52, FormParts.FORM_WIDTH, 60);
-
-            Controls.Add(btnCreate);
+            lblMessage.Font = UiTheme.SMALL_FONT;
+            lblMessage.TextAlign = ContentAlignment.MiddleCenter;
+            lblMessage.SetBounds(FormParts.PAGE_PADDING, buttons_top + FormParts.BUTTON_HEIGHT + 6, FormParts.FORM_WIDTH, 34);
             Controls.Add(lblMessage);
         }
 

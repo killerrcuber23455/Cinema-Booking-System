@@ -43,7 +43,6 @@ namespace CinemaBooking.UI
         private readonly MenuButton btnCancel = new MenuButton();
         private readonly MenuButton btnMembers = new MenuButton();
         private readonly MenuButton btnTiers = new MenuButton();
-        private readonly MenuButton btnStaffAccounts = new MenuButton();
         private readonly MenuButton btnAdmin = new MenuButton();
         private readonly MenuButton btnExit = new MenuButton();
 
@@ -52,6 +51,11 @@ namespace CinemaBooking.UI
 
         // the page under the title now, it is taken out when another page opens
         private Control? _current_page;
+
+        // the booking a guest left to sign in, kept so the summary opens again after the sign in
+        private Film? _pending_film;
+        private Showing? _pending_showing;
+        private string[]? _pending_seats;
 
         // every page shares one film table, so films loaded once are seen on every page
         private readonly HashTable<int, Film> _films = new HashTable<int, Film>();
@@ -170,14 +174,13 @@ namespace CinemaBooking.UI
             AddMenuButton(btnCancel, "Cancel booking", UiTheme.ICON_CANCEL, MakeFindBookingPage);
             AddMenuButton(btnMembers, "Members", UiTheme.ICON_MEMBERS, () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
             AddMenuButton(btnTiers, "Tier rules", UiTheme.ICON_TIER_RULES, MakeTierRulesPage);
-            AddMenuButton(btnStaffAccounts, "Staff accounts", UiTheme.ICON_MEMBERS, MakeStaffAccountsPage);
             AddMenuButton(btnAdmin, "Manage films", UiTheme.ICON_ADMIN, MakeAdminPage);
 
             // the user box is at the very bottom, exit sits just above it. both are docked, so they stay there at any window height
             _user_chip.Dock = DockStyle.Bottom;
             _user_chip.Cursor = Cursors.Hand;
-            _user_chip.Click += (sender, e) => ShowUserMenu();
-            _tips.SetToolTip(_user_chip, "Account");
+            _user_chip.Click += (sender, e) => ClickUserChip();
+            _tips.SetToolTip(_user_chip, UserIconRules.ActionFor(_current_role) == UserIconAction.SignIn ? "Sign in" : "Settings");
 
             btnExit.Text = "Exit";
             btnExit.Glyph = UiTheme.ICON_EXIT;
@@ -366,8 +369,6 @@ namespace CinemaBooking.UI
                     return btnMembers;
                 case MenuItem.TierRules:
                     return btnTiers;
-                case MenuItem.StaffAccounts:
-                    return btnStaffAccounts;
                 case MenuItem.Admin:
                     return btnAdmin;
                 default:
@@ -507,17 +508,6 @@ namespace CinemaBooking.UI
             return new AdminTiersForm();
         }
 
-        // the page where an admin makes a staff or admin account (card 436), only an admin gets it
-        private Control MakeStaffAccountsPage()
-        {
-            if (_current_role != Role.Admin)
-            {
-                return MakePlaceholderPage("Sign in as an admin to create staff accounts.");
-            }
-
-            return new StaffAccountsForm(_auth_service, _current_role, _current_email, ShowGoodToast);
-        }
-
         // the admin page opens only when an admin is signed in
         private Control MakeAdminPage()
         {
@@ -544,6 +534,10 @@ namespace CinemaBooking.UI
         // the booking summary is the next card (403), for now the chosen seats are only named
         private void OpenBookingSummary(Film film, Showing showing, string[] seat_codes)
         {
+            _pending_film = film;
+            _pending_showing = showing;
+            _pending_seats = seat_codes;
+
             // a signed in customer is a member, everyone else books as a guest
             BookingSummaryForm summary_page = new BookingSummaryForm(
                 film,
@@ -551,7 +545,7 @@ namespace CinemaBooking.UI
                 seat_codes,
                 _current_member,
                 () => OpenSeatMap(film, showing),
-                GoToLanding,
+                OpenGuestSignIn,
                 guest_details => ConfirmBooking(film, showing, seat_codes, guest_details));
 
             ShowPage(btnFilms, "Booking summary", summary_page);
@@ -603,46 +597,63 @@ namespace CinemaBooking.UI
                 new BookingConfirmedForm(result.Value.Booking, film, showing, () => ShowPage(btnFilms, "Films", MakeFilmsPage())));
         }
 
-        // the user box at the bottom of the menu opens a small menu, what it holds depends on who is signed in (UserMenuRules)
-        private void ShowUserMenu()
+        // the user box at the bottom of the menu: a guest goes to sign in, everyone else gets the settings page (UserIconRules)
+        private void ClickUserChip()
         {
-            ContextMenuStrip menu = new ContextMenuStrip();
-            menu.Renderer = new DarkMenuRenderer();
-            menu.BackColor = UiTheme.CARD;
-            menu.ForeColor = UiTheme.TEXT;
-            menu.Font = UiTheme.BODY_FONT;
-            menu.ShowImageMargin = false;
-
-            foreach (UserMenuItem item in UserMenuRules.ItemsFor(_current_role))
+            if (UserIconRules.ActionFor(_current_role) == UserIconAction.SignIn)
             {
-                UserMenuItem chosen_item = item;
-                ToolStripMenuItem entry = new ToolStripMenuItem(UserMenuRules.LabelFor(item));
-                entry.ForeColor = UiTheme.TEXT;
-                entry.Padding = new Padding(6, 6, 6, 6);
-                entry.Click += (sender, e) => RunUserMenuItem(chosen_item);
-                menu.Items.Add(entry);
+                GoToLanding();
+                return;
             }
 
-            // the menu is freed after it closed, not while a click on it is still being handled
-            menu.Closed += (sender, e) => BeginInvoke(new Action(menu.Dispose));
-            menu.Show(_user_chip, new Point(8, 0), ToolStripDropDownDirection.AboveRight);
+            ShowPage(null, SettingsRules.PAGE_TITLE, new SettingsPage(
+                _current_role,
+                _current_email,
+                _current_member,
+                _auth_service,
+                ShowGoodToast,
+                () => ShowPage(btnMyBookings, "My bookings", MakeMyBookingsPage()),
+                GoToLanding));
         }
 
-        // does what the chosen entry of the user menu says
-        private void RunUserMenuItem(UserMenuItem item)
+        // a guest chose "Sign in to earn points": the page with the two tabs opens inside this window, the booking is kept
+        private void OpenGuestSignIn()
         {
-            switch (item)
+            ShowPage(btnFilms, "Sign in to earn points", new GuestSignInPage(_auth_service, AcceptSignIn, ReturnToPendingBooking));
+        }
+
+        // the guest changed their mind, the booking summary opens again with the same seats
+        private void ReturnToPendingBooking()
+        {
+            if (_pending_film != null && _pending_showing != null && _pending_seats != null)
             {
-                case UserMenuItem.AccountDetails:
-                    ShowPage(null, "Account details", new AccountForm(_current_role, _current_email, _current_member, GoToLanding));
-                    break;
-                case UserMenuItem.MyBookings:
-                    ShowPage(btnMyBookings, "My bookings", MakeMyBookingsPage());
-                    break;
-                default:
-                    GoToLanding();
-                    break;
+                OpenBookingSummary(_pending_film, _pending_showing, _pending_seats);
+                return;
             }
+
+            ShowPage(btnFilms, "Films", MakeFilmsPage());
+        }
+
+        // the guest signed in or signed up here: this window now belongs to that user, and the booking goes on (ResumeRules)
+        private void AcceptSignIn(Role role, Member? member, string email)
+        {
+            _current_role = role;
+            _current_member = member;
+            _current_email = email;
+            RefreshMenu();
+            _tips.SetToolTip(_user_chip, "Settings");
+
+            bool has_pending_booking = _pending_film != null && _pending_showing != null && _pending_seats != null;
+            ResumePage next_page = ResumeRules.PageAfterSignIn(role, member, has_pending_booking);
+            _toast.ShowMessage(ResumeRules.SignedInNotice(next_page, email), false);
+
+            if (next_page == ResumePage.BookingSummary)
+            {
+                OpenBookingSummary(_pending_film!, _pending_showing!, _pending_seats!);
+                return;
+            }
+
+            ShowPage(btnFilms, "Films", MakeFilmsPage());
         }
 
         // signing out, and signing in as a guest, both close this window: the program shows the landing window again
@@ -664,7 +675,7 @@ namespace CinemaBooking.UI
         }
 
         // shows a page in the content area and marks the clicked button with the red bar
-        // a page that belongs to no menu button (the account details) is shown with no button, then no button is marked
+        // a page that belongs to no menu button (the settings page) is shown with no button, then no button is marked
         private void ShowPage(MenuButton? clicked_button, string page_title, Control page)
         {
             if (_selected_button != null)

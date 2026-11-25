@@ -47,27 +47,17 @@ namespace CinemaBooking.UI
             BackColor = UiTheme.PANEL;
             ForeColor = UiTheme.TEXT;
             Font = UiTheme.BODY_FONT;
-            AutoScroll = true;
+            AutoScroll = false;
 
-            Label lblHeading = new Label();
-            lblHeading.Font = UiTheme.CARD_TITLE_FONT;
-            lblHeading.Text = "Create the first admin";
-            lblHeading.SetBounds(FormParts.PAGE_PADDING, FormParts.PAGE_PADDING, FormParts.FORM_WIDTH, 26);
-            Controls.Add(lblHeading);
+            FormParts.AddHeading(this, "Set up the first admin", "There is no admin yet. This account manages everything.");
 
-            Label lblHelp = new Label();
-            lblHelp.ForeColor = UiTheme.TEXT_MUTED;
-            lblHelp.Text = "There is no admin yet. This account can manage films and staff.";
-            lblHelp.SetBounds(FormParts.PAGE_PADDING, 34, FormParts.FORM_WIDTH + 100, 20);
-            Controls.Add(lblHelp);
-
-            _box_messages[FirstAdminInput.BOX_EMAIL] = FormParts.AddRow(this, "Admin email", txtEmail, FirstAdminInput.BOX_EMAIL);
+            _box_messages[FirstAdminInput.BOX_EMAIL] = FormParts.AddRow(this, "Admin email", txtEmail, FirstAdminInput.BOX_EMAIL, "admin@example.com");
 
             txtPassword.UseSystemPasswordChar = true;
-            _box_messages[FirstAdminInput.BOX_PASSWORD] = FormParts.AddRow(this, "Password (at least 8 characters)", txtPassword, FirstAdminInput.BOX_PASSWORD);
+            _box_messages[FirstAdminInput.BOX_PASSWORD] = FormParts.AddRow(this, "Password", txtPassword, FirstAdminInput.BOX_PASSWORD, "At least 8 characters");
 
             txtConfirm.UseSystemPasswordChar = true;
-            _box_messages[FirstAdminInput.BOX_CONFIRM_PASSWORD] = FormParts.AddRow(this, "Password again", txtConfirm, FirstAdminInput.BOX_CONFIRM_PASSWORD);
+            _box_messages[FirstAdminInput.BOX_CONFIRM_PASSWORD] = FormParts.AddRow(this, "Password again", txtConfirm, FirstAdminInput.BOX_CONFIRM_PASSWORD, "Repeat the password");
 
             // pressing Enter in the last box is the same as clicking the create button
             txtConfirm.KeyDown += (sender, e) =>
@@ -81,19 +71,17 @@ namespace CinemaBooking.UI
 
             int buttons_top = FormParts.TopUnderRows(FirstAdminInput.BOX_COUNT);
 
-            btnCreate.SetBounds(FormParts.PAGE_PADDING, buttons_top, 180, 40);
+            FormParts.PlaceWide(btnCreate, buttons_top);
             btnCreate.Click += (sender, e) => ClickCreate();
-
-            Button btnBack = FormParts.MakeButton("Back to sign in", UiTheme.CARD);
-            btnBack.SetBounds(FormParts.PAGE_PADDING + 192, buttons_top, 188, 40);
-            btnBack.Click += (sender, e) => _go_login();
+            Controls.Add(btnCreate);
 
             lblMessage.ForeColor = UiTheme.ACCENT_RED;
-            lblMessage.SetBounds(FormParts.PAGE_PADDING, buttons_top + 52, FormParts.FORM_WIDTH, 60);
-
-            Controls.Add(btnCreate);
-            Controls.Add(btnBack);
+            lblMessage.Font = UiTheme.SMALL_FONT;
+            lblMessage.TextAlign = ContentAlignment.MiddleCenter;
+            lblMessage.SetBounds(FormParts.PAGE_PADDING, buttons_top + FormParts.BUTTON_HEIGHT + 6, FormParts.FORM_WIDTH, 34);
             Controls.Add(lblMessage);
+
+            FormParts.AddLinkLine(this, "", "Back", buttons_top + FormParts.BUTTON_HEIGHT + 44, _go_login, true);
         }
 
         // the boxes are checked first, then AuthService makes the admin

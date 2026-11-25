@@ -16,7 +16,7 @@ namespace CinemaBooking.UI
         private const int PAGE_WIDTH = 600;
         private const int BOX_LEFT = 120;
         private const int BOX_WIDTH = 300;
-        private const int BOX_ROW_HEIGHT = 58;
+        private const int BOX_ROW_HEIGHT = 70;
         private const int MESSAGE_WIDTH = 480;
 
         private readonly Film _film;
@@ -111,36 +111,33 @@ namespace CinemaBooking.UI
             Controls.Add(btnSignIn);
 
             int box_top = top + 40;
-            AddBoxRow("Name", txtGuestName, box_top, GuestDetails.BOX_NAME);
-            AddBoxRow("Email", txtGuestEmail, box_top + BOX_ROW_HEIGHT, GuestDetails.BOX_EMAIL);
-            AddBoxRow("Phone", txtGuestPhone, box_top + (2 * BOX_ROW_HEIGHT), GuestDetails.BOX_PHONE);
+            AddBoxRow("Name", txtGuestName, box_top, GuestDetails.BOX_NAME, "Your full name");
+            AddBoxRow("Email", txtGuestEmail, box_top + BOX_ROW_HEIGHT, GuestDetails.BOX_EMAIL, "you@example.com");
+            AddBoxRow("Phone", txtGuestPhone, box_top + (2 * BOX_ROW_HEIGHT), GuestDetails.BOX_PHONE, "Phone number");
 
             return box_top + (3 * BOX_ROW_HEIGHT) + 12;
         }
 
-        private void AddBoxRow(string label_text, TextBox box, int top, int box_index)
+        private void AddBoxRow(string label_text, TextBox box, int top, int box_index, string placeholder)
         {
             Label lblName = new Label();
             lblName.Text = label_text;
+            lblName.Font = UiTheme.LABEL_FONT;
             lblName.ForeColor = UiTheme.TEXT_MUTED;
-            lblName.SetBounds(PAGE_PADDING, top + 4, BOX_LEFT - PAGE_PADDING, 24);
+            lblName.SetBounds(PAGE_PADDING, top + 10, BOX_LEFT - PAGE_PADDING, 24);
 
-            box.BackColor = UiTheme.INPUT;
-            box.ForeColor = UiTheme.TEXT;
-            box.BorderStyle = BorderStyle.FixedSingle;
-            box.SetBounds(BOX_LEFT, top, BOX_WIDTH, 28);
+            // the rounded box with a grey hint inside
+            FormParts.PlaceBox(this, box, BOX_LEFT, top, BOX_WIDTH, placeholder);
 
             // the red message for this box sits right under it
             Label lblBoxMessage = new Label();
             lblBoxMessage.ForeColor = UiTheme.ACCENT_RED;
             lblBoxMessage.Font = UiTheme.SMALL_FONT;
-            lblBoxMessage.SetBounds(BOX_LEFT, top + 30, MESSAGE_WIDTH, 20);
+            lblBoxMessage.SetBounds(BOX_LEFT, top + FormParts.BOX_HEIGHT + 2, MESSAGE_WIDTH, FormParts.MESSAGE_HEIGHT);
             _box_messages[box_index] = lblBoxMessage;
 
             Controls.Add(lblName);
-            Controls.Add(box);
             Controls.Add(lblBoxMessage);
-            FocusGlow.AddTo(this, box);
         }
 
         // a guest must give good details first, a member goes straight on

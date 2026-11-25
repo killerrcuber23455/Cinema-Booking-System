@@ -49,23 +49,19 @@ namespace CinemaBooking.UI
             BackColor = UiTheme.PANEL;
             ForeColor = UiTheme.TEXT;
             Font = UiTheme.BODY_FONT;
-            AutoScroll = true;
+            AutoScroll = false;
 
-            Label lblHeading = new Label();
-            lblHeading.Font = UiTheme.CARD_TITLE_FONT;
-            lblHeading.Text = "Create your account";
-            lblHeading.SetBounds(FormParts.PAGE_PADDING, FormParts.PAGE_PADDING, FormParts.FORM_WIDTH, 26);
-            Controls.Add(lblHeading);
+            FormParts.AddHeading(this, "Create your account", "Join to earn points on every booking.");
 
-            _box_messages[SignUpInput.BOX_NAME] = FormParts.AddRow(this, "Name", txtName, SignUpInput.BOX_NAME);
-            _box_messages[SignUpInput.BOX_EMAIL] = FormParts.AddRow(this, "Email", txtEmail, SignUpInput.BOX_EMAIL);
-            _box_messages[SignUpInput.BOX_PHONE] = FormParts.AddRow(this, "Phone", txtPhone, SignUpInput.BOX_PHONE);
+            _box_messages[SignUpInput.BOX_NAME] = FormParts.AddRow(this, "Name", txtName, SignUpInput.BOX_NAME, "Your full name");
+            _box_messages[SignUpInput.BOX_EMAIL] = FormParts.AddRow(this, "Email", txtEmail, SignUpInput.BOX_EMAIL, "you@example.com");
+            _box_messages[SignUpInput.BOX_PHONE] = FormParts.AddRow(this, "Phone", txtPhone, SignUpInput.BOX_PHONE, "Phone number");
 
             txtPassword.UseSystemPasswordChar = true;
-            _box_messages[SignUpInput.BOX_PASSWORD] = FormParts.AddRow(this, "Password (at least 8 characters)", txtPassword, SignUpInput.BOX_PASSWORD);
+            _box_messages[SignUpInput.BOX_PASSWORD] = FormParts.AddRow(this, "Password", txtPassword, SignUpInput.BOX_PASSWORD, "At least 8 characters");
 
             txtConfirm.UseSystemPasswordChar = true;
-            _box_messages[SignUpInput.BOX_CONFIRM_PASSWORD] = FormParts.AddRow(this, "Password again", txtConfirm, SignUpInput.BOX_CONFIRM_PASSWORD);
+            _box_messages[SignUpInput.BOX_CONFIRM_PASSWORD] = FormParts.AddRow(this, "Password again", txtConfirm, SignUpInput.BOX_CONFIRM_PASSWORD, "Repeat the password");
 
             // pressing Enter in the last box is the same as clicking the create button
             txtConfirm.KeyDown += (sender, e) =>
@@ -79,19 +75,17 @@ namespace CinemaBooking.UI
 
             int buttons_top = FormParts.TopUnderRows(SignUpInput.BOX_COUNT);
 
-            btnCreate.SetBounds(FormParts.PAGE_PADDING, buttons_top, 180, 40);
+            FormParts.PlaceWide(btnCreate, buttons_top);
             btnCreate.Click += (sender, e) => ClickCreate();
-
-            Button btnBack = FormParts.MakeButton("Back to sign in", UiTheme.CARD);
-            btnBack.SetBounds(FormParts.PAGE_PADDING + 192, buttons_top, 188, 40);
-            btnBack.Click += (sender, e) => _go_login();
+            Controls.Add(btnCreate);
 
             lblMessage.ForeColor = UiTheme.ACCENT_RED;
-            lblMessage.SetBounds(FormParts.PAGE_PADDING, buttons_top + 52, FormParts.FORM_WIDTH, 60);
-
-            Controls.Add(btnCreate);
-            Controls.Add(btnBack);
+            lblMessage.Font = UiTheme.SMALL_FONT;
+            lblMessage.TextAlign = ContentAlignment.MiddleCenter;
+            lblMessage.SetBounds(FormParts.PAGE_PADDING, buttons_top + FormParts.BUTTON_HEIGHT + 6, FormParts.FORM_WIDTH, 34);
             Controls.Add(lblMessage);
+
+            FormParts.AddLinkLine(this, "Already have an account?", "Sign in", buttons_top + FormParts.BUTTON_HEIGHT + 44, _go_login);
         }
 
         // the boxes are checked first, then AuthService makes the account
