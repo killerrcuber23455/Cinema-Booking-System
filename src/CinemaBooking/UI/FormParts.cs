@@ -13,6 +13,8 @@ namespace CinemaBooking.UI
         public const int BOX_HEIGHT = 28;
         public const int ROW_HEIGHT = 74;
         public const int FIRST_ROW_TOP = 56;
+        public const int MESSAGE_HEIGHT = 18;
+        public const int BUTTON_HEIGHT = 46;
 
         // puts a label, a box and an empty red message on the page for row number row_index (0 is the first row)
         // returns the message label, so the page can fill it later
@@ -75,6 +77,13 @@ namespace CinemaBooking.UI
         public static int TopUnderRows(int row_count)
         {
             return FIRST_ROW_TOP + (row_count * ROW_HEIGHT) + 4;
+        }
+
+        // the height a whole form needs: its rows, the full width button and the room under it for the message and the links
+        // STUB for the red step: not worked out yet, so the tests fail first
+        public static int HeightForRows(int row_count)
+        {
+            return 0;
         }
 
         // a rounded button, the red ones glow when the mouse is on them. it keeps a few pixels around it for the glow
