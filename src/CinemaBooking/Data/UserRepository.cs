@@ -284,11 +284,57 @@ namespace CinemaBooking.Data
         }
 
 
-        // saves a new password hash and salt, clears the failed attempts and the lock,
-        // false if the user is not found
+        // saves a new password hash and salt, clears the failed attempts and the lock, and writes
+        // a "password_changed" audit row (without the password or the hash) in one transaction.
+        // returns false if the user is not found, the hash or salt is empty, or the database refuses it
         public bool UpdatePassword(int user_id, string password_hash, string salt)
         {
-            return false;
+            if (string.IsNullOrWhiteSpace(password_hash) || string.IsNullOrWhiteSpace(salt))
+            {
+                return false;
+            }
+
+            using (SqlConnection connection = OpenConnection())
+            using (SqlTransaction transaction = connection.BeginTransaction())
+            {
+                try
+                {
+                    int changed;
+
+                    using (SqlCommand command = new SqlCommand(
+                        "UPDATE users SET password_hash = @password_hash, salt = @salt, " +
+                        "failed_attempts = 0, locked_until = NULL WHERE id = @id",
+                        connection, transaction))
+                    {
+                        command.Parameters.AddWithValue("@password_hash", password_hash);
+                        command.Parameters.AddWithValue("@salt", salt);
+                        command.Parameters.AddWithValue("@id", user_id);
+                        changed = command.ExecuteNonQuery();
+                    }
+
+                    if (changed == 0)
+                    {
+                        transaction.Rollback();
+                        return false;
+                    }
+
+                    InsertAudit(connection, transaction, user_id, "password_changed", "password changed");
+
+                    transaction.Commit();
+                    return true;
+                }
+                catch (SqlException error)
+                {
+                    transaction.Rollback();
+
+                    if (SqlErrors.IsRuleError(error))
+                    {
+                        return false;
+                    }
+
+                    throw;
+                }
+            }
         }
     }
 }
