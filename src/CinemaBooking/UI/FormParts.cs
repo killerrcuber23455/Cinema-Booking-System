@@ -44,6 +44,33 @@ namespace CinemaBooking.UI
             return lblBoxMessage;
         }
 
+        // the same row but with a drop-down list (the role list), the list cannot be typed in
+        public static Label AddListRow(Control page, string label_text, ComboBox list, int row_index)
+        {
+            int row_top = FIRST_ROW_TOP + (row_index * ROW_HEIGHT);
+
+            Label lblName = new Label();
+            lblName.Text = label_text;
+            lblName.ForeColor = UiTheme.TEXT_MUTED;
+            lblName.SetBounds(PAGE_PADDING, row_top, FORM_WIDTH, LABEL_HEIGHT);
+
+            list.DropDownStyle = ComboBoxStyle.DropDownList;
+            list.FlatStyle = FlatStyle.Flat;
+            list.BackColor = UiTheme.INPUT;
+            list.ForeColor = UiTheme.TEXT;
+            list.SetBounds(PAGE_PADDING, row_top + LABEL_HEIGHT, FORM_WIDTH, BOX_HEIGHT);
+
+            Label lblBoxMessage = new Label();
+            lblBoxMessage.ForeColor = UiTheme.ACCENT_RED;
+            lblBoxMessage.Font = UiTheme.SMALL_FONT;
+            lblBoxMessage.SetBounds(PAGE_PADDING, row_top + LABEL_HEIGHT + BOX_HEIGHT + 2, FORM_WIDTH, 20);
+
+            page.Controls.Add(lblName);
+            page.Controls.Add(list);
+            page.Controls.Add(lblBoxMessage);
+            return lblBoxMessage;
+        }
+
         // the top of the space under the last row, where the buttons go
         public static int TopUnderRows(int row_count)
         {

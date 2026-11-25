@@ -11,19 +11,39 @@ namespace CinemaBooking.UI
         // the texts of the role list, in the order of StaffInput.ChoosableRoles
         public static string[] RoleOptions()
         {
-            return new string[0];
+            string[] options = new string[StaffInput.ChoosableRoles.Length];
+
+            for (int role_index = 0; role_index < options.Length; role_index++)
+            {
+                options[role_index] = StaffInput.ChoosableRoles[role_index].ToString();
+            }
+
+            return options;
         }
 
         // the role for the text chosen in the role list, null when the text is empty or not a role the list offers
+        // spaces around the text and capital letters do not matter, a number like "2" is not a role
         public static Role? ParseRole(string? text)
         {
+            string clean_text = (text ?? "").Trim();
+
+            for (int role_index = 0; role_index < StaffInput.ChoosableRoles.Length; role_index++)
+            {
+                Role role = StaffInput.ChoosableRoles[role_index];
+
+                if (string.Equals(role.ToString(), clean_text, StringComparison.OrdinalIgnoreCase))
+                {
+                    return role;
+                }
+            }
+
             return null;
         }
 
         // the line shown after an account is made, for example "Staff account created for ann@x.com"
         public static string SuccessMessage(string email, Role role)
         {
-            return "";
+            return role + " account created for " + email;
         }
     }
 }
