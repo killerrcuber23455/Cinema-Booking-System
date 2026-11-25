@@ -10,14 +10,12 @@ namespace CinemaBooking.UI
     {
         Films,
         Showings,
-        BookSeats,
         MyBookings,
         CancelBooking,
         Members,
         TierRules,
         StaffAccounts,
-        Admin,
-        Account
+        Admin
     }
 
     public static class MenuRules
@@ -25,30 +23,29 @@ namespace CinemaBooking.UI
         // the role the program starts with, before anyone signs in
         public const Role STARTING_ROLE = Role.Guest;
 
-        // a guest can look at films, find a booking and sign in
+        // a guest can look at films and find a booking, signing in is on the landing window and in the user box
         private static readonly MenuItem[] GUEST_ITEMS =
         {
-            MenuItem.Films, MenuItem.CancelBooking, MenuItem.Account
+            MenuItem.Films, MenuItem.CancelBooking
         };
 
-        // a customer sees their own bookings
+        // a customer sees their own bookings, the account is in the user box at the bottom
         private static readonly MenuItem[] CUSTOMER_ITEMS =
         {
-            MenuItem.Films, MenuItem.MyBookings, MenuItem.Account
+            MenuItem.Films, MenuItem.MyBookings
         };
 
-        // staff run the cinema desk: showings, booking for a customer, cancelling and members
+        // staff run the cinema desk: showings, cancelling and members
         private static readonly MenuItem[] STAFF_ITEMS =
         {
-            MenuItem.Films, MenuItem.Showings, MenuItem.BookSeats,
-            MenuItem.CancelBooking, MenuItem.Members, MenuItem.Account
+            MenuItem.Films, MenuItem.Showings, MenuItem.CancelBooking, MenuItem.Members
         };
 
-        // an admin sees everything staff see, and also the tier rules and the admin page
+        // an admin sees everything staff see, and also the tier rules, the staff accounts page and the admin page
         private static readonly MenuItem[] ADMIN_ITEMS =
         {
-            MenuItem.Films, MenuItem.Showings, MenuItem.BookSeats,
-            MenuItem.CancelBooking, MenuItem.Members, MenuItem.TierRules, MenuItem.Admin, MenuItem.Account
+            MenuItem.Films, MenuItem.Showings, MenuItem.CancelBooking, MenuItem.Members,
+            MenuItem.TierRules, MenuItem.StaffAccounts, MenuItem.Admin
         };
 
         // true when this role may see this menu button
@@ -77,17 +74,6 @@ namespace CinemaBooking.UI
                 default:
                     return (MenuItem[])GUEST_ITEMS.Clone();
             }
-        }
-
-        // the text of the account button: "Sign in" for a guest, "My account" for everyone else
-        public static string AccountLabel(Role role)
-        {
-            if (!Enum.IsDefined<Role>(role) || role == Role.Guest)
-            {
-                return "Sign in";
-            }
-
-            return "My account";
         }
     }
 }

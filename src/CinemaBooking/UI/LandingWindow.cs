@@ -1,6 +1,7 @@
 // the landing window: the first window when the program runs, before the main window (owner: divyesh)
-// it only shows the choices and remembers which one was pressed (Choice). what each choice leads to is decided
-// by LandingRules, so this window holds no rules.
+// it shows the choices. sign in, sign up and the first admin are forms inside the card of this window, so the user
+// is already signed in when the main window opens. what the window gives back is a LandingOutcome, the rules for
+// it are in LandingRules, SignInRules and AuthService, so this window holds no rules.
 // two film strips of the real posters drift past on the sides (one up, one down) and a red glow sits behind the card.
 // the strips stop and the window shows at once when Windows has animations switched off.
 using System;
@@ -9,13 +10,15 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Windows.Forms;
+using CinemaBooking.Models;
+using CinemaBooking.Services;
 
 namespace CinemaBooking.UI
 {
     public class LandingWindow : Form
     {
         private const int WINDOW_WIDTH = 1000;
-        private const int WINDOW_HEIGHT = 640;
+        private const int WINDOW_HEIGHT = 720;
 
         // the film strips on the left and the right
         private const int STRIP_WIDTH = 240;
@@ -32,6 +35,11 @@ namespace CinemaBooking.UI
 
         private const int CARD_WIDTH = 460;
         private const int CARD_HEIGHT = 500;
+
+        // the card is taller while a form is open, the form starts under the logo
+        private const int CARD_FORM_HEIGHT = 640;
+        private const int FORM_TOP = 96;
+        private const int FORM_WIDTH = 400;
         private const int BUTTON_WIDTH = 340;
 
         private const float SCROLL_PER_FRAME = 0.9f;
@@ -56,12 +64,22 @@ namespace CinemaBooking.UI
         private readonly Button btnSignUp = FormParts.MakeButton("Sign up", UiTheme.CARD);
         private readonly Button btnGuest = FormParts.MakeButton("Continue as guest", UiTheme.PANEL);
         private readonly Button btnStaff = FormParts.MakeButton("Staff and admin sign in", UiTheme.CARD);
+        private readonly Button btnFirstAdmin = FormParts.MakeButton("No admin yet? Set up the first admin", UiTheme.PANEL);
 
-        // what the user pressed, None until a button is pressed
-        public LandingChoice Choice { get; private set; } = LandingChoice.None;
+        private readonly AuthService _auth_service;
 
-        public LandingWindow()
+        // the parts of the first view of the card, they are hidden while a form is open
+        private readonly List<Control> _home_parts = new List<Control>();
+
+        // the form open inside the card (sign in, sign up or first admin), null while the first view shows
+        private Control? _form_view;
+
+        // how the window ended: closed, a guest, or someone who signed in here
+        public LandingOutcome Outcome { get; private set; } = LandingOutcome.Closed();
+
+        public LandingWindow(AuthService auth_service)
         {
+            _auth_service = auth_service;
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -84,7 +102,15 @@ namespace CinemaBooking.UI
             {
                 if (e.KeyCode == Keys.Escape)
                 {
-                    Close();
+                    // Esc goes back from a form to the first view, and closes the window from the first view
+                    if (_form_view != null)
+                    {
+                        ShowHome();
+                    }
+                    else
+                    {
+                        Close();
+                    }
                 }
             };
 
@@ -99,7 +125,7 @@ namespace CinemaBooking.UI
         // the card in the middle: logo, one line about the app and the four ways in
         private void BuildCard()
         {
-            _card.SetBounds((WINDOW_WIDTH - CARD_WIDTH) / 2, (WINDOW_HEIGHT - CARD_HEIGHT) / 2, CARD_WIDTH, CARD_HEIGHT);
+            PlaceCard(CARD_HEIGHT);
 
             lblTagline.Text = "Pick a film, choose your seats and keep every ticket in one place.";
             lblTagline.Font = UiTheme.BODY_FONT;
@@ -122,6 +148,13 @@ namespace CinemaBooking.UI
             _card.Controls.Add(lblStaff);
 
             PlaceButton(btnStaff, 426, 42, UiTheme.MENU_FONT, UiTheme.TEXT);
+
+            // the first admin button only shows while there is no admin yet
+            PlaceButton(btnFirstAdmin, 358, 30, UiTheme.SMALL_FONT, UiTheme.TEXT_MUTED);
+            btnFirstAdmin.Visible = !HasAdmin();
+            btnFirstAdmin.Click += (sender, e) => ShowFirstAdmin();
+
+            _home_parts.AddRange(new Control[] { lblTagline, btnSignIn, btnSignUp, btnGuest, lblStaff, btnStaff, btnFirstAdmin });
 
             btnSignIn.Click += (sender, e) => Choose(LandingChoice.LogIn);
             btnSignUp.Click += (sender, e) => Choose(LandingChoice.SignUp);
@@ -159,11 +192,127 @@ namespace CinemaBooking.UI
             Controls.Add(lblClose);
         }
 
-        // remembers the choice and closes, the program then opens the main window
+        // true when an admin exists. if the database cannot be reached the button stays hidden: the sign in shows the clear message
+        private bool HasAdmin()
+        {
+            try
+            {
+                return _auth_service.HasAnyAdmin();
+            }
+            catch (InvalidOperationException)
+            {
+                return true;
+            }
+        }
+
+        // puts the card in the middle of the window with the given height
+        private void PlaceCard(int height)
+        {
+            _card.SetBounds((WINDOW_WIDTH - CARD_WIDTH) / 2, (WINDOW_HEIGHT - height) / 2, CARD_WIDTH, height);
+        }
+
+        // a guest closes the window, the other buttons open their form inside the card
         private void Choose(LandingChoice choice)
         {
-            Choice = choice;
+            switch (choice)
+            {
+                case LandingChoice.Guest:
+                    Outcome = LandingOutcome.Guest();
+                    Close();
+                    break;
+                case LandingChoice.SignUp:
+                    ShowSignUp();
+                    break;
+                case LandingChoice.LogIn:
+                case LandingChoice.Staff:
+                    ShowSignIn(SignInRules.StartingChoice(choice), "");
+                    break;
+            }
+        }
+
+        // the sign in form, the notice is a good message above the boxes like "account created"
+        private void ShowSignIn(SignInAs start_choice, string notice)
+        {
+            ShowForm(new LoginForm(
+                _auth_service,
+                start_choice,
+                SignedIn,
+                ShowSignUp,
+                ShowHome,
+                notice));
+        }
+
+        // the sign up form, after it works the sign in form opens with a notice
+        private void ShowSignUp()
+        {
+            ShowForm(new SignUpForm(
+                _auth_service,
+                email => ShowSignIn(SignInAs.Customer, "Account created for " + email + ", sign in now"),
+                () => ShowSignIn(SignInAs.Customer, "")));
+        }
+
+        // the form for the very first admin, after it works the staff sign in opens with a notice
+        private void ShowFirstAdmin()
+        {
+            ShowForm(new FirstAdminForm(
+                _auth_service,
+                email =>
+                {
+                    btnFirstAdmin.Visible = false;
+                    ShowSignIn(SignInAs.Admin, "Admin account created for " + email + ", sign in now");
+                },
+                ShowHome));
+        }
+
+        // the login worked and the choice fits the account: the window ends with the outcome and the main window opens
+        private void SignedIn(Role role, Member? member, string email)
+        {
+            Outcome = LandingOutcome.SignedIn(role, member, email);
             Close();
+        }
+
+        // shows a form inside the card instead of the first view, the old form is freed
+        private void ShowForm(Control form)
+        {
+            CloseForm();
+
+            foreach (Control part in _home_parts)
+            {
+                part.Visible = false;
+            }
+
+            PlaceCard(CARD_FORM_HEIGHT);
+            form.BackColor = _card.BackColor;
+            form.SetBounds((CARD_WIDTH - FORM_WIDTH) / 2, FORM_TOP, FORM_WIDTH, CARD_FORM_HEIGHT - FORM_TOP - 16);
+            _card.Controls.Add(form);
+            _form_view = form;
+            form.Focus();
+        }
+
+        // back to the first view of the card: logo, tagline and the buttons
+        private void ShowHome()
+        {
+            CloseForm();
+            PlaceCard(CARD_HEIGHT);
+
+            foreach (Control part in _home_parts)
+            {
+                part.Visible = true;
+            }
+
+            btnFirstAdmin.Visible = !HasAdmin();
+            ActiveControl = btnSignIn;
+        }
+
+        // frees the open form, if there is one
+        private void CloseForm()
+        {
+            if (_form_view != null)
+            {
+                _card.Controls.Remove(_form_view);
+                _form_view.Dispose();
+                _form_view = null;
+            }
         }
 
         // one animation step: fade the window in once, then move the strips

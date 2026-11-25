@@ -1,6 +1,6 @@
-// the login page: an email box, a password box and a sign in button (owner: divyesh)
-// it is a page shown inside the main window. it only reads the boxes and shows messages: the boxes are
-// checked by LoginInput and the login itself, the lock-out and the audit rows are done by AuthService
+// the sign in form of the landing window: who you are signing in as, an email box, a password box (owner: divyesh)
+// it only reads the boxes and shows messages: the boxes are checked by LoginInput, the login itself, the lock-out and
+// the audit rows are done by AuthService, and SignInRules says if the chosen "sign in as" fits the account
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -11,27 +11,32 @@ namespace CinemaBooking.UI
 {
     public class LoginForm : UserControl
     {
+        // the "sign in as" list is the first row, so the email and password rows start one row lower
+        private const int ROW_AS = 0;
+        private const int FIRST_BOX_ROW = 1;
+
         private readonly AuthService _auth_service;
 
-        // called when the login worked, with the role, the member (null for staff and admin) and the email
+        // called when the login worked and the choice fits, with the role, the member (null for staff and admin) and the email
         private readonly Action<Role, Member?, string> _signed_in;
 
         // called when the user clicks the sign up button
         private readonly Action _go_sign_up;
 
-        // called when the user clicks "set up the first admin", null means there is no such button
-        private readonly Action? _go_first_admin;
+        // called when the user clicks back, the landing window shows its first buttons again
+        private readonly Action _go_back;
 
         // a good message above the boxes, like "account created", it can be empty
         private readonly string _notice;
 
+        private readonly ComboBox cmbSignInAs = new ComboBox();
         private readonly TextBox txtEmail = new TextBox();
         private readonly TextBox txtPassword = new TextBox();
 
         // one red message under each box, in the same order as the boxes (LoginInput.BOX_EMAIL, BOX_PASSWORD)
         private readonly Label[] _box_messages = new Label[LoginInput.BOX_COUNT];
 
-        // a message about the whole login, like a wrong password or a locked account
+        // a message about the whole login, like a wrong password, a locked account or a wrong "sign in as"
         private readonly Label lblMessage = new Label();
 
         private readonly Button btnSignIn = FormParts.MakeButton("Sign in", UiTheme.ACCENT_RED);
@@ -39,19 +44,19 @@ namespace CinemaBooking.UI
         // true while the login is running on a background thread, a second click is ignored
         private bool _is_busy;
 
-        public LoginForm(AuthService auth_service, Action<Role, Member?, string> signed_in, Action go_sign_up,
-            Action? go_first_admin = null, string notice = "")
+        public LoginForm(AuthService auth_service, SignInAs start_choice, Action<Role, Member?, string> signed_in,
+            Action go_sign_up, Action go_back, string notice = "")
         {
             _auth_service = auth_service;
             _signed_in = signed_in;
             _go_sign_up = go_sign_up;
-            _go_first_admin = go_first_admin;
+            _go_back = go_back;
             _notice = notice;
 
-            BuildPage();
+            BuildPage(start_choice);
         }
 
-        private void BuildPage()
+        private void BuildPage(SignInAs start_choice)
         {
             BackColor = UiTheme.PANEL;
             ForeColor = UiTheme.TEXT;
@@ -65,15 +70,23 @@ namespace CinemaBooking.UI
             Controls.Add(lblHeading);
 
             Label lblNotice = new Label();
-            lblNotice.ForeColor = UiTheme.TEXT_MUTED;
+            lblNotice.ForeColor = UiTheme.GOOD;
             lblNotice.Text = _notice;
             lblNotice.SetBounds(FormParts.PAGE_PADDING, 34, FormParts.FORM_WIDTH, 20);
             Controls.Add(lblNotice);
 
-            _box_messages[LoginInput.BOX_EMAIL] = FormParts.AddRow(this, "Email", txtEmail, LoginInput.BOX_EMAIL);
+            foreach (SignInAs choice in SignInRules.Choices())
+            {
+                cmbSignInAs.Items.Add(choice.ToString());
+            }
+
+            cmbSignInAs.SelectedItem = start_choice.ToString();
+            FormParts.AddListRow(this, "Sign in as", cmbSignInAs, ROW_AS);
+
+            _box_messages[LoginInput.BOX_EMAIL] = FormParts.AddRow(this, "Email", txtEmail, FIRST_BOX_ROW + LoginInput.BOX_EMAIL);
 
             txtPassword.UseSystemPasswordChar = true;
-            _box_messages[LoginInput.BOX_PASSWORD] = FormParts.AddRow(this, "Password", txtPassword, LoginInput.BOX_PASSWORD);
+            _box_messages[LoginInput.BOX_PASSWORD] = FormParts.AddRow(this, "Password", txtPassword, FIRST_BOX_ROW + LoginInput.BOX_PASSWORD);
 
             // pressing Enter in the password box is the same as clicking sign in
             txtPassword.KeyDown += (sender, e) =>
@@ -85,7 +98,7 @@ namespace CinemaBooking.UI
                 }
             };
 
-            int buttons_top = FormParts.TopUnderRows(LoginInput.BOX_COUNT);
+            int buttons_top = FormParts.TopUnderRows(FIRST_BOX_ROW + LoginInput.BOX_COUNT);
 
             btnSignIn.SetBounds(FormParts.PAGE_PADDING, buttons_top, 180, 40);
             btnSignIn.Click += (sender, e) => ClickSignIn();
@@ -95,23 +108,29 @@ namespace CinemaBooking.UI
             btnSignUp.Click += (sender, e) => _go_sign_up();
 
             lblMessage.ForeColor = UiTheme.ACCENT_RED;
-            lblMessage.SetBounds(FormParts.PAGE_PADDING, buttons_top + 52, FormParts.FORM_WIDTH, 60);
+            lblMessage.SetBounds(FormParts.PAGE_PADDING, buttons_top + 52, FormParts.FORM_WIDTH, 44);
+
+            Button btnBack = FormParts.MakeButton("Back", UiTheme.PANEL);
+            btnBack.ForeColor = UiTheme.TEXT_MUTED;
+            btnBack.SetBounds(FormParts.PAGE_PADDING, buttons_top + 100, 120, 36);
+            btnBack.Click += (sender, e) => _go_back();
 
             Controls.Add(btnSignIn);
             Controls.Add(btnSignUp);
             Controls.Add(lblMessage);
-
-            // the first admin button only appears while there is no admin yet
-            if (_go_first_admin != null)
-            {
-                Button btnFirstAdmin = FormParts.MakeButton("Set up the first admin", UiTheme.CARD);
-                btnFirstAdmin.SetBounds(FormParts.PAGE_PADDING, buttons_top + 120, FormParts.FORM_WIDTH, 36);
-                btnFirstAdmin.Click += (sender, e) => _go_first_admin();
-                Controls.Add(btnFirstAdmin);
-            }
+            Controls.Add(btnBack);
         }
 
-        // the boxes are checked first, then AuthService tries the login
+        // the "sign in as" choice, the first one if nothing is chosen
+        private SignInAs ChosenSignInAs()
+        {
+            SignInAs[] choices = SignInRules.Choices();
+            int chosen_index = cmbSignInAs.SelectedIndex;
+
+            return chosen_index >= 0 && chosen_index < choices.Length ? choices[chosen_index] : choices[0];
+        }
+
+        // the boxes are checked first, then AuthService tries the login, then the choice is checked against the real role
         private async void ClickSignIn()
         {
             if (_is_busy)
@@ -139,6 +158,7 @@ namespace CinemaBooking.UI
             // the database call runs on a background thread so the window does not freeze
             string email = input!.Email;
             string password = input.Password;
+            SignInAs chosen = ChosenSignInAs();
 
             SetBusy(true);
             CallResult<(bool Ok, Role Role, Member? Member, string Error)> result = await BackgroundCall.RunAsync(() =>
@@ -169,6 +189,14 @@ namespace CinemaBooking.UI
             }
 
             txtPassword.Text = "";
+
+            // the password was right, but the account may be another kind than the one chosen
+            if (!SignInRules.IsAllowed(chosen, role))
+            {
+                lblMessage.Text = SignInRules.RefusalMessage(chosen, role);
+                return;
+            }
+
             _signed_in(role, member, email);
         }
 

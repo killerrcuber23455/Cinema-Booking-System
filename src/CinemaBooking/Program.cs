@@ -13,22 +13,16 @@ namespace CinemaBooking
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            // one showing table for the whole program, the booking service must be given this same one
-            ShowingTable showing_table = new ShowingTable();
-
             // the login needs the database, so read appsettings.json first
             AuthService auth_service;
-            BookingService booking_service;
-            IDatabase booking_database;
+            Database database;
             try
             {
                 AppConfig config = new AppConfig();
-                Database database = new Database(config);
+                database = new Database(config);
                 UserRepository users = new UserRepository(config);
                 MemberService member_service = new MemberService(database);
                 auth_service = new AuthService(users, member_service);
-                booking_database = database;
-                booking_service = new BookingService(database, showing_table);
             }
             catch (Exception ex)
             {
@@ -37,22 +31,35 @@ namespace CinemaBooking
                 return;
             }
 
-            ShowingService showing_service = new ShowingService(showing_table);
-            // the landing window comes first and gives one choice back, closing it without a choice ends the program
-            UI.LandingChoice choice;
-            using (UI.LandingWindow landing = new UI.LandingWindow())
+            // the landing window comes first and gives one outcome back, closing it without a choice ends the program
+            // signing out in the main window comes back here, so the landing window shows again for the next person
+            while (true)
             {
-                landing.ShowDialog();
-                choice = landing.Choice;
-            }
+                UI.LandingOutcome outcome;
+                using (UI.LandingWindow landing = new UI.LandingWindow(auth_service))
+                {
+                    landing.ShowDialog();
+                    outcome = landing.Outcome;
+                }
 
-            if (!UI.LandingRules.ShouldOpenMain(choice))
-            {
-                return;
-            }
+                if (!UI.LandingRules.ShouldOpenMain(outcome))
+                {
+                    return;
+                }
 
-            Application.Run(new UI.MainForm(showing_service, auth_service, showing_table, booking_service, booking_database,
-                UI.LandingRules.FirstPageFor(choice)));
+                // one showing table for each time the main window opens, the booking service must be given this same one
+                ShowingTable showing_table = new ShowingTable();
+                BookingService booking_service = new BookingService(database, showing_table);
+                ShowingService showing_service = new ShowingService(showing_table);
+
+                UI.MainForm main_window = new UI.MainForm(showing_service, auth_service, showing_table, booking_service, database, outcome);
+                Application.Run(main_window);
+
+                if (!main_window.WantsLanding)
+                {
+                    return;
+                }
+            }
         }
     }
 }

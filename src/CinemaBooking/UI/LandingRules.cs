@@ -1,11 +1,13 @@
 // what the landing window leads to (owner: divyesh)
-// the landing window is the first window of the program: it shows before the main window and gives one choice back.
+// the landing window is the first window of the program: it shows before the main window. the user can continue
+// as a guest, or sign in, sign up or set up the first admin inside the landing window itself. it gives back one outcome.
 // the program only asks this class, so the rules are in one place and can be tested
 using CinemaBooking.Models;
 
 namespace CinemaBooking.UI
 {
-    // what the user pressed on the landing window, None means the window was closed without a choice
+    // the button pressed on the landing window, it tells the window which form to open
+    // None means nothing is pressed
     public enum LandingChoice
     {
         None,
@@ -14,16 +16,6 @@ namespace CinemaBooking.UI
         SignUp,
         Staff
     }
-
-    // the page the main window opens first
-    public enum FirstPage
-    {
-        Films,
-        Login,
-        SignUp,
-        StaffLogin
-    }
-
 
     // how the landing window ended
     public enum LandingKind
@@ -49,19 +41,22 @@ namespace CinemaBooking.UI
             Email = email;
         }
 
+        // the window was closed without a choice
         public static LandingOutcome Closed()
         {
             return new LandingOutcome(LandingKind.Closed, Role.Guest, null, "");
         }
 
+        // the user continues as a guest
         public static LandingOutcome Guest()
         {
-            return Closed();
+            return new LandingOutcome(LandingKind.Guest, Role.Guest, null, "");
         }
 
+        // the user signed in, the member is null for staff and admin
         public static LandingOutcome SignedIn(Role role, Member? member, string email)
         {
-            return Closed();
+            return new LandingOutcome(LandingKind.SignedIn, role, member, email);
         }
     }
 
@@ -70,32 +65,7 @@ namespace CinemaBooking.UI
         // the program opens the main window for a guest and for someone who signed in, never when the window was closed
         public static bool ShouldOpenMain(LandingOutcome outcome)
         {
-            return false;
-        }
-
-        // shown above the boxes when staff or admin come in from the landing window
-        public const string STAFF_NOTICE = "Staff and admin: sign in with your work email and password";
-
-        // closing the landing window without a choice ends the program, every real choice opens the main window
-        public static bool ShouldOpenMain(LandingChoice choice)
-        {
-            return choice != LandingChoice.None;
-        }
-
-        // the guest starts on the films, the others start on the page they asked for
-        public static FirstPage FirstPageFor(LandingChoice choice)
-        {
-            switch (choice)
-            {
-                case LandingChoice.LogIn:
-                    return FirstPage.Login;
-                case LandingChoice.SignUp:
-                    return FirstPage.SignUp;
-                case LandingChoice.Staff:
-                    return FirstPage.StaffLogin;
-                default:
-                    return FirstPage.Films;
-            }
+            return outcome.Kind != LandingKind.Closed;
         }
     }
 }

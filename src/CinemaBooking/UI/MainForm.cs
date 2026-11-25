@@ -39,13 +39,12 @@ namespace CinemaBooking.UI
         // the menu buttons, RefreshMenu shows the ones the signed in role may see
         private readonly MenuButton btnFilms = new MenuButton();
         private readonly MenuButton btnShowings = new MenuButton();
-        private readonly MenuButton btnBookSeats = new MenuButton();
         private readonly MenuButton btnMyBookings = new MenuButton();
         private readonly MenuButton btnCancel = new MenuButton();
         private readonly MenuButton btnMembers = new MenuButton();
         private readonly MenuButton btnTiers = new MenuButton();
+        private readonly MenuButton btnStaffAccounts = new MenuButton();
         private readonly MenuButton btnAdmin = new MenuButton();
-        private readonly MenuButton btnAccount = new MenuButton();
         private readonly MenuButton btnExit = new MenuButton();
 
         // the button that is open now, it is shown in red
@@ -84,12 +83,17 @@ namespace CinemaBooking.UI
         private bool _is_full_bleed;
 
         public MainForm(ShowingService showing_service, AuthService auth_service, ShowingTable showing_table,
-            BookingService booking_service, IDatabase database, FirstPage first_page = FirstPage.Films)
+            BookingService booking_service, IDatabase database, LandingOutcome outcome)
         {
             _showing_service = showing_service;
             _auth_service = auth_service;
             _booking_service = booking_service;
             _database = database;
+
+            // the landing window may have signed the user in already
+            _current_role = outcome.Role;
+            _current_member = outcome.Member;
+            _current_email = outcome.Email;
             _showing_table = showing_table;
             _film_service = new FilmService(_films);
             _catalog_store = new CatalogStore(database, _films, showing_table, _film_service);
@@ -108,30 +112,16 @@ namespace CinemaBooking.UI
             {
                 _toast.ShowMessage(load_message, true);
             }
-            ShowFirstPage(first_page);
-        }
+            ShowPage(btnFilms, "Films", MakeFilmsPage());
 
-        // the page the landing window asked for: the films for a guest, otherwise the sign in or sign up page
-        private void ShowFirstPage(FirstPage first_page)
-        {
-            string account_title = MenuRules.AccountLabel(_current_role);
-
-            switch (first_page)
+            if (outcome.Kind == LandingKind.SignedIn)
             {
-                case FirstPage.Login:
-                    ShowPage(btnAccount, account_title, MakeLoginPage(""));
-                    break;
-                case FirstPage.SignUp:
-                    ShowPage(btnAccount, "Sign up", MakeSignUpPage());
-                    break;
-                case FirstPage.StaffLogin:
-                    ShowPage(btnAccount, account_title, MakeLoginPage(LandingRules.STAFF_NOTICE));
-                    break;
-                default:
-                    ShowPage(btnFilms, "Films", MakeFilmsPage());
-                    break;
+                _toast.ShowMessage("Signed in as " + outcome.Email, false);
             }
         }
+
+        // true when the user signed out or wants to sign in: the program then shows the landing window again
+        public bool WantsLanding { get; private set; }
 
         // sets up the window itself
         private void BuildWindow()
@@ -176,16 +166,18 @@ namespace CinemaBooking.UI
             // each menu item shows its page when it is clicked, RefreshMenu shows the ones this role may see
             AddMenuButton(btnFilms, "Films", UiTheme.ICON_FILMS, MakeFilmsPage);
             AddMenuButton(btnShowings, "Showings", UiTheme.ICON_SHOWINGS, MakeShowingsPage);
-            AddMenuButton(btnBookSeats, "Book seats", UiTheme.ICON_BOOK_SEATS, () => MakePlaceholderPage("Choosing a showing and seats will be done here."));
             AddMenuButton(btnMyBookings, "My bookings", UiTheme.ICON_MY_BOOKINGS, MakeMyBookingsPage);
             AddMenuButton(btnCancel, "Cancel booking", UiTheme.ICON_CANCEL, MakeFindBookingPage);
             AddMenuButton(btnMembers, "Members", UiTheme.ICON_MEMBERS, () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
             AddMenuButton(btnTiers, "Tier rules", UiTheme.ICON_TIER_RULES, MakeTierRulesPage);
-            AddMenuButton(btnAdmin, "Admin", UiTheme.ICON_ADMIN, MakeAdminPage);
-            AddMenuButton(btnAccount, "My account", UiTheme.ICON_ACCOUNT, MakeAccountPage);
+            AddMenuButton(btnStaffAccounts, "Staff accounts", UiTheme.ICON_MEMBERS, MakeStaffAccountsPage);
+            AddMenuButton(btnAdmin, "Manage films", UiTheme.ICON_ADMIN, MakeAdminPage);
 
             // the user box is at the very bottom, exit sits just above it. both are docked, so they stay there at any window height
             _user_chip.Dock = DockStyle.Bottom;
+            _user_chip.Cursor = Cursors.Hand;
+            _user_chip.Click += (sender, e) => ShowUserMenu();
+            _tips.SetToolTip(_user_chip, "Account");
 
             btnExit.Text = "Exit";
             btnExit.Glyph = UiTheme.ICON_EXIT;
@@ -347,9 +339,6 @@ namespace CinemaBooking.UI
                 button.Visible = true;
             }
 
-            btnAccount.Text = MenuRules.AccountLabel(_current_role);
-            _tips.SetToolTip(btnAccount, btnAccount.Text);
-
             // the user box at the bottom shows who is signed in
             if (_current_role == Role.Guest)
             {
@@ -369,8 +358,6 @@ namespace CinemaBooking.UI
             {
                 case MenuItem.Showings:
                     return btnShowings;
-                case MenuItem.BookSeats:
-                    return btnBookSeats;
                 case MenuItem.MyBookings:
                     return btnMyBookings;
                 case MenuItem.CancelBooking:
@@ -379,10 +366,10 @@ namespace CinemaBooking.UI
                     return btnMembers;
                 case MenuItem.TierRules:
                     return btnTiers;
+                case MenuItem.StaffAccounts:
+                    return btnStaffAccounts;
                 case MenuItem.Admin:
                     return btnAdmin;
-                case MenuItem.Account:
-                    return btnAccount;
                 default:
                     return btnFilms;
             }
@@ -520,6 +507,17 @@ namespace CinemaBooking.UI
             return new AdminTiersForm();
         }
 
+        // the page where an admin makes a staff or admin account (card 436), only an admin gets it
+        private Control MakeStaffAccountsPage()
+        {
+            if (_current_role != Role.Admin)
+            {
+                return MakePlaceholderPage("Sign in as an admin to create staff accounts.");
+            }
+
+            return new StaffAccountsForm(_auth_service, _current_role, _current_email, ShowGoodToast);
+        }
+
         // the admin page opens only when an admin is signed in
         private Control MakeAdminPage()
         {
@@ -553,7 +551,7 @@ namespace CinemaBooking.UI
                 seat_codes,
                 _current_member,
                 () => OpenSeatMap(film, showing),
-                () => ShowPage(btnAccount, btnAccount.Text, MakeAccountPage()),
+                GoToLanding,
                 guest_details => ConfirmBooking(film, showing, seat_codes, guest_details));
 
             ShowPage(btnFilms, "Booking summary", summary_page);
@@ -605,80 +603,53 @@ namespace CinemaBooking.UI
                 new BookingConfirmedForm(result.Value.Booking, film, showing, () => ShowPage(btnFilms, "Films", MakeFilmsPage())));
         }
 
-        // the account button shows the login page for a guest and the account page for someone signed in
-        private Control MakeAccountPage()
+        // the user box at the bottom of the menu opens a small menu, what it holds depends on who is signed in (UserMenuRules)
+        private void ShowUserMenu()
         {
-            if (_current_role == Role.Guest)
+            ContextMenuStrip menu = new ContextMenuStrip();
+            menu.Renderer = new DarkMenuRenderer();
+            menu.BackColor = UiTheme.CARD;
+            menu.ForeColor = UiTheme.TEXT;
+            menu.Font = UiTheme.BODY_FONT;
+            menu.ShowImageMargin = false;
+
+            foreach (UserMenuItem item in UserMenuRules.ItemsFor(_current_role))
             {
-                return MakeLoginPage("");
+                UserMenuItem chosen_item = item;
+                ToolStripMenuItem entry = new ToolStripMenuItem(UserMenuRules.LabelFor(item));
+                entry.ForeColor = UiTheme.TEXT;
+                entry.Padding = new Padding(6, 6, 6, 6);
+                entry.Click += (sender, e) => RunUserMenuItem(chosen_item);
+                menu.Items.Add(entry);
             }
 
-            return new AccountForm(_current_role, _current_email, _current_member, SignOut);
+            // the menu is freed after it closed, not while a click on it is still being handled
+            menu.Closed += (sender, e) => BeginInvoke(new Action(menu.Dispose));
+            menu.Show(_user_chip, new Point(8, 0), ToolStripDropDownDirection.AboveRight);
         }
 
-        // the login page, the notice is a good message above the boxes, like "account created"
-        // the first admin button only shows while there is no admin yet
-        private Control MakeLoginPage(string notice)
+        // does what the chosen entry of the user menu says
+        private void RunUserMenuItem(UserMenuItem item)
         {
-            Action? go_first_admin = null;
-
-            // if the database cannot be reached, no button is shown here: the sign in will show the clear message
-            bool has_admin = true;
-
-            try
+            switch (item)
             {
-                has_admin = _auth_service.HasAnyAdmin();
+                case UserMenuItem.AccountDetails:
+                    ShowPage(null, "Account details", new AccountForm(_current_role, _current_email, _current_member, GoToLanding));
+                    break;
+                case UserMenuItem.MyBookings:
+                    ShowPage(btnMyBookings, "My bookings", MakeMyBookingsPage());
+                    break;
+                default:
+                    GoToLanding();
+                    break;
             }
-            catch (InvalidOperationException)
-            {
-                has_admin = true;
-            }
-
-            if (!has_admin)
-            {
-                go_first_admin = () => ShowPage(btnAccount, "Admin setup", new FirstAdminForm(
-                    _auth_service,
-                    email => ShowPage(btnAccount, btnAccount.Text, MakeLoginPage("Admin account created for " + email + ", sign in now")),
-                    () => ShowPage(btnAccount, btnAccount.Text, MakeLoginPage(""))));
-            }
-
-            return new LoginForm(
-                _auth_service,
-                SignedIn,
-                () => ShowPage(btnAccount, "Sign up", MakeSignUpPage()),
-                go_first_admin,
-                notice);
         }
 
-        // the sign up page: after it works the login page opens with a notice
-        private Control MakeSignUpPage()
+        // signing out, and signing in as a guest, both close this window: the program shows the landing window again
+        private void GoToLanding()
         {
-            return new SignUpForm(
-                _auth_service,
-                email => ShowPage(btnAccount, btnAccount.Text, MakeLoginPage("Account created for " + email + ", sign in now")),
-                () => ShowPage(btnAccount, btnAccount.Text, MakeLoginPage("")));
-        }
-
-        // the login worked, so the window remembers who it is, updates the menu and shows the account page
-        private void SignedIn(Role role, Member? member, string email)
-        {
-            _current_role = role;
-            _current_member = member;
-            _current_email = email;
-            RefreshMenu();
-            ShowPage(btnAccount, btnAccount.Text, MakeAccountPage());
-            _toast.ShowMessage("Signed in as " + email, false);
-        }
-
-        // back to a guest, the menu shrinks and the login page opens again
-        private void SignOut()
-        {
-            _current_role = Role.Guest;
-            _current_member = null;
-            _current_email = "";
-            RefreshMenu();
-            ShowPage(btnAccount, btnAccount.Text, MakeAccountPage());
-            _toast.ShowMessage("You are signed out", false);
+            WantsLanding = true;
+            Close();
         }
 
         // a text page for the parts that are not built yet
@@ -693,7 +664,8 @@ namespace CinemaBooking.UI
         }
 
         // shows a page in the content area and marks the clicked button with the red bar
-        private void ShowPage(MenuButton clicked_button, string page_title, Control page)
+        // a page that belongs to no menu button (the account details) is shown with no button, then no button is marked
+        private void ShowPage(MenuButton? clicked_button, string page_title, Control page)
         {
             if (_selected_button != null)
             {
@@ -701,7 +673,11 @@ namespace CinemaBooking.UI
             }
 
             _selected_button = clicked_button;
-            _selected_button.IsActive = true;
+
+            if (_selected_button != null)
+            {
+                _selected_button.IsActive = true;
+            }
 
             lblPageTitle.Text = page_title;
             _is_full_bleed = page is IFullBleedPage;
