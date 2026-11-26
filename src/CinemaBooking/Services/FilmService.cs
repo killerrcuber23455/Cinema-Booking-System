@@ -179,6 +179,13 @@ namespace CinemaBooking.Services
             return SortHelper.MergeSort(all_films, sort_by);
         }
 
+        // how many times the sorted copy of the films has been built, so the tests can see that it is built once and reused
+        // STUB for the red step: nothing is counted yet and nothing is reused, so the tests fail first (card 443)
+        public int SortedCopyBuildCount
+        {
+            get { return 0; }
+        }
+
         // finds one film by its exact title, any case, using binary search on a sorted copy. null if not found
         public Film? FindByExactTitle(string title)
         {
