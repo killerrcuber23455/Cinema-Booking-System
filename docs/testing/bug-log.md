@@ -25,3 +25,7 @@ Every failed test gets a Bug ID in the test table (docs/testing/test-plan.md) an
 AuthService turns every -1 from SaveUser into "this email is already used". Since 318, SaveUser also returns -1 when the database refuses other data (bad role, text too long, unknown member id), so those cases would show the wrong message. Windows cannot reach them today, so it is not urgent. Fix idea: SaveUser could return a separate code or an out error_message. Owner of AuthService: Shankar.
 
 Cards 346, 351, 401, 345, 335 and 405 (Divyesh's tests, red first and then green): the red failures were expected, because the code was not written yet. The two bugs from these cards, BUG-11 and BUG-12, were found later in manual testing by Divyesh.
+
+## Note: CancelBooking tests need the test database
+
+The 19 tests named CancelBooking_... in CancelBookingTests.cs use the real Database class, so they need the test database (CINEMA_TEST_DB). On Kushal's PC the SQL Server login times out, so they fail with "The database could not be reached" at Database.OpenConnection. This is a problem with that PC, not a bug in the code. They pass on a PC where SQL Server works, and they are skipped when CINEMA_TEST_DB is not set.
