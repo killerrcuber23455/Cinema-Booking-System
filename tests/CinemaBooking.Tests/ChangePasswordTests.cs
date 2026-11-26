@@ -44,7 +44,7 @@ public class ChangePasswordTests
     {
         _users = new FakeUserRepository();
         _clock_time = new DateTime(2026, 11, 26, 10, 0, 0);
-        _service = new AuthService(_users, new MemberService(new FakeDatabase()));
+        _service = new AuthService(_users, new MemberService(new FakeDatabase()), () => _clock_time);
         _saved_salt = PasswordHasher.GenerateSalt();
         _saved_hash = PasswordHasher.HashPassword(OLD_PASSWORD, _saved_salt);
         _user_id = _users.SaveUser(EMAIL, _saved_hash, _saved_salt, Role.Customer, null);
@@ -496,5 +496,16 @@ public class ChangePasswordTests
 
         Assert.IsTrue(is_ok);
         Assert.AreEqual("", error_message);
+    }
+
+    // a null current password behaves like an empty one: refused, and not counted as a try
+    [TestMethod]
+    public void ChangePassword_NullOldPassword_DoesNotCountATry()
+    {
+        bool is_ok = _service.ChangePassword(Role.Customer, EMAIL, null!, NEW_PASSWORD, out string error_message);
+
+        Assert.IsFalse(is_ok);
+        Assert.AreEqual(WRONG_OLD_MESSAGE, error_message);
+        Assert.AreEqual(0, GetSavedUser().FailedAttempts);
     }
 }
