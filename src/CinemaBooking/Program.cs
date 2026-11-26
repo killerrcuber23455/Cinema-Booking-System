@@ -13,6 +13,11 @@ namespace CinemaBooking
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            // the whole program is dark, so the scroll bars and the open drop-down lists are dark too (.NET's own dark mode)
+#pragma warning disable WFO5001
+            Application.SetColorMode(SystemColorMode.Dark);
+#pragma warning restore WFO5001
+
             // the login needs the database, so read appsettings.json first
             AuthService auth_service;
             Database database;

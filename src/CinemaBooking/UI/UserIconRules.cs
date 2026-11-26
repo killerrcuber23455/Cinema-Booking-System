@@ -1,5 +1,5 @@
 // what a click on the user box at the bottom of the side menu does (owner: divyesh)
-// STUB for the red step: every click opens the settings, so the guest test fails first
+using System;
 using CinemaBooking.Models;
 
 namespace CinemaBooking.UI
@@ -15,7 +15,12 @@ namespace CinemaBooking.UI
         // a guest is sent to sign in, everyone who is signed in gets the settings page
         public static UserIconAction ActionFor(Role role)
         {
-            return UserIconAction.OpenSettings;
+            if (!Enum.IsDefined<Role>(role))
+            {
+                return UserIconAction.SignIn;
+            }
+
+            return role == Role.Guest ? UserIconAction.SignIn : UserIconAction.OpenSettings;
         }
     }
 }

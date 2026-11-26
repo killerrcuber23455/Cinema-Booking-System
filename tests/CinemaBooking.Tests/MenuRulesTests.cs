@@ -110,16 +110,6 @@ public class MenuRulesTests
     }
 
     [TestMethod]
-    public void IsVisible_NobodySeesAStaffAccountsButton()
-    {
-        // an admin adds accounts in the settings page now
-        foreach (Role role in ALL_ROLES)
-        {
-            Assert.IsFalse(MenuRules.IsVisible(MenuItem.StaffAccounts, role), role.ToString());
-        }
-    }
-
-    [TestMethod]
     public void MenuItem_HasNoStaffAccountsPage()
     {
         Assert.IsFalse(Enum.GetNames<MenuItem>().Contains("StaffAccounts"));

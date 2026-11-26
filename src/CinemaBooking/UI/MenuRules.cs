@@ -14,7 +14,6 @@ namespace CinemaBooking.UI
         CancelBooking,
         Members,
         TierRules,
-        StaffAccounts,
         Admin
     }
 
@@ -45,7 +44,7 @@ namespace CinemaBooking.UI
         private static readonly MenuItem[] ADMIN_ITEMS =
         {
             MenuItem.Films, MenuItem.Showings, MenuItem.CancelBooking, MenuItem.Members,
-            MenuItem.TierRules, MenuItem.StaffAccounts, MenuItem.Admin
+            MenuItem.TierRules, MenuItem.Admin
         };
 
         // true when this role may see this menu button

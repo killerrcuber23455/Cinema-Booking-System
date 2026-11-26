@@ -13,8 +13,7 @@ namespace CinemaBooking.UI
         None,
         Guest,
         LogIn,
-        SignUp,
-        Staff
+        SignUp
     }
 
     // how the landing window ended
