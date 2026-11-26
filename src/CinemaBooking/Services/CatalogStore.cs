@@ -150,6 +150,14 @@ namespace CinemaBooking.Services
         // every film of this file is taken back out (and out of the database) so the program and the database agree
         public bool LoadFilmFile(string file_path, Role role, out string message)
         {
+            // only staff and admin may load a film file. this is checked here and not only by hiding the button,
+            // and it comes first so a refused role never touches the file. a role that is not known is refused too
+            if (role != Role.Staff && role != Role.Admin)
+            {
+                message = LOAD_NOT_ALLOWED_TEXT;
+                return false;
+            }
+
             if (string.IsNullOrWhiteSpace(file_path))
             {
                 message = "no film file was chosen";
