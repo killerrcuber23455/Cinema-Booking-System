@@ -191,8 +191,11 @@ namespace CinemaBooking.Services
             }
 
             Film[] films_in_file = incoming.ListAll();
-            List<int> added_ids = new List<int>();
-            List<int> saved_ids = new List<int>();
+            // plain arrays as long as the file, with a count of how many places are used
+            int[] added_ids = new int[films_in_file.Length];
+            int added_count = 0;
+            int[] saved_ids = new int[films_in_file.Length];
+            int saved_count = 0;
             bool is_all_saved = true;
 
             for (int film_index = 0; film_index < films_in_file.Length && is_all_saved; film_index++)
@@ -211,7 +214,8 @@ namespace CinemaBooking.Services
                     continue;
                 }
 
-                added_ids.Add(film.Id);
+                added_ids[added_count] = film.Id;
+                added_count++;
 
                 bool is_saved;
                 try
@@ -225,7 +229,8 @@ namespace CinemaBooking.Services
 
                 if (is_saved)
                 {
-                    saved_ids.Add(film.Id);
+                    saved_ids[saved_count] = film.Id;
+                    saved_count++;
                 }
                 else
                 {
@@ -236,12 +241,12 @@ namespace CinemaBooking.Services
             if (!is_all_saved)
             {
                 // take every film of this file back out, of the program and of the database
-                for (int added_index = 0; added_index < added_ids.Count; added_index++)
+                for (int added_index = 0; added_index < added_count; added_index++)
                 {
                     _film_service.RemoveFilm(added_ids[added_index], Role.Admin, out _);
                 }
 
-                for (int saved_index = 0; saved_index < saved_ids.Count; saved_index++)
+                for (int saved_index = 0; saved_index < saved_count; saved_index++)
                 {
                     try
                     {
@@ -257,7 +262,7 @@ namespace CinemaBooking.Services
                 return false;
             }
 
-            message = "loaded " + added_ids.Count + " films, skipped " + skipped + " rows from " + Path.GetFileName(file_path);
+            message = "loaded " + added_count + " films, skipped " + skipped + " rows from " + Path.GetFileName(file_path);
             return true;
         }
     }

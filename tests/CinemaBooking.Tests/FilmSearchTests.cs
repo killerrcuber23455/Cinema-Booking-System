@@ -1,4 +1,4 @@
-// tests for the films page search, genre list and loading the film file the user picks (owner: divyesh)
+// tests for the films page search and the genre list (owner: divyesh)
 // written before the code for card 347, so they fail first (red) and pass after (green)
 using System.IO;
 using CinemaBooking.DataStructures;
@@ -103,50 +103,5 @@ public class FilmSearchTests
         string[] genres = film_service.ListGenres();
 
         Assert.AreEqual(0, genres.Length);
-    }
-
-    // loading the file the user picked
-
-    [TestMethod]
-    public void LoadFromFile_GoodFile_LoadsFilmsAndSaysHowMany()
-    {
-        FilmService film_service = new FilmService(new HashTable<int, Film>());
-        string file_path = Path.GetTempFileName();
-        File.WriteAllLines(file_path, new string[]
-        {
-            "id,title,genre,year,duration_minutes,age_rating,description,poster_file",
-            "10,Night Train,Thriller,2020,110,15,A train that never stops,night_train.jpg",
-            "11,Sun Garden,Drama,2019,95,0,Two neighbours share a garden,",
-            "not a film row"
-        });
-
-        bool is_loaded = film_service.LoadFromFile(file_path, out string message);
-        File.Delete(file_path);
-
-        Assert.IsTrue(is_loaded);
-        Assert.IsTrue(message.Contains("loaded 2 films, skipped 1 rows"), message);
-        Assert.AreEqual(2, film_service.Search("", "").Length);
-    }
-
-    [TestMethod]
-    public void LoadFromFile_MissingFile_ReturnsFalseWithReason()
-    {
-        FilmService film_service = new FilmService(new HashTable<int, Film>());
-
-        bool is_loaded = film_service.LoadFromFile("no_such_folder/no_such_file.csv", out string message);
-
-        Assert.IsFalse(is_loaded);
-        Assert.IsTrue(message.Contains("not found"), message);
-    }
-
-    [TestMethod]
-    public void LoadFromFile_EmptyPath_ReturnsFalseWithReason()
-    {
-        FilmService film_service = new FilmService(new HashTable<int, Film>());
-
-        bool is_loaded = film_service.LoadFromFile("", out string message);
-
-        Assert.IsFalse(is_loaded);
-        Assert.AreEqual("no film file was chosen", message);
     }
 }

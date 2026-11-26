@@ -38,7 +38,7 @@ namespace CinemaBooking.Services
                 return false;
             }
 
-            Film? old_film = FindById(film_service, edited_film.Id);
+            Film? old_film = film_service.FindById(edited_film.Id);
 
             if (old_film == null)
             {
@@ -61,21 +61,6 @@ namespace CinemaBooking.Services
 
             error_message = "";
             return true;
-        }
-
-        private static Film? FindById(FilmService film_service, int film_id)
-        {
-            Film[] all_films = film_service.Search("", "");
-
-            for (int film_index = 0; film_index < all_films.Length; film_index++)
-            {
-                if (all_films[film_index].Id == film_id)
-                {
-                    return all_films[film_index];
-                }
-            }
-
-            return null;
         }
     }
 }

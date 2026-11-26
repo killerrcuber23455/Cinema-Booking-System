@@ -444,7 +444,6 @@ namespace CinemaBooking.UI
                 if (Directory.Exists(folder))
                 {
                     string[] files = Directory.GetFiles(folder);
-                    Array.Sort(files, StringComparer.OrdinalIgnoreCase);
 
                     foreach (string file in files)
                     {

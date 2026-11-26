@@ -171,41 +171,6 @@ namespace CinemaBooking.Services
             return genres.ListAll();
         }
 
-        //loads films from the file the user picked, so the file name is never written in the code (added by divyesh for card 347)
-        //returns false with a plain reason if the file cannot be read
-        public bool LoadFromFile(string file_path, out string message)
-        {
-            if (string.IsNullOrWhiteSpace(file_path))
-            {
-                message = "no film file was chosen";
-                return false;
-            }
-
-            try
-            {
-                FileLoader file_loader = new FileLoader(file_path);
-                (int loaded, int skipped) = file_loader.LoadFilms(_films);
-                message = "loaded " + loaded + " films, skipped " + skipped + " rows from " + Path.GetFileName(file_path);
-                return true;
-            }
-            catch (FileNotFoundException)
-            {
-                message = "the film file was not found: " + Path.GetFileName(file_path);
-                return false;
-            }
-            catch (IOException)
-            {
-                //the file is open in another program, for example excel
-                message = "the film file could not be read, close it in other programs and try again";
-                return false;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                message = "you do not have permission to read this film file";
-                return false;
-            }
-        }
-
         // returns all films sorted by "title", "year" or "rating" (merge sort, stable)
         public Film[] SortFilms(string sort_by)
         {
