@@ -352,10 +352,26 @@ public class FakeDatabase : IDatabase
         return added;
     }
 
-    // stub for now, the real rules come with the 405 green step
+    // the real Database.DeleteShowing: false if the id is not found or a booking (even a cancelled one) uses the showing
     public bool DeleteShowing(int showing_id)
     {
-        return false;
+        Showing? showing = _showings.Find(showing_id);
+        if (showing == null)
+        {
+            return false;
+        }
+
+        Booking[] all_bookings = _bookings.ListAll();
+        for (int index = 0; index < all_bookings.Length; index++)
+        {
+            if (all_bookings[index].ShowingId == showing_id)
+            {
+                return false;
+            }
+        }
+
+        _screen_times.Remove(ScreenTimeKey(showing.ScreenId, showing.StartsAt));
+        return _showings.Remove(showing_id);
     }
 
     // ---------- small helpers ----------

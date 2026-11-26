@@ -703,7 +703,27 @@ namespace CinemaBooking.Data
         // deletes a showing by id. returns false if it is not found or it has bookings, never throws for those.
         public bool DeleteShowing(int showing_id)
         {
-            return false;
+            using (SqlConnection connection = OpenConnection())
+            using (SqlCommand command = new SqlCommand(
+                "DELETE FROM showings WHERE id = @id", connection))
+            {
+                command.Parameters.AddWithValue("@id", showing_id);
+
+                try
+                {
+                    return command.ExecuteNonQuery() > 0;
+                }
+                catch (SqlException error)
+                {
+                    // the foreign key from bookings refuses the delete: a normal problem, not a crash
+                    if (SqlErrors.IsRuleError(error))
+                    {
+                        return false;
+                    }
+
+                    throw;
+                }
+            }
         }
     }
 }
