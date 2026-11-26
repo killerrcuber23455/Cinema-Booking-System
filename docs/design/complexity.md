@@ -178,3 +178,16 @@ Genre search checks every film because films with the same genre may be stored i
 
 These average costs assume evenly spread keys and a low load factor. Film IDs are integers, so hashing and comparing each ID are treated as constant-time operations.
 
+## Measured times (card 425)
+
+Owner of this section: Irwin (Tester 2). Full table and method: `docs/testing/timing-results.md`. Average of 5 runs in milliseconds, random films with a fixed seed, Debug build on one laptop (the Release build numbers are in the same file and show the same pattern). Search times are for 100 searches together.
+
+| Operation | Big O | n = 1,000 | n = 10,000 | n = 100,000 |
+|---|---|---|---|---|
+| Merge sort by title | O(n log n) | 0.61 | 9.67 | 119.60 |
+| Bubble sort by title (baseline only) | O(n squared) | 13.67 | 1701.32 | not run (too slow) |
+| Linear search, 100 searches | O(n) each | 10.63 | 77.68 | 876.55 |
+| Binary search, 100 searches | O(log n) each | 0.034 | 0.026 | 0.039 |
+| Hash table lookup by id, 100 lookups | O(1) each | 0.019 | 0.020 | 0.007 |
+
+Do the numbers match Big O? Yes: when n grows 10 times, merge sort gets about 12 to 16 times slower (O(n log n) predicts about 12.5 to 13.3) and bubble sort gets 124 times slower (O(n squared) predicts 100). Linear search grows about 10 times, as O(n) predicts, while binary search and hash lookup stay flat at a few hundredths of a millisecond, as O(log n) and O(1) predict (their small ups and downs are stopwatch noise).
