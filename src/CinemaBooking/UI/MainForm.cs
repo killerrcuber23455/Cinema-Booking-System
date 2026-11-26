@@ -64,6 +64,7 @@ namespace CinemaBooking.UI
         private readonly ShowingService _showing_service;
         private readonly ShowingAdminService _showing_admin_service;
         private readonly ShowingStore _showing_store;
+        private readonly MemberService _member_service;
         private readonly AuthService _auth_service;
         private readonly BookingService _booking_service;
         private readonly IDatabase _database;
@@ -103,6 +104,7 @@ namespace CinemaBooking.UI
             _catalog_store = new CatalogStore(database, _films, showing_table, _film_service);
             _showing_admin_service = new ShowingAdminService(showing_table, FilmExists);
             _showing_store = new ShowingStore(database, _showing_admin_service, showing_table);
+            _member_service = new MemberService(database);
 
             BuildWindow();
             BuildSideMenu();
@@ -446,10 +448,34 @@ namespace CinemaBooking.UI
                 reference =>
                 {
                     bool is_cancelled = _booking_service.CancelBooking(role, member_id, "", reference, out string cancel_error);
+
+                    // the points changed in the database, so the member kept here is read again (the Settings page shows it)
+                    if (is_cancelled)
+                    {
+                        RefreshCurrentMember(member_id);
+                    }
+
                     return (is_cancelled, cancel_error);
                 },
                 DescribeShowingById,
                 ShowGoodToast);
+        }
+
+        // reads the signed in member again from the database, so the points and the tier on the screen are the real ones.
+        // it keeps the old member if the database cannot find or give the member. guests have no member, so nothing happens
+        private void RefreshCurrentMember(int? member_id)
+        {
+            if (member_id == null)
+            {
+                return;
+            }
+
+            Member? fresh = _member_service.ReloadMember(member_id.Value);
+
+            if (fresh != null)
+            {
+                _current_member = fresh;
+            }
         }
 
         // the film name and the time of a showing, for the booking card
@@ -573,6 +599,13 @@ namespace CinemaBooking.UI
                 Booking? made;
                 string error;
                 _booking_service.BookSeats(role, member_id, name, email, phone, showing.Id, seat_codes, 0, out made, out error);
+
+                // a member earned points with this booking, so the member kept here is read again
+                if (made != null)
+                {
+                    RefreshCurrentMember(member_id);
+                }
+
                 return (made, error);
             });
 

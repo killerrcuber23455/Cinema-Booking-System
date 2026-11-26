@@ -87,11 +87,10 @@ namespace CinemaBooking.Services
 
         //reads one member again from the database by id, so a window can show the points as they are now
         //null if there is no such member. any signed in user may read their own member, so there is no role check
-        //(the green step will use the FindMemberById that login already uses)
-        //STUB for the red step: nothing is found yet, so the tests fail first
+        //it uses the FindMemberById that login already uses
         public Member? ReloadMember(int member_id)
         {
-            return null;
+            return FindMemberById(member_id);
         }
 
         //finding a member by email, only staff or admin can do it
