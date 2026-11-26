@@ -47,6 +47,11 @@ namespace CinemaBooking.UI
         private readonly Label lblFormHeading = new Label();
         private Button btnAdd = null!;
         private Button btnCancelEdit = null!;
+        private Button btnRemove = null!;
+        private Button btnEdit = null!;
+
+        // true while the database call of an add, edit or remove runs, so the buttons cannot be clicked twice
+        private bool _is_busy;
 
         // the id of the film being edited, 0 means the boxes are for a new film
         private int _editing_film_id;
@@ -86,11 +91,11 @@ namespace CinemaBooking.UI
             lstFilms.BorderStyle = BorderStyle.None;
             lstFilms.SetBounds(PAGE_PADDING, 40, LIST_WIDTH, 420);
 
-            Button btnRemove = MakeButton("Remove chosen film", UiTheme.CARD);
+            btnRemove = MakeButton("Remove chosen film", UiTheme.CARD);
             btnRemove.SetBounds(PAGE_PADDING, 470, LIST_WIDTH, 40);
             btnRemove.Click += (sender, e) => ClickRemove();
 
-            Button btnEdit = MakeButton("Edit chosen film", UiTheme.CARD);
+            btnEdit = MakeButton("Edit chosen film", UiTheme.CARD);
             btnEdit.SetBounds(PAGE_PADDING, 516, LIST_WIDTH, 40);
             btnEdit.Click += (sender, e) => ClickEdit();
 
@@ -195,8 +200,13 @@ namespace CinemaBooking.UI
         }
 
         // the boxes are read by FilmInput, the film is added, edited or removed by CatalogStore, which also saves it to the database
-        private void ClickAdd()
+        private async void ClickAdd()
         {
+            if (_is_busy)
+            {
+                return;
+            }
+
             Film? film;
             string error_message;
             lblMessage.Text = "";
@@ -216,29 +226,48 @@ namespace CinemaBooking.UI
                 return;
             }
 
-            if (_editing_film_id != 0)
-            {
-                if (!_catalog_store.EditFilm(film!, _role, out error_message))
-                {
-                    ShowError(error_message);
-                    return;
-                }
+            // the database call runs on a background thread so the window does not freeze, it must not touch any control
+            Film film_to_save = film!;
+            bool is_edit = _editing_film_id != 0;
 
-                StopEditing();
-                FillList();
-                ShowGood("Film saved: " + film!.Title);
+            SetBusy(true);
+            lblMessage.ForeColor = UiTheme.TEXT_MUTED;
+            lblMessage.Text = "Saving...";
+
+            CallResult<(bool Ok, string Error)> result = await BackgroundCall.RunAsync(() =>
+            {
+                string save_error;
+                bool is_saved = is_edit
+                    ? _catalog_store.EditFilm(film_to_save, _role, out save_error)
+                    : _catalog_store.AddFilm(film_to_save, _role, out save_error);
+                return (is_saved, save_error);
+            });
+
+            SetBusy(false);
+
+            if (!result.IsOk)
+            {
+                ShowError(result.ErrorText);
                 return;
             }
 
-            if (!_catalog_store.AddFilm(film!, _role, out error_message))
+            if (!result.Value.Ok)
             {
-                ShowError(error_message);
+                ShowError(result.Value.Error);
+                return;
+            }
+
+            if (is_edit)
+            {
+                StopEditing();
+                FillList();
+                ShowGood("Film saved: " + film_to_save.Title);
                 return;
             }
 
             ClearBoxes();
             FillList();
-            ShowGood("Film added: " + film!.Title);
+            ShowGood("Film added: " + film_to_save.Title);
         }
 
         // puts the chosen film into the boxes, the id cannot be changed while editing
@@ -309,8 +338,13 @@ namespace CinemaBooking.UI
             txtPoster.Text = poster_file;
         }
 
-        private void ClickRemove()
+        private async void ClickRemove()
         {
+            if (_is_busy)
+            {
+                return;
+            }
+
             int chosen_index = lstFilms.SelectedIndex;
 
             if (chosen_index < 0)
@@ -327,16 +361,44 @@ namespace CinemaBooking.UI
                 return;
             }
 
-            string error_message;
+            int film_id = film.Id;
+            string film_title = film.Title;
 
-            if (!_catalog_store.RemoveFilm(film.Id, _role, out error_message))
+            SetBusy(true);
+            lblMessage.ForeColor = UiTheme.TEXT_MUTED;
+            lblMessage.Text = "Removing...";
+
+            CallResult<(bool Ok, string Error)> result = await BackgroundCall.RunAsync(() =>
             {
-                ShowError(error_message);
+                bool is_removed = _catalog_store.RemoveFilm(film_id, _role, out string remove_error);
+                return (is_removed, remove_error);
+            });
+
+            SetBusy(false);
+
+            if (!result.IsOk)
+            {
+                ShowError(result.ErrorText);
+                return;
+            }
+
+            if (!result.Value.Ok)
+            {
+                ShowError(result.Value.Error);
                 return;
             }
 
             FillList();
-            ShowGood("Film removed: " + film.Title);
+            ShowGood("Film removed: " + film_title);
+        }
+
+        // while a call runs the add, edit and remove buttons cannot be clicked again
+        private void SetBusy(bool is_busy)
+        {
+            _is_busy = is_busy;
+            btnAdd.Enabled = !is_busy;
+            btnRemove.Enabled = !is_busy;
+            btnEdit.Enabled = !is_busy;
         }
 
         // empties the red message under every box

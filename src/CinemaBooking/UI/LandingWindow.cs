@@ -137,7 +137,7 @@ namespace CinemaBooking.UI
 
             // the first admin button only shows while there is no admin yet
             PlaceButton(btnFirstAdmin, 372, 30, UiTheme.SMALL_FONT, UiTheme.TEXT_MUTED);
-            btnFirstAdmin.Visible = !HasAdmin();
+            UpdateFirstAdminButton();
             btnFirstAdmin.Click += (sender, e) => ShowFirstAdmin();
 
             _home_parts.AddRange(new Control[] { lblTagline, btnSignIn, btnSignUp, btnGuest, btnFirstAdmin });
@@ -177,17 +177,21 @@ namespace CinemaBooking.UI
             Controls.Add(lblClose);
         }
 
-        // true when an admin exists. if the database cannot be reached the button stays hidden: the sign in shows the clear message
-        private bool HasAdmin()
+        // shows the first admin button only when no admin exists. the database is asked on a background thread, so the
+        // window does not freeze. the button stays hidden while it waits, and also when the database cannot be reached
+        // (the sign in shows the clear message). it is not shown if the user already opened a form in the card meanwhile
+        private async void UpdateFirstAdminButton()
         {
-            try
+            btnFirstAdmin.Visible = false;
+
+            CallResult<bool> result = await BackgroundCall.RunAsync(() => _auth_service.HasAnyAdmin());
+
+            if (IsDisposed || _form_view != null)
             {
-                return _auth_service.HasAnyAdmin();
+                return;
             }
-            catch (InvalidOperationException)
-            {
-                return true;
-            }
+
+            btnFirstAdmin.Visible = result.IsOk && !result.Value;
         }
 
         // puts the card in the middle of the window with the given height
@@ -285,7 +289,7 @@ namespace CinemaBooking.UI
                 part.Visible = true;
             }
 
-            btnFirstAdmin.Visible = !HasAdmin();
+            UpdateFirstAdminButton();
             ActiveControl = btnSignIn;
         }
 

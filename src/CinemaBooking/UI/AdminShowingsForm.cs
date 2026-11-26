@@ -30,6 +30,10 @@ namespace CinemaBooking.UI
         private readonly TextBox txtPrice = new TextBox();
         private readonly ListBox lstShowings = new ListBox();
         private readonly Label lblMessage = new Label();
+        private Button btnAdd = null!;
+
+        // true while the database call of an add runs, so the button cannot be clicked twice
+        private bool _is_busy;
 
         // the message under each box, in the same order as ShowingInput gives them
         private Label[] _box_labels = new Label[ShowingInput.BOX_COUNT];
@@ -72,7 +76,7 @@ namespace CinemaBooking.UI
             _box_labels[ShowingInput.BOX_PRICE] = FormParts.AddRow(this, "Price", txtPrice, ShowingInput.BOX_PRICE);
 
             int button_top = FormParts.TopUnderRows(ShowingInput.BOX_COUNT);
-            Button btnAdd = FormParts.MakeButton("Add showing", UiTheme.ACCENT_RED);
+            btnAdd = FormParts.MakeButton("Add showing", UiTheme.ACCENT_RED);
             btnAdd.SetBounds(FormParts.PAGE_PADDING, button_top, 180, 40);
             btnAdd.Click += (sender, e) => ClickAdd();
             Controls.Add(btnAdd);
@@ -120,8 +124,13 @@ namespace CinemaBooking.UI
         }
 
         // the boxes are checked by ShowingInput, the showing is added by ShowingStore, which also checks the role and saves it to the database
-        private void ClickAdd()
+        private async void ClickAdd()
         {
+            if (_is_busy)
+            {
+                return;
+            }
+
             lblMessage.Text = "";
 
             string[] messages = ShowingInput.CheckBoxes(txtId.Text, txtFilm.Text, txtScreen.Text,
@@ -142,16 +151,39 @@ namespace CinemaBooking.UI
                 return;
             }
 
-            if (!_showing_store.AddShowing(input!.Id, input.FilmId, input.ScreenId, input.StartsAt,
-                    input.Price, _role, out error_message))
+            // the database call runs on a background thread so the window does not freeze, it must not touch any control
+            ShowingInput new_showing = input!;
+
+            _is_busy = true;
+            btnAdd.Enabled = false;
+            lblMessage.ForeColor = UiTheme.TEXT_MUTED;
+            lblMessage.Text = "Saving...";
+
+            CallResult<(bool Ok, string Error)> result = await BackgroundCall.RunAsync(() =>
             {
-                ShowError(error_message);
+                bool is_added = _showing_store.AddShowing(new_showing.Id, new_showing.FilmId, new_showing.ScreenId,
+                    new_showing.StartsAt, new_showing.Price, _role, out string add_error);
+                return (is_added, add_error);
+            });
+
+            _is_busy = false;
+            btnAdd.Enabled = true;
+
+            if (!result.IsOk)
+            {
+                ShowError(result.ErrorText);
+                return;
+            }
+
+            if (!result.Value.Ok)
+            {
+                ShowError(result.Value.Error);
                 return;
             }
 
             ClearBoxes();
             FillList();
-            ShowGood("Showing added: " + input.Id);
+            ShowGood("Showing added: " + new_showing.Id);
         }
 
         private void ClickRemove()
