@@ -2,7 +2,7 @@
 
 Author: Irwin Chinathoo (Tester 2)
 Card: 354 (AB#354), data-side section for Akilesh to merge into `test-plan.md`
-Status: draft 8, 22 Nov 2026. Card 337 added (section 8): 15 integration runs on CinemaBookingTestDb, 11 passed, 4 failed with real bugs BUG-05 to BUG-08. Sections 1 to 7 and 10 to 11 as before.
+Status: draft 9, 26 Nov 2026. Card 425 added (section 11): 14 sort and search timing tests, all pass with Kushal's merge sort and binary search (card 424). The old section 11 (card 418 and summary) is now section 12. Card 337 (section 8): 15 integration runs on CinemaBookingTestDb, 11 passed, 4 failed with real bugs BUG-05 to BUG-08 (fixed by Kushal in card 318 on `feature/kushal`, still failing on this branch until it is merged).
 
 This section covers Kushal's code: our own hash tables and linked list, the seat grid, search, the file loader and the database. All tables use the columns agreed on 18 Nov: Test ID, Test type, Mode, Area, What is tested, Preconditions, Test data, Post-conditions, Expected result, Actual result, Pass/Fail, Executed date, Tester, Bug ID. Rows that cannot run yet say why in Actual result and are marked Not run.
 
@@ -285,7 +285,32 @@ Not run yet: the same 20 tests on the real `Database` with the local CinemaBooki
 
 Summary (card 432, run on 20 Nov 2026): 20 tests, all automatic. White-box 11, Boundary/negative 8, Integration 1. Passed 20, failed 0, not run 0 (plus the real-database run still to do). Pass rate 100%. Open bugs: none. Screenshots: `432-fake-database-red.png` and `432-fake-database-green.png`.
 
-## 11. Extra test types (card 418) and summary
+## 11. Sort and search timings (card 425)
+
+MSTest file: `tests/CinemaBooking.Tests/SortPerformanceTests.cs`. Week 8: Kushal's merge sort and binary search (`SortHelper`, card 424) against a bubble sort baseline (a helper in the test file only), linear search (`FilmService.SearchByTitle`) and the hash table lookup by id. Each test checks the answer is right and prints the average time under Standard Output. Full table and comments: `docs/testing/timing-results.md`. Red step: commit `23d5ed6` (sort helper still stubs). Green step: commit `cbba8d4`, screenshot `425-sort-performance-green.png`.
+
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| TIME-01 | Performance | Automatic | Sort | Time merge sort (MergeSort_RandomFilms_SortedAndTimed (1000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 1,000 films | Original films unchanged | Sorted by title, all 1,000 films kept; time printed | Sorted by title, all 1,000 films kept; 0.6101 ms | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-02 | Performance | Automatic | Sort | Time merge sort (MergeSort_RandomFilms_SortedAndTimed (10000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 10,000 films | Original films unchanged | Sorted by title, all 10,000 films kept; time printed | Sorted by title, all 10,000 films kept; 9.6715 ms | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-03 | Performance | Automatic | Sort | Time merge sort (MergeSort_RandomFilms_SortedAndTimed (100000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 100,000 films | Original films unchanged | Sorted by title, all 100,000 films kept; time printed | Sorted by title, all 100,000 films kept; 119.6030 ms | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-04 | Performance | Automatic | Sort | Time bubble sort (baseline) (BubbleSort_RandomFilms_SortedAndTimed (1000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 1,000 films | Original films unchanged | Sorted by title, all 1,000 films kept; time printed | Sorted by title, all 1,000 films kept; 13.6700 ms | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-05 | Performance | Automatic | Sort | Time bubble sort (baseline) (BubbleSort_RandomFilms_SortedAndTimed (10000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 10,000 films | Original films unchanged | Sorted by title, all 10,000 films kept; time printed | Sorted by title, all 10,000 films kept; 1701.3211 ms | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-06 | Performance | Automatic | Search | Time linear search (LinearSearch_RandomFilms_FoundAndTimed (1000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 1,000 films, 100 titles spread across them | Original films unchanged | All 100 titles found; time printed | All 100 titles found; 10.6273 ms for 100 searches | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-07 | Performance | Automatic | Search | Time linear search (LinearSearch_RandomFilms_FoundAndTimed (10000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 10,000 films, 100 titles | Original films unchanged | All 100 titles found; time printed | All 100 titles found; 77.6784 ms for 100 searches | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-08 | Performance | Automatic | Search | Time linear search (LinearSearch_RandomFilms_FoundAndTimed (100000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 100,000 films, 100 titles | Original films unchanged | All 100 titles found; time printed | All 100 titles found; 876.5503 ms for 100 searches | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-09 | Performance | Automatic | Search | Time binary search (BinarySearch_SortedFilms_FoundAndTimed (1000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 1,000 films sorted by merge sort, 100 titles | Original films unchanged | All 100 titles found at the right place; time printed | All 100 titles found at the right place; 0.0342 ms for 100 searches | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-10 | Performance | Automatic | Search | Time binary search (BinarySearch_SortedFilms_FoundAndTimed (10000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 10,000 sorted films, 100 titles | Original films unchanged | All 100 titles found at the right place; time printed | All 100 titles found at the right place; 0.0261 ms for 100 searches | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-11 | Performance | Automatic | Search | Time binary search (BinarySearch_SortedFilms_FoundAndTimed (100000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 100,000 sorted films, 100 titles | Original films unchanged | All 100 titles found at the right place; time printed | All 100 titles found at the right place; 0.0387 ms for 100 searches | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-12 | Performance | Automatic | Hash table | Time hash lookup (HashLookup_RandomFilms_FoundAndTimed (1000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 1,000 films in HashTable<int, Film>, 100 ids | Original films unchanged | All 100 ids found; time printed | All 100 ids found; 0.0188 ms for 100 lookups | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-13 | Performance | Automatic | Hash table | Time hash lookup (HashLookup_RandomFilms_FoundAndTimed (10000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 10,000 films, 100 ids | Original films unchanged | All 100 ids found; time printed | All 100 ids found; 0.0203 ms for 100 lookups | Pass | 26 Nov 2026 | Irwin | - |
+| TIME-14 | Performance | Automatic | Hash table | Time hash lookup (HashLookup_RandomFilms_FoundAndTimed (100000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 100,000 films, 100 ids | Original films unchanged | All 100 ids found; time printed | All 100 ids found; 0.0074 ms for 100 lookups | Pass | 26 Nov 2026 | Irwin | - |
+
+Big O check: when n grows 10 times, merge sort gets about 12 to 16 times slower (O(n log n) predicts about 12.5 to 13.3), and bubble sort gets 124 times slower (O(n squared) predicts 100). Linear search grows about 10 times (O(n)), while binary search and hash lookup stay flat at a few hundredths of a millisecond for 100 searches (O(log n) and O(1)); their small ups and downs are stopwatch noise.
+
+Summary (card 425, run on 26 Nov 2026): 14 tests, all automatic, all Performance. Passed 14, failed 0, not run 0. Bubble sort at 100,000 films was left out on purpose (about 3 minutes per sort).
+
+## 12. Extra test types (card 418) and summary
 
 MSTest file: `tests/CinemaBooking.Tests/PerformanceSecurityTests.cs`. These run without SQL Server (the booking tests use the FakeDatabase from card 432). The times are printed by the tests and shown in Test Explorer under Standard Output.
 
@@ -312,6 +337,8 @@ MSTest file: `tests/CinemaBooking.Tests/PerformanceSecurityTests.cs`. These run 
 | 20 Nov 2026 | Added seat grid, showing and member tests (361) | Test Explorer, Run All | 242 tests, 242 passed |
 | 20 Nov 2026 | Added performance, security and boundary tests (418) | Test Explorer, Run All | 250 tests, 250 passed |
 | 22 Nov 2026 | Added SaveFilm to the fake (316); merged Kushal (318, test database); added users and audit tests (337) | Test Explorer, Run All | 296 tests, 292 passed, 4 failed (BUG-05 to BUG-08) |
+| 23 Nov 2026 | Added sort and search timing tests (425), red step | Test Explorer, Run All | SortPerformanceTests fail on purpose (sort helper still stubs) |
+| 26 Nov 2026 | Cherry-picked Kushal's merge sort and binary search (424, `59dd5ee`), 425 green | Test Explorer, Run All | 310 tests, 306 passed, 4 failed (the same BUG-05 to BUG-08 rows; Kushal's fix in 318 is not on this branch yet) |
 
 Retest after a bug fix: HASH-15 (BUG-04) failed on 12 Nov on the old `FilmHashTable`, passed on 15 Nov on the new `HashTable<int, Film>` and in every run since.
 
@@ -324,7 +351,11 @@ Retest after a bug fix: HASH-15 (BUG-04) failed on 12 Nov on the old `FilmHashTa
 | PERF-03 | One booking through BookingService (fake database) | 0 ms (under 1 ms) |
 | PERF-04 | 50 user saves and 50 finds on SQL Server | About 170 ms |
 | Not run yet | A booking on SQL Server | Waits for the database version of the fake tests |
-| Not run yet | Sort and search at 1,000, 10,000 and 100,000 films | Card 425, waits for Kushal's sort code (424) |
+| TIME-01 to 03 | Merge sort at 1,000, 10,000 and 100,000 films | 0.61 ms, 9.67 ms, 119.60 ms |
+| TIME-04 and 05 | Bubble sort (baseline) at 1,000 and 10,000 films | 13.67 ms, 1701.32 ms |
+| TIME-06 to 08 | 100 linear searches at 1,000, 10,000 and 100,000 films | 10.63 ms, 77.68 ms, 876.55 ms |
+| TIME-09 to 11 | 100 binary searches at 1,000, 10,000 and 100,000 films | 0.034 ms, 0.026 ms, 0.039 ms |
+| TIME-12 to 14 | 100 hash lookups at 1,000, 10,000 and 100,000 films | 0.019 ms, 0.020 ms, 0.007 ms |
 
 ### Security
 
@@ -341,7 +372,7 @@ Retest after a bug fix: HASH-15 (BUG-04) failed on 12 Nov on the old `FilmHashTa
 
 In the code: every row marked Boundary/negative above (empty tables, missing IDs and emails, the same ID or email twice, negative ID, the 75% resize line, seats outside the grid, bad seat codes, a full grid, empty lists, null, very long text, a missing showing, a taken seat through the service). In the Database class: the DB rows in section 7 (not run, wait for the test database). In the windows: the hand tests in section 9 (cards 363 and 364).
 
-### Summary of this file (22 Nov 2026)
+### Summary of this file (26 Nov 2026)
 
 | Test type | Tests | Passed | Failed | Not run |
 |---|---|---|---|---|
@@ -349,7 +380,7 @@ In the code: every row marked Boundary/negative above (empty tables, missing IDs
 | Boundary/negative | 59 | 46 | 4 | 9 |
 | Integration | 18 | 5 | 0 | 13 |
 | Security | 8 | 5 | 0 | 3 |
-| Performance | 4 | 4 | 0 | 0 |
-| **Total** | **135** | **104** | **4** | **27** |
+| Performance | 18 | 18 | 0 | 0 |
+| **Total** | **149** | **118** | **4** | **27** |
 
-Mode: 135 automatic (MSTest); the journeys J1 to J6 in section 9 are manual and are run in Sprint 4. Pass rate of the tests that were run: 96%. Open bugs: BUG-05, BUG-06, BUG-07 and BUG-08 (card 337, assigned to Kushal). Closed: BUG-04.
+Mode: 149 automatic (MSTest); the journeys J1 to J6 in section 9 are manual and are run in Sprint 4. Pass rate of the tests that were run: 97% (118 of 122). Open bugs on this branch: BUG-05, BUG-06, BUG-07 and BUG-08 (card 337, fixed by Kushal in card 318 on `feature/kushal`, closed once that is merged). Closed: BUG-04.
