@@ -85,6 +85,15 @@ namespace CinemaBooking.Services
             return _database.GetAllMembers();
         }
 
+        //reads one member again from the database by id, so a window can show the points as they are now
+        //null if there is no such member. any signed in user may read their own member, so there is no role check
+        //(the green step will use the FindMemberById that login already uses)
+        //STUB for the red step: nothing is found yet, so the tests fail first
+        public Member? ReloadMember(int member_id)
+        {
+            return null;
+        }
+
         //finding a member by email, only staff or admin can do it
         //returns the member, or null with a reason
         public Member? FindMember(Role role, string email, out string error_message)
