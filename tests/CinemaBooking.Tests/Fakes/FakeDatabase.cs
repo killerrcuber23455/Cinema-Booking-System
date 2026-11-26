@@ -352,6 +352,12 @@ public class FakeDatabase : IDatabase
         return added;
     }
 
+    // stub for now, the real rules come with the 405 green step
+    public bool DeleteShowing(int showing_id)
+    {
+        return false;
+    }
+
     // ---------- small helpers ----------
 
     // the key for one seat in one showing, for example "1:C5"

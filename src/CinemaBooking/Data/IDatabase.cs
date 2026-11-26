@@ -50,5 +50,8 @@ namespace CinemaBooking.Data
 
         // loads every showing into the table with its taken seats marked
         int LoadShowings(ShowingTable showing_table);
+
+        // deletes a showing by id, false if it is not found or the showing has bookings
+        bool DeleteShowing(int showing_id);
     }
 }

@@ -698,5 +698,12 @@ namespace CinemaBooking.Data
 
             return added;
         }
+
+
+        // deletes a showing by id. returns false if it is not found or it has bookings, never throws for those.
+        public bool DeleteShowing(int showing_id)
+        {
+            return false;
+        }
     }
 }

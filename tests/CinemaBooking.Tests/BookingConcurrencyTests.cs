@@ -109,6 +109,12 @@ public class BookingConcurrencyTests
             return 0;
         }
 
+
+        public bool DeleteShowing(int showing_id)
+        {
+            return false;
+        }
+
         // the concurrency tests do not use films, this only has to compile since IDatabase has SaveFilm
         public bool SaveFilm(Film film)
         {
