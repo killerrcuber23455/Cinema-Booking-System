@@ -278,7 +278,7 @@ namespace CinemaBooking.UI
                 SetLoading(true);
                 CallResult<(bool Ok, string Message)> result = await BackgroundCall.RunAsync(() =>
                 {
-                    bool is_loaded = _catalog_store.LoadFilmFile(file_name, out string load_message);
+                    bool is_loaded = _catalog_store.LoadFilmFile(file_name, _role, out string load_message);
                     return (is_loaded, load_message);
                 });
                 SetLoading(false);

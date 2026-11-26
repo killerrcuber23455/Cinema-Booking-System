@@ -12,6 +12,7 @@ namespace CinemaBooking.Services
         public const string UPDATE_FAILED_TEXT = "The changes could not be saved to the database, so the film was not changed.";
         public const string DELETE_FAILED_TEXT = "The film could not be removed from the database (a showing may still use it), so it was not removed.";
 
+        public const string LOAD_NOT_ALLOWED_TEXT = "Only staff and admin can load a film file.";
         public const string FILE_SAVE_FAILED_TEXT = "The films in the file could not be saved to the database (an id may already be used there), so none were loaded.";
 
         private readonly IDatabase _database;
@@ -147,7 +148,7 @@ namespace CinemaBooking.Services
         // loads the films of a film file into the program and saves each new film to the database too.
         // a film whose id is already known is skipped (the known film is kept). if the database refuses one,
         // every film of this file is taken back out (and out of the database) so the program and the database agree
-        public bool LoadFilmFile(string file_path, out string message)
+        public bool LoadFilmFile(string file_path, Role role, out string message)
         {
             if (string.IsNullOrWhiteSpace(file_path))
             {

@@ -56,7 +56,7 @@ public class CatalogStoreFileTests
     {
         WriteFile("1,Alpha,Drama,2020,100,12,A film,a.jpg", "2,Beta,Comedy,2021,90,0,Another film,b.jpg");
 
-        bool is_loaded = _store.LoadFilmFile(_file_path, out string message);
+        bool is_loaded = _store.LoadFilmFile(_file_path, Role.Admin, out string message);
 
         Assert.IsTrue(is_loaded);
         StringAssert.Contains(message, "loaded 2 films");
@@ -69,7 +69,7 @@ public class CatalogStoreFileTests
     [TestMethod]
     public void LoadFilmFile_MissingFile_ReturnsFalseAndSavesNothing()
     {
-        bool is_loaded = _store.LoadFilmFile(_file_path, out string message);
+        bool is_loaded = _store.LoadFilmFile(_file_path, Role.Admin, out string message);
 
         Assert.IsFalse(is_loaded);
         StringAssert.Contains(message, "not found");
@@ -84,7 +84,7 @@ public class CatalogStoreFileTests
         _database.AddFilm(existing);
         WriteFile("1,Changed Title,Drama,2020,100,12,A film,a.jpg", "2,Beta,Comedy,2021,90,0,Another film,b.jpg");
 
-        bool is_loaded = _store.LoadFilmFile(_file_path, out string message);
+        bool is_loaded = _store.LoadFilmFile(_file_path, Role.Admin, out string message);
 
         Assert.IsTrue(is_loaded);
         StringAssert.Contains(message, "loaded 1 films");
@@ -99,7 +99,7 @@ public class CatalogStoreFileTests
         _database.FilmSaveFails = true;
         WriteFile("1,Alpha,Drama,2020,100,12,A film,a.jpg", "2,Beta,Comedy,2021,90,0,Another film,b.jpg");
 
-        bool is_loaded = _store.LoadFilmFile(_file_path, out string message);
+        bool is_loaded = _store.LoadFilmFile(_file_path, Role.Admin, out string message);
 
         Assert.IsFalse(is_loaded);
         StringAssert.Contains(message, "could not be saved to the database");
@@ -113,7 +113,7 @@ public class CatalogStoreFileTests
         _database.ThrowOnSaveFilm = true;
         WriteFile("1,Alpha,Drama,2020,100,12,A film,a.jpg");
 
-        bool is_loaded = _store.LoadFilmFile(_file_path, out string message);
+        bool is_loaded = _store.LoadFilmFile(_file_path, Role.Admin, out string message);
 
         Assert.IsFalse(is_loaded);
         StringAssert.Contains(message, "could not be saved to the database");
@@ -125,7 +125,7 @@ public class CatalogStoreFileTests
     {
         WriteFile("1,Alpha,Drama,2020,100,12,A film,a.jpg", "not a film row");
 
-        bool is_loaded = _store.LoadFilmFile(_file_path, out string message);
+        bool is_loaded = _store.LoadFilmFile(_file_path, Role.Admin, out string message);
 
         Assert.IsTrue(is_loaded);
         StringAssert.Contains(message, "skipped 1 rows");
