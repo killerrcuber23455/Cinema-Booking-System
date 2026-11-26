@@ -24,6 +24,10 @@ public class ChangePasswordTests
     private const string SAME_PASSWORD_MESSAGE = "the new password must be different";
     private const string SAVE_FAILED_MESSAGE = "the password could not be saved";
     private const string AUDIT_PASSWORD_CHANGED = "password_changed";
+    private const int LOCK_MINUTES = 15;
+    private const string LOCKED_15_MESSAGE = "this account is locked, try again in 15 minutes";
+    private const string AUDIT_PASSWORD_CHANGE_FAILED = "password_change_failed";
+    private const string AUDIT_ACCOUNT_LOCKED = "account_locked";
 
     private FakeUserRepository _users = new FakeUserRepository();
     private AuthService _service = null!;
@@ -31,11 +35,15 @@ public class ChangePasswordTests
     private string _saved_hash = "";
     private string _saved_salt = "";
 
+    // a test clock, so the lock tests move time instead of waiting 15 real minutes
+    private DateTime _clock_time = new DateTime(2026, 11, 26, 10, 0, 0);
+
     // a real customer with a real salted hash, so Verify and Login work like in the app
     [TestInitialize]
     public void SetUp()
     {
         _users = new FakeUserRepository();
+        _clock_time = new DateTime(2026, 11, 26, 10, 0, 0);
         _service = new AuthService(_users, new MemberService(new FakeDatabase()));
         _saved_salt = PasswordHasher.GenerateSalt();
         _saved_hash = PasswordHasher.HashPassword(OLD_PASSWORD, _saved_salt);
@@ -361,5 +369,132 @@ public class ChangePasswordTests
         _service.ChangePassword(Role.Customer, EMAIL, OLD_PASSWORD, NEW_PASSWORD, out _);
 
         Assert.AreEqual(1, AuditRowsFor(AUDIT_PASSWORD_CHANGED).Count);
+    }
+
+    // wrong tries and the lock (same counter as Login)
+
+    [TestMethod]
+    public void ChangePassword_WrongOldPassword_CountsOneTryAndWritesAnAuditRow()
+    {
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+
+        Assert.AreEqual(1, GetSavedUser().FailedAttempts);
+        List<AuditRow> rows = AuditRowsFor(AUDIT_PASSWORD_CHANGE_FAILED);
+        Assert.AreEqual(1, rows.Count);
+        Assert.AreEqual(_user_id, rows[0].UserId);
+        Assert.IsFalse(rows[0].Details.Contains("Wrong1234"));
+    }
+
+    // the 3rd wrong try locks the account for 15 minutes and says so, like Login
+    [TestMethod]
+    public void ChangePassword_ThreeWrongTries_LocksTheAccount()
+    {
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+        bool is_ok = _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out string error_message);
+
+        Assert.IsFalse(is_ok);
+        Assert.AreEqual(LOCKED_15_MESSAGE, error_message);
+        Assert.AreEqual(_clock_time.AddMinutes(LOCK_MINUTES), GetSavedUser().LockedUntil);
+        Assert.AreEqual(1, AuditRowsFor(AUDIT_ACCOUNT_LOCKED).Count);
+    }
+
+    // after the lock even the right password is refused, and nothing changes
+    [TestMethod]
+    public void ChangePassword_ThreeWrongThenRight_IsRefusedWhileLocked()
+    {
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+
+        bool is_ok = _service.ChangePassword(Role.Customer, EMAIL, OLD_PASSWORD, NEW_PASSWORD, out string error_message);
+
+        Assert.IsFalse(is_ok);
+        Assert.AreEqual(LOCKED_15_MESSAGE, error_message);
+        AssertPasswordUnchanged();
+        Assert.AreEqual(0, AuditRowsFor(AUDIT_PASSWORD_CHANGED).Count);
+    }
+
+    // two wrong tries do not lock, and a good change sets the counter back to 0
+    [TestMethod]
+    public void ChangePassword_TwoWrongThenRight_WorksAndResetsTheCounter()
+    {
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+
+        bool is_ok = _service.ChangePassword(Role.Customer, EMAIL, OLD_PASSWORD, NEW_PASSWORD, out string error_message);
+
+        Assert.IsTrue(is_ok);
+        Assert.AreEqual("", error_message);
+        Assert.AreEqual(0, GetSavedUser().FailedAttempts);
+        Assert.IsNull(GetSavedUser().LockedUntil);
+    }
+
+    // an account already locked (for example by Login) is refused with the minutes left
+    [TestMethod]
+    public void ChangePassword_AccountAlreadyLocked_IsRefusedWithTheLockMessage()
+    {
+        _users.SetFailedAttempts(_user_id, 3, _clock_time.AddMinutes(10));
+
+        bool is_ok = _service.ChangePassword(Role.Customer, EMAIL, OLD_PASSWORD, NEW_PASSWORD, out string error_message);
+
+        Assert.IsFalse(is_ok);
+        Assert.AreEqual("this account is locked, try again in 10 minutes", error_message);
+        AssertPasswordUnchanged();
+    }
+
+    // once the lock time has passed the account works again, like Login
+    [TestMethod]
+    public void ChangePassword_LockHasEnded_RightPasswordWorks()
+    {
+        _users.SetFailedAttempts(_user_id, 3, _clock_time.AddMinutes(LOCK_MINUTES));
+        _clock_time = _clock_time.AddMinutes(LOCK_MINUTES + 1);
+
+        bool is_ok = _service.ChangePassword(Role.Customer, EMAIL, OLD_PASSWORD, NEW_PASSWORD, out string error_message);
+
+        Assert.IsTrue(is_ok);
+        Assert.AreEqual("", error_message);
+    }
+
+    // one counter: wrong tries here lock Login too
+    [TestMethod]
+    public void ChangePassword_ThreeWrongTries_AlsoLocksLogin()
+    {
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+
+        bool is_ok = _service.Login(EMAIL, OLD_PASSWORD, out _, out _, out string error_message);
+
+        Assert.IsFalse(is_ok);
+        Assert.AreEqual(LOCKED_15_MESSAGE, error_message);
+    }
+
+    // one counter: two wrong logins and one wrong change make three, so the account locks
+    [TestMethod]
+    public void ChangePassword_TwoWrongLoginsThenOneWrongChange_LocksTheAccount()
+    {
+        _service.Login(EMAIL, "Wrong1234", out _, out _, out _);
+        _service.Login(EMAIL, "Wrong1234", out _, out _, out _);
+
+        bool is_ok = _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out string error_message);
+
+        Assert.IsFalse(is_ok);
+        Assert.AreEqual(LOCKED_15_MESSAGE, error_message);
+        Assert.IsNotNull(GetSavedUser().LockedUntil);
+    }
+
+    // an empty current password is refused but is not a guess, so it does not count as a try
+    [TestMethod]
+    public void ChangePassword_EmptyThenTwoWrongThenRight_StillWorks()
+    {
+        _service.ChangePassword(Role.Customer, EMAIL, "", NEW_PASSWORD, out _);
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+        _service.ChangePassword(Role.Customer, EMAIL, "Wrong1234", NEW_PASSWORD, out _);
+
+        bool is_ok = _service.ChangePassword(Role.Customer, EMAIL, OLD_PASSWORD, NEW_PASSWORD, out string error_message);
+
+        Assert.IsTrue(is_ok);
+        Assert.AreEqual("", error_message);
     }
 }
