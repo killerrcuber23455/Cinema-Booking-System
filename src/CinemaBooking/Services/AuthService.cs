@@ -300,6 +300,14 @@ namespace CinemaBooking.Services
             error_message = "";
             return true;
         }
+
+        // card 447: lets a signed-in user change their own password
+        public bool ChangePassword(Role acting_role, string acting_email, string old_password,
+                                   string new_password, out string error_message)
+        {
+            error_message = "not built yet";
+            return false;
+        }
     }
 
 }
