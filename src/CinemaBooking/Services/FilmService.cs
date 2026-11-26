@@ -75,10 +75,10 @@ namespace CinemaBooking.Services
         }
 
         //finds one film by its id straight in the hash table, null if there is no such film
-        //STUB for the red step: nothing is found yet, so the tests fail first (card for the cleanup after the review of 437fc60)
+        //the hash table is keyed by id, so this is one lookup and not a walk through every film
         public Film? FindById(int film_id)
         {
-            return null;
+            return _films.Find(film_id);
         }
 
         //search by title, partial and any case
