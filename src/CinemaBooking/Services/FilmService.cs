@@ -13,6 +13,13 @@ namespace CinemaBooking.Services
         //each film is stored by its id in the hashtable
         private HashTable<int, Film> _films;
 
+        // the films sorted by title, built when the first exact find needs it and then reused (card 443)
+        // it is thrown away when a film is added or removed, and it is also built again when the table has a different
+        // number of films than the copy, for example after the start-up load that fills the table without AddFilm
+        private Film[]? _sorted_by_title;
+        private int _sorted_build_count;
+        private readonly object _sorted_lock = new object();
+
         //uses the table it is given so everyone shares the same films
         public FilmService(HashTable<int, Film> films)
         {
@@ -51,6 +58,8 @@ namespace CinemaBooking.Services
                 return false;
             }
 
+            ForgetSortedCopy();
+
             error_message = "";
             return true;
         }
@@ -70,6 +79,8 @@ namespace CinemaBooking.Services
                 error_message = "No film with id " + film_id + " was found";
                 return false;
             }
+
+            ForgetSortedCopy();
             error_message = "";
             return true;
         }
@@ -180,13 +191,43 @@ namespace CinemaBooking.Services
         }
 
         // how many times the sorted copy of the films has been built, so the tests can see that it is built once and reused
-        // STUB for the red step: nothing is counted yet and nothing is reused, so the tests fail first (card 443)
         public int SortedCopyBuildCount
         {
-            get { return 0; }
+            get
+            {
+                lock (_sorted_lock)
+                {
+                    return _sorted_build_count;
+                }
+            }
         }
 
-        // finds one film by its exact title, any case, using binary search on a sorted copy. null if not found
+        // the next exact find builds the sorted copy again
+        private void ForgetSortedCopy()
+        {
+            lock (_sorted_lock)
+            {
+                _sorted_by_title = null;
+            }
+        }
+
+        // the sorted copy: built once with the merge sort, then reused until the films change
+        private Film[] GetSortedByTitle()
+        {
+            lock (_sorted_lock)
+            {
+                if (_sorted_by_title == null || _sorted_by_title.Length != _films.Count)
+                {
+                    _sorted_by_title = SortHelper.MergeSort(_films.ListAll(), "title");
+                    _sorted_build_count++;
+                }
+
+                return _sorted_by_title;
+            }
+        }
+
+        // finds one film by its exact title, any case, using binary search on the sorted copy. null if not found
+        // the sort is done once and reused, so each find is O(log n) and only the first one pays the O(n log n) sort
         public Film? FindByExactTitle(string title)
         {
             if (string.IsNullOrWhiteSpace(title))
@@ -194,7 +235,7 @@ namespace CinemaBooking.Services
                 return null;
             }
 
-            Film[] sorted_films = SortHelper.MergeSort(_films.ListAll(), "title");
+            Film[] sorted_films = GetSortedByTitle();
             int index = SortHelper.BinarySearch(sorted_films, title.Trim());
 
             return index == -1 ? null : sorted_films[index];
