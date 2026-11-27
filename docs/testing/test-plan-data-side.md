@@ -2,7 +2,7 @@
 
 Author: Irwin Chinathoo (Tester 2)
 Card: 354 (AB#354), data-side section for Akilesh to merge into `test-plan.md`
-Status: draft 9, 26 Nov 2026. Card 425 added (section 11): 14 sort and search timing tests, all pass with Kushal's merge sort and binary search (card 424). The old section 11 (card 418 and summary) is now section 12. Card 337 (section 8): 15 integration runs on CinemaBookingTestDb, 11 passed, 4 failed with real bugs BUG-05 to BUG-08 (fixed by Kushal in card 318; retested on 26 Nov 2026 after cherry-picking 318: 15 passed, bugs closed).
+Status: draft 10, 27 Nov 2026. Added the commit and test database for every run, and the runs on other branches (446, 444, 443, 405 on `feature/kushal`; 447 on `feature/shankar`). Draft 9, 26 Nov 2026: Card 425 added (section 11): 14 sort and search timing tests, all pass with Kushal's merge sort and binary search (card 424). The old section 11 (card 418 and summary) is now section 12. Card 337 (section 8): 15 integration runs on CinemaBookingTestDb, 11 passed, 4 failed with real bugs BUG-05 to BUG-08 (fixed by Kushal in card 318; retested on 26 Nov 2026 after cherry-picking 318: 15 passed, bugs closed).
 
 This section covers Kushal's code: our own hash tables and linked list, the seat grid, search, the file loader and the database. All tables use the columns agreed on 18 Nov: Test ID, Test type, Mode, Area, What is tested, Preconditions, Test data, Post-conditions, Expected result, Actual result, Pass/Fail, Executed date, Tester, Bug ID. Rows that cannot run yet say why in Actual result and are marked Not run.
 
@@ -341,7 +341,18 @@ MSTest file: `tests/CinemaBooking.Tests/PerformanceSecurityTests.cs`. These run 
 | 22 Nov 2026 | Added SaveFilm to the fake (316); merged Kushal (318, test database); added users and audit tests (337) | Test Explorer, Run All | 296 tests, 292 passed, 4 failed (BUG-05 to BUG-08) |
 | 23 Nov 2026 | Added sort and search timing tests (425), red step | Test Explorer, Run All | SortPerformanceTests fail on purpose (sort helper still stubs) |
 | 26 Nov 2026 | Cherry-picked Kushal's merge sort and binary search (424, `59dd5ee`), 425 green | Test Explorer, Run All | 310 tests, 306 passed, 4 failed (the same BUG-05 to BUG-08 rows; Kushal's fix in 318 is not on this branch yet) |
-| 26 Nov 2026 | Cherry-picked Kushal's 318 fix (`116ebf6`, `e637a18`), retest of BUG-05 to BUG-08 | Test Explorer, Run All | 310 tests, 310 passed, 0 failed |
+| 26 Nov 2026 | Cherry-picked Kushal's 318 fix (`116ebf6`, `e637a18`), retest of BUG-05 to BUG-08 | Test Explorer, Run All on `feature/irwin` at `a1d752a`, CINEMA_TEST_DB set to CinemaBookingTestDb | 310 tests, 310 passed, 0 failed, 0 skipped |
+
+### Runs on other branches (not this branch)
+
+These runs were done on a teammate's branch, because the tests for those cards are not on `feature/irwin` (they come with newer commits on that branch). The test counts are different from the 310 above because it is different code, not the same code run twice. Every run had CINEMA_TEST_DB set to CinemaBookingTestDb and 0 skipped, so all the database tests really ran against the test database.
+
+| Date | Branch and commit | Cards checked | Full run | Card tests |
+|---|---|---|---|---|
+| 26 Nov 2026 | `feature/kushal` at `cc43f8c` (includes 405 green `a5463ba`) | 446, 444, 443, 405 | 890 run, 890 passed, 0 failed, 0 skipped | 446 UpdatePassword 16 of 16 (8 fake, 8 database); 444 DatabaseFilmTests 10 of 10; 443 FilmServiceSortTests 11 of 11; 405 DeleteShowing 15 of 15 (8 fake, 7 database, the first run of the database ones) |
+| 27 Nov 2026 | `feature/shankar` at `1974f67` (includes 447 green `dd19bba`, and Kushal's 318 and 446) | 447 | 894 run, 894 passed, 0 failed, 0 skipped | ChangePasswordTests 35 of 35. The hand test of the change password screen is Not run (no screen yet, Sprint 4), see HT-46 in `hand-tests.md` |
+
+Screenshots of these runs were sent to Divyesh and the card owners in the group chat. They are not saved on this branch, because the tests they show are not on this branch.
 
 Retest after a bug fix: HASH-15 (BUG-04) failed on 12 Nov on the old `FilmHashTable`, passed on 15 Nov on the new `HashTable<int, Film>` and in every run since.
 

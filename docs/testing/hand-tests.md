@@ -5,6 +5,7 @@ Card: 363 (AB#363). Black-box system tests, done by hand through the screen only
 Build tested: `feature/divyesh`, Debug build (so the demo showings are loaded), on a local development database `CinemaBooking` built from `database/cinema.sql`. Never the real database.
 Film file used: `films_sample.csv` (10 films load, 2 bad rows skipped). No film in this file has a poster image.
 Status: run on 22 and 23 Nov 2026. Several pages are not built yet (accounts, saving a booking), so their tests are marked Not run and should be run again when those parts are merged.
+Retest on 27 Nov 2026 (HT-45, BUG-09): `feature/divyesh` at `0e3177d` (Divyesh's fix in card 442, commits `6053ccd` and `23f250b`). The `CinemaBooking` database was reset with `database/cinema.sql` first, then a first admin, a staff account and a customer were made through the program, and the admin loaded `films_sample.csv`.
 
 How to read the table: each row is one thing to click or type. Expected result comes from the rules in file 27 and the decision log, not from the code. Every Fail gets a Bug card in Azure and a Bug ID here. Screenshots are saved in `docs/testing/screenshots/hand/` as `HT-xx.png`.
 
@@ -35,13 +36,13 @@ How to read the table: each row is one thing to click or type. Expected result c
 | HT-03 | System | Manual | Create first admin | First run shows "create first admin" | Empty users table | Start the app, click Sign in, then Set up the first admin | - | The create-first-admin window appears, no default password anywhere | "Admin setup" page appears with email, password and password-again boxes, no default password | Pass | 23 Nov 2026 | Irwin | - | HT-03.png |
 | HT-04 | Boundary/negative | Manual | Create first admin | Blank boxes | First run | Leave email and password empty, click create | No user saved | Clear message under the boxes, no crash | Red messages shown under the boxes, no crash | Pass | 23 Nov 2026 | Irwin | - | - |
 | HT-05 | Boundary/negative | Manual | Create first admin | Short or wrong password | First run | Password "abc"; two passwords that do not match | No user saved | Refused, password must be at least 8 characters | Both refused with a red message ("passwords do not match" shown in the screenshot), no crash | Pass | 23 Nov 2026 | Irwin | - | HT-05.png |
-| HT-06 | System | Manual | Create first admin | Valid admin | First run | admin@site.mu, password 8 or more characters | 1 admin saved | Message that the admin account was created, then the login page | Message "first admin not built yet", nothing saved | Not run (not built yet) | 23 Nov 2026 | Irwin | - | HT-06.png |
+| HT-06 | System | Manual | Create first admin | Valid admin | First run | admin@site.mu, password 8 or more characters | 1 admin saved | Message that the admin account was created, then the login page | Message "first admin not built yet", nothing saved | Not run | 23 Nov 2026 | Irwin | - | HT-06.png |
 | HT-07 | System | Manual | Log in | Admin logs in | Admin from HT-06 | Right email and password | Signed in | Main window shows the admin menu (Films, Showings, Book seats, Cancel booking, Members, Admin, My account) | No account can be created yet | Not run | - | Irwin | - | - |
 | HT-08 | Boundary/negative | Manual | Log in | Wrong password | Admin exists | Wrong password once | Failed attempts 1 | Clear message, not signed in, does not say whether the email exists | No account can be created yet | Not run | - | Irwin | - | - |
 | HT-09 | Security | Manual | Log in | Lock-out after 3 wrong passwords | Admin exists | Wrong password 3 times, then the right one | Account locked | Locked after the 3rd try, the right password is refused until the lock ends | No account can be created yet | Not run | - | Irwin | - | - |
 | HT-10 | Boundary/negative | Manual | Log in | Bad or blank boxes | Any | Email "12345", empty password | - | Clear message, no crash | "email must look like name@site.com" and "password cannot be empty" in red, no crash | Pass | 23 Nov 2026 | Irwin | - | HT-10.png |
 | HT-11 | Security | Manual | Log in | SQL injection text | Any | Email `x'); DROP TABLE users;--`, any password | Users table unchanged | Refused like any wrong login, no crash, users can still log in afterwards | Not run this time (the same text is tested automatically in SEC-03) | Not run | - | Irwin | - | - |
-| HT-12 | System | Manual | Sign up | New customer | Logged out | Name, new email, phone, password 8 or more | 1 customer and 1 member (Standard, 0 points) | Account created, can log in | Saving an account is not built yet | Not run (not built yet) | 22 Nov 2026 | Irwin | - | - |
+| HT-12 | System | Manual | Sign up | New customer | Logged out | Name, new email, phone, password 8 or more | 1 customer and 1 member (Standard, 0 points) | Account created, can log in | Saving an account is not built yet | Not run | 22 Nov 2026 | Irwin | - | - |
 | HT-13 | Boundary/negative | Manual | Sign up | Email already used | Customer from HT-12 | Same email, other capitals | No new user | Refused with a clear message | Needs HT-12 | Not run | - | Irwin | - | - |
 | HT-14 | Boundary/negative | Manual | Sign up | Bad input | Logged out | Blank name; "abc" as email; letters as phone | No user saved | Each refused with a clear message, no crash | A red message shown for each bad box, no crash (300-letter name not tried) | Pass | 22 Nov 2026 | Irwin | - | - |
 | HT-15 | System | Manual | Main window | Menu for a guest | Not signed in | - | - | Only Films, Cancel booking (find my booking), My account | Films, Cancel booking, Sign in and Exit. "Sign in" is shown instead of "My account", which makes sense for a guest | Pass | 23 Nov 2026 | Irwin | - | HT-15.png |
@@ -59,7 +60,7 @@ How to read the table: each row is one thing to click or type. Expected result c
 | HT-27 | System | Manual | Seat map | Select and unselect seats | Seat map open | Click two seats, then one of them again | - | First seat selected, second unselected | Clicking a chosen seat again unselects it and the "chosen" text updates | Pass | 22 Nov 2026 | Irwin | - | - |
 | HT-28 | Boundary/negative | Manual | Seat map | Taken seat | 18:30 Screen 2 showing (5 seats taken) | Click a taken seat | - | Cannot be picked | Taken seats are dark and nothing happens when clicked | Pass | 22 Nov 2026 | Irwin | - | - |
 | HT-29 | Boundary/negative | Manual | Seat map | Continue with no seats | Seat map open | Pick nothing | - | Clear message, stays on the seat map | "no seats chosen" and the Continue button is greyed out | Pass | 23 Nov 2026 | Irwin | - | HT-29.png |
-| HT-30 | System | Manual | Booking summary | Guest books | Guest, seats picked | Name, email, phone | 2 seats taken | Price shown, booking reference shown at the end, offer to sign in or sign up | Price shown (1 x Rs 250.00) and a "Sign in to earn points" button, but the last page says "The booking is made when the booking service is connected." No booking saved, no reference | Not run (not built yet) | 23 Nov 2026 | Irwin | - | HT-30.png |
+| HT-30 | System | Manual | Booking summary | Guest books | Guest, seats picked | Name, email, phone | 2 seats taken | Price shown, booking reference shown at the end, offer to sign in or sign up | Price shown (1 x Rs 250.00) and a "Sign in to earn points" button, but the last page says "The booking is made when the booking service is connected." No booking saved, no reference | Not run | 23 Nov 2026 | Irwin | - | HT-30.png |
 | HT-31 | Boundary/negative | Manual | Booking summary | Guest details missing or wrong | Guest, seat A1 picked | Blank name; email "abc"; phone "abcdefg" | Nothing booked | Each refused with a clear message | Three red messages: name cannot be empty, email must look like name@site.com, phone must have 7 to 15 digits | Pass | 23 Nov 2026 | Irwin | - | HT-31.png |
 | HT-32 | System | Manual | Booking summary | Customer price and points | Customer signed in, seats picked | - | - | Tier discount and points to earn shown | No account can be created yet (as a guest the summary correctly says "none for guests, sign in to earn points") | Not run | - | Irwin | - | - |
 | HT-33 | System | Manual | Showings page | Add a showing | Admin or staff | Film, screen, future date and time, price 250 | 1 more showing | Showing added and listed | Needs a staff or admin login | Not run | - | Irwin | - | - |
@@ -74,22 +75,26 @@ How to read the table: each row is one thing to click or type. Expected result c
 | HT-42 | System | Manual | Placeholder pages | Placeholder pages open | Guest | Open Cancel booking | - | Opens a "will be done here" page, no crash (not built yet) | "A booking is cancelled here with its reference." shown, no crash. The other placeholders need a login | Pass | 23 Nov 2026 | Irwin | - | HT-42.png |
 | HT-43 | Performance | Manual | Films | Time to load and show the films | App open | Load films_sample.csv | - | Shows in under 2 seconds (counted) | About 1 second | Pass | 23 Nov 2026 | Irwin | - | - |
 | HT-44 | System | Manual | Main window | Exit | Any | Click Exit | - | The program closes | Not run this time | Not run | - | Irwin | - | - |
-| HT-45 | Security | Manual | Films | A guest cannot load the film file | Not signed in | Click "Load film file" as a guest | Films unchanged | Only an admin can load a film file, the button is hidden or refused for a guest | A guest can click "Load film file" and load 10 films | Fail | 22 Nov 2026 | Irwin | (Akilesh to number) | HT-45.png |
+| HT-45a | Security | Manual | Films | A guest cannot load the film file | Not signed in (Continue as guest) | Open Films | Films unchanged | Only Staff or Admin can load a film file, so the button is hidden for a guest | Retest 27 Nov 2026: no Load film file button on the Films page. First run 22 Nov 2026: a guest could click "Load film file" and load 10 films (HT-45.png) | Pass | 27 Nov 2026 | Irwin | BUG-09 | HT-45-guest.png |
+| HT-45b | Security | Manual | Films | A customer cannot load the film file | Customer signed in (test@test.com) | Open Films | Films unchanged | Button hidden for a customer | No Load film file button; the menu shows only Films and My bookings | Pass | 27 Nov 2026 | Irwin | BUG-09 | HT-45-customer.png |
+| HT-45c | Security | Manual | Films | Staff can load the film file | Staff signed in (staff1@test.com, role Staff) | Open Films | - | Button shown for staff | Load film file button shown; the menu shows Films, Showings, Cancel booking and Members (no Tier rules or Manage films) | Pass | 27 Nov 2026 | Irwin | BUG-09 | HT-45-staff.png |
+| HT-45d | Security | Manual | Films | An admin can load the film file | Admin signed in, empty films table | Open Films, click Load film file, pick films_sample.csv | 10 films saved | Button shown, the films load | Button shown; "loaded 10 films, skipped 2 rows from films_sample.csv" and 10 films listed | Pass | 27 Nov 2026 | Irwin | BUG-09 | HT-45-admin.png |
+| HT-46 | Security | Manual | Settings | Change password, then 3 wrong current passwords lock the account (card 447) | Staff signed in | Right current password; then a wrong current password 3 times; then sign in with the right password during the lock | Password changed; account locked for 15 minutes | Change works; the 3rd wrong try shows the 15 minutes lock message; sign in refused during the lock | No change password screen yet (Sprint 4). Settings says "Changing your password is coming soon". The service is tested automatically by Shankar's ChangePasswordTests (35 pass on `feature/shankar` at `1974f67`) | Not run | 27 Nov 2026 | Irwin | - | - |
 
 ## Summary
 
 | | Count |
 |---|---|
-| Tests in this plan | 45 |
-| Passed | 20 |
-| Failed | 1 (HT-45) |
-| Not run, part not built yet (accounts, saving a booking) | 20 |
+| Tests in this plan | 49 (HT-45 is now 4 rows, one per role, and HT-46 is new) |
+| Passed | 24 |
+| Failed | 0 |
+| Not run, part not built yet (accounts, saving a booking, change password) | 21 |
 | Not run, skipped this time (HT-01, 02, 11, 44) | 4 |
-| Pass rate of the tests that were run | 20 of 21 (95%) |
+| Pass rate of the tests that were run | 24 of 24 (100%) |
 
-By type (run only): System 12 pass; Boundary/negative 6 pass; Security 1 pass, 1 fail; Performance 1 pass.
+By type (run only): System 12 pass; Boundary/negative 6 pass; Security 5 pass; Performance 1 pass.
 
-Bug raised: HT-45, a guest can load the film file (security, role check missing). Sent to Akilesh for the bug log and to Divyesh for the Azure Bug card.
+Bug raised on 22 Nov: HT-45, a guest can load the film file (security, role check missing), logged as BUG-09. Fixed by Divyesh in card 442 (only Staff or Admin can load a film file). Retested on 27 Nov 2026 on `feature/divyesh` at `0e3177d`: hidden for guest and customer, shown for staff and admin, loading works. BUG-09 can be closed.
 
 Not a bug: on 22 Nov the "loaded 10 films, skipped 2" message looked cut off once. On 23 Nov it showed in full every time, so no bug was raised.
 
