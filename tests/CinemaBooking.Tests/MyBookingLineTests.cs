@@ -36,6 +36,30 @@ public class MyBookingLineTests
     }
 
     [TestMethod]
+    public void Text_CancelledBookingWithNoSeats_SaysSeatsFreed()
+    {
+        Booking booking = Make(BookingStatus.Cancelled);
+        booking.Seats = new string[0];
+
+        string text = MyBookingLine.Text(booking, "Heat");
+
+        StringAssert.Contains(text, "seats freed");
+        Assert.DoesNotContain("seats  -", text);
+    }
+
+    [TestMethod]
+    public void CanCancel_ConfirmedBooking_IsTrue()
+    {
+        Assert.IsTrue(MyBookingLine.CanCancel(Make(BookingStatus.Confirmed)));
+    }
+
+    [TestMethod]
+    public void CanCancel_CancelledBooking_IsFalse()
+    {
+        Assert.IsFalse(MyBookingLine.CanCancel(Make(BookingStatus.Cancelled)));
+    }
+
+    [TestMethod]
     public void Text_TotalAlwaysHasTwoDecimals()
     {
         Booking booking = Make(BookingStatus.Confirmed);
