@@ -174,7 +174,7 @@ namespace CinemaBooking.UI
             AddMenuButton(btnShowings, "Showings", UiTheme.ICON_SHOWINGS, MakeShowingsPage);
             AddMenuButton(btnMyBookings, "My bookings", UiTheme.ICON_MY_BOOKINGS, MakeMyBookingsPage);
             AddMenuButton(btnCancel, "Cancel booking", UiTheme.ICON_CANCEL, MakeFindBookingPage);
-            AddMenuButton(btnMembers, "Members", UiTheme.ICON_MEMBERS, () => MakePlaceholderPage("Members and their loyalty points will be shown here."));
+            AddMenuButton(btnMembers, "Members", UiTheme.ICON_MEMBERS, MakeMembersPage);
             AddMenuButton(btnTiers, "Tier rules", UiTheme.ICON_TIER_RULES, MakeTierRulesPage);
             AddMenuButton(btnAdmin, "Manage films", UiTheme.ICON_ADMIN, MakeAdminPage);
 
@@ -521,6 +521,36 @@ namespace CinemaBooking.UI
         private void ShowGoodToast(string message)
         {
             _toast.ShowMessage(message, false);
+        }
+
+        // the Members page (card 342) opens for staff and admins, MemberService also refuses anyone else
+        // the page gets small functions, so it holds no rules and no database of its own
+        private Control MakeMembersPage()
+        {
+            if (_current_role != Role.Staff && _current_role != Role.Admin)
+            {
+                return MakePlaceholderPage("Sign in as staff or an admin to see the members.");
+            }
+
+            Role acting_role = _current_role;
+
+            return new MembersForm(
+                () =>
+                {
+                    Member[] members = _member_service.GetAllMembers(acting_role, out string load_error);
+                    return (members, load_error);
+                },
+                email =>
+                {
+                    Member? found = _member_service.FindMember(acting_role, email, out string find_error);
+                    return (found, find_error);
+                },
+                (name, email, phone) =>
+                {
+                    int new_id = _member_service.RegisterMember(name, email, phone, out string register_error);
+                    return (new_id, register_error);
+                },
+                ShowGoodToast);
         }
 
         // the tier rules window (card 408) opens only for an admin, it only shows the rules, nothing can be changed
