@@ -773,7 +773,7 @@ Retest on 2026-11-26, after cherry-picking Kushal's 318 fix (`116ebf6` and `e637
 
 Run on the app from `main`. For each step, also try bad input: blank boxes, letters in number boxes, very long text. Log every problem as a Bug card with steps, expected and actual, and a screenshot.
 
-The step by step hand tests HT-01 to HT-46 (Irwin, card 363) are in `docs/testing/hand-tests.md`, with a screenshot for each. HT-45a to HT-45d (BUG-09 retest) all pass on 2026-11-27 (screenshots to be pushed by Irwin); HT-46 (change password) is Not run because there is no screen yet.
+The step by step hand tests HT-01 to HT-46 (Irwin, card 363) are in `docs/testing/hand-tests.md`, with a screenshot for each. HT-45a to HT-45d (BUG-09 retest) all pass on 2026-11-27; HT-46 (change password) is Not run because there is no screen yet.
 
 **J1. Guest books seats**
 1. Start the app. Click "Book without an account".
