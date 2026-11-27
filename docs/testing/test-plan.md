@@ -587,7 +587,7 @@ This part covers Kushal's code: our own hash tables and linked list, the seat gr
 
 #### Hash table tests in code (card 356)
 
-Run on 15 Nov 2026 against Kushal's `HashTable<int, Film>` (branch `feature/kushal`) with Shankar's `Film` from `CinemaBooking.Models`. File: `tests/CinemaBooking.Tests/HashTableTests.cs`. Result: 14 tests, 14 passed.
+Run on 2026-11-15 against Kushal's `HashTable<int, Film>` (branch `feature/kushal`) with Shankar's `Film` from `CinemaBooking.Models`. File: `tests/CinemaBooking.Tests/HashTableTests.cs`. Result: 14 tests, 14 passed.
 
 History: on 12 Nov the old `FilmHashTable` crashed on a negative ID (HASH-15). Kushal replaced it with the generic table, and the test now passes.
 
@@ -670,7 +670,7 @@ MSTest file: `tests/CinemaBooking.Tests/SeatGridTests.cs`. The grid is a plain 8
 | SEAT-19 | Boundary/negative | Automatic | Seat grid | Is a bad code free (IsSeatFree_BadCode_ReturnsFalse, 3 inputs) | Empty 8 x 12 SeatGrid | "", I1, A13 | No change | False, no crash | False for all 3 | Pass | 2026-11-20 | Irwin | - |
 | DB-06b | Integration | Automatic | Database | Same seat booked twice, real database (card 361) | Local CinemaBookingTest database with showing 10 | C5 for showing 10, twice | 1 booking | Second save returns -1 (unique key uq_booked_seats_showing_seat) | Not run yet: waits for the CinemaBookingTest database. Covered in memory by SEAT-04 and in the fake by FAKE-08 | Not run | - | Irwin | - |
 
-Summary (card 361, run on 20 Nov 2026): 29 test methods (35 runs, because SEAT-10, SEAT-11 and SEAT-19 have several inputs), all automatic. White-box 9, Boundary/negative 20. Passed 29, failed 0. DB-06b (real database) not run yet. Pass rate 100% of what was run. Open bugs: none. Screenshot: `361-seat-grid-tests-green.png`.
+Summary (card 361, run on 2026-11-20): 29 test methods (35 runs, because SEAT-10, SEAT-11 and SEAT-19 have several inputs), all automatic. White-box 9, Boundary/negative 20. Passed 29, failed 0. DB-06b (real database) not run yet. Pass rate 100% of what was run. Open bugs: none. Screenshot: `361-seat-grid-tests-green.png`.
 
 ### Search (card 409)
 
@@ -692,7 +692,7 @@ Search is in Shankar's `FilmService` (card 305). It checks every film, because t
 | SRCH-12 | White-box | Automatic | Search | Title search after resize (SearchByTitle_AfterResize_FindsFilm) | 1000 plain films plus Inception (ID 1001) | "incep" | No change | Inception only | Inception only | Pass | 2026-11-20 | Irwin | - |
 | SRCH-13 | White-box | Automatic | Search | Genre search after resize (SearchByGenre_AfterResize_FindsAllThousand) | 1000 Drama films | "drama" | No change | All 1000 films | 1000 films | Pass | 2026-11-20 | Irwin | - |
 
-Summary (card 409, run on 20 Nov 2026):
+Summary (card 409, run on 2026-11-20):
 
 | Test type | Tests | Passed | Failed | Not run |
 |---|---|---|---|---|
@@ -744,19 +744,36 @@ All database tests use a separate test database, never the real one.
 
 ### Users and audit log (card 337)
 
+MSTest file: `tests/CinemaBooking.Tests/DatabaseUserTests.cs`, integration tests on the local CinemaBookingTestDb (setting CINEMA_TEST_DB, steps in `docs/testing/test-database-setup.md`). Kushal's `UserRepositoryTests` already check the normal cases (new user, duplicate email in any case, find, failed attempts and lock, unknown user, audit without a user, HasAnyAdmin), so these rows add read-back of every field, the audit row details, security text, bad data, database down and a timing. The old rows USER-03, USER-04 and USER-05 are covered by Kushal's tests and were removed.
+
 | Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| USER-01 | Integration | Automatic | Users | Save and read back a user | Local CinemaBookingTest database built from cinema.sql | User with username and role | - | Same username and role | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
-| USER-02 | Security | Automatic | Users | No plain password stored | Local CinemaBookingTest database built from cinema.sql | Save a user with password "abc123" | - | The password column holds a hash, not "abc123" | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
-| USER-03 | Integration | Automatic | Users | Update failed attempts | Local CinemaBookingTest database built from cinema.sql | Set failed attempts to 2 | - | Reads back as 2 | Not run yet: the users table has no failed_attempts or locked_until column, waits for Kushal's card 318 | Not run | - | Irwin | - |
-| USER-04 | Integration | Automatic | Users | Locked-until saved | Local CinemaBookingTest database built from cinema.sql | Set a lock time | - | Reads back the same time | Not run yet: the users table has no failed_attempts or locked_until column, waits for Kushal's card 318 | Not run | - | Irwin | - |
-| USER-05 | Security | Automatic | Users | Two users with the same username | Local CinemaBookingTest database built from cinema.sql | Save the same username twice | - | Second is refused by the unique key `uq_users_username` | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
-| AUD-01 | Integration | Automatic | Audit log | Write an audit row | Local CinemaBookingTest database built from cinema.sql | Write "admin added film 5" | - | Row saved with who, what and when | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
-| AUD-02 | Integration | Automatic | Audit log | Rows come back in order | Local CinemaBookingTest database built from cinema.sql | Write 3 rows | - | Read back oldest to newest (or newest first, TBC) | Not run yet: waits for the CinemaBookingTest database | Not run | - | Irwin | - |
+| USER-01 | Integration | Automatic | Users | Save and read back every field (SaveUser_CustomerWithMember_ReadsBackAllFields) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | "Ann@Mail.com", hash123, salt123, Customer, a new member row | 1 user, 1 audit row | Same id, email lowercased, same hash, salt, role and member id | As expected | Pass | 2026-11-22 | Irwin | - |
+| AUD-01 | Integration | Automatic | Audit log | Saving a user writes an audit row (SaveUser_WritesAuditRowWithTime) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | boss@x.com, Admin | 1 audit row | Row with the user id, "boss@x.com as Admin", time within the last minute | As expected | Pass | 2026-11-22 | Irwin | - |
+| AUD-03 | Integration | Automatic | Audit log | Audit row keeps the user id (WriteAudit_WithUser_KeepsUserId) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | Staff user, action film_added | 1 extra audit row | True, row has the user id | As expected | Pass | 2026-11-22 | Irwin | - |
+| AUD-04 | Boundary/negative | Automatic | Audit log | Empty action refused (WriteAudit_EmptyAction_ReturnsFalse) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | Action "   " | No audit rows | False, nothing written | As expected | Pass | 2026-11-22 | Irwin | - |
+| SEC-10 | Security | Automatic | Users | SQL injection text in the email (SaveUser_SqlInjectionEmail_StoredAsText) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | x'); DROP TABLE users;--@x.com | 1 user | Saved and found as plain text, users table still there | As expected | Pass | 2026-11-22 | Irwin | - |
+| SEC-11 | Security | Automatic | Users | Apostrophe in the email (SaveUser_ApostropheEmail_ReadsBack) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | o'brien@x.com | 1 user | Read back unchanged | As expected | Pass | 2026-11-22 | Irwin | - |
+| BND-05 | Boundary/negative | Automatic | Users | Blank email (SaveUser_BlankEmail_ReturnsMinusOne, 2 inputs) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | "" and "   " | No users | -1 | -1 for both | Pass | 2026-11-22 | Irwin | - |
+| BND-06 | Boundary/negative | Automatic | Users | Find a blank email (FindByEmail_BlankEmail_ReturnsNull) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | "  " | No change | Null | Null | Pass | 2026-11-22 | Irwin | - |
+| BND-07 | Boundary/negative | Automatic | Users | Guest role has no account (SaveUser_GuestRole_ReturnsMinusOne) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | guest@x.com, role Guest | No users | -1, no crash (the users table only allows Customer, Staff, Admin) | Retest 2026-11-26 after Kushal's fix (318): -1, no crash. First run 2026-11-22: throws SqlException, the test crashes (ck_users_role) | Pass | 2026-11-26 | Irwin | BUG-05 |
+| BND-08 | Boundary/negative | Automatic | Users | Negative failed attempts (SetFailedAttempts_Negative_ReturnsFalse) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | Failed attempts -1 | User unchanged | False, no crash | Retest 2026-11-26 after Kushal's fix (318): False, no crash. First run 2026-11-22: throws SqlException, the test crashes (ck_users_failed) | Pass | 2026-11-26 | Irwin | BUG-06 |
+| BND-09 | Boundary/negative | Automatic | Users | Email longer than the column (SaveUser_EmailTooLong_ReturnsMinusOne) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | 101-letter email | No users | -1, no crash | Retest 2026-11-26 after Kushal's fix (318): -1, no crash. First run 2026-11-22: throws SqlException, the test crashes (string would be truncated) | Pass | 2026-11-26 | Irwin | BUG-07 |
+| BND-10 | Boundary/negative | Automatic | Users | Member id that does not exist (SaveUser_MissingMemberId_ReturnsMinusOne) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | Customer with member id 999999 | No users | -1, no crash | Retest 2026-11-26 after Kushal's fix (318): -1, no crash. First run 2026-11-22: throws SqlException, the test crashes (fk_users_member) | Pass | 2026-11-26 | Irwin | BUG-08 |
+| DB-12b | Integration | Automatic | Users | Database down (FindByEmail_DatabaseDown_ClearMessage) | No SQL Server at that name | Server name that does not exist, 2 second limit | - | "The database could not be reached..." message, no raw SQL error | As expected | Pass | 2026-11-22 | Irwin | - |
+| PERF-04 | Performance | Automatic | Users | 50 saves and 50 finds (SaveAndFind_FiftyUsers_UnderTenSeconds) | CinemaBookingTestDb built from cinema.sql (card 318), users and audit_log emptied | user1 to user50 | 50 users | Under 10 seconds | About 170 ms (Test Explorer duration) | Pass | 2026-11-22 | Irwin | - |
+| USER-02 | Security | Automatic | Users | No plain password stored | Local CinemaBookingTest database built from cinema.sql | Save a user with password "abc123" | - | The password column holds a hash, not "abc123" | Not run yet: the hash is made by Shankar's PasswordHasher (card 333), tested with the login service | Not run | - | Irwin | - |
+| AUD-02 | Integration | Automatic | Audit log | Rows come back in order | Local CinemaBookingTest database built from cinema.sql | Write 3 rows | - | Read back oldest to newest (or newest first, TBC) | Not run: UserRepository has no method to read audit rows back in order | Not run | - | Irwin | - |
+
+Run on 2026-11-22: 15 runs, 11 passed, 4 failed. The 4 failures are real bugs (BUG-05 to BUG-08): when a database rule refuses the data, UserRepository lets the SqlException out instead of returning -1 or false. File 27 says normal problems return -1 or false and SqlException is caught in the Data layer. Assigned to Kushal (card 318). Screenshot: `337-database-user-tests.png`.
+
+Retest on 2026-11-26, after cherry-picking Kushal's 318 fix (`116ebf6` and `e637a18`) onto `feature/irwin`: 15 runs, 15 passed, 0 failed. BUG-05 to BUG-08 are closed. Screenshot: `337-database-user-tests-retest.png`.
 
 ### Manual tests: full journeys (cards 363 and 364)
 
 Run on the app from `main`. For each step, also try bad input: blank boxes, letters in number boxes, very long text. Log every problem as a Bug card with steps, expected and actual, and a screenshot.
+
+The step by step hand tests HT-01 to HT-46 (Irwin, card 363) are in `docs/testing/hand-tests.md`, with a screenshot for each. HT-45a to HT-45d (BUG-09 retest) all pass on 2026-11-27; HT-46 (change password) is Not run because there is no screen yet.
 
 **J1. Guest books seats**
 1. Start the app. Click "Book without an account".
@@ -827,7 +844,32 @@ MSTest files: `tests/CinemaBooking.Tests/Fakes/FakeDatabase.cs` and `tests/Cinem
 
 Not run yet: the same 20 tests on the real `Database` with the local CinemaBookingTest database (Integration). They wait until the test database is set up. Known differences, by design: the fake does not sort `GetTakenSeats` or `GetBookingsForMember` (the real database does), and it does not check that the film and screen of a showing exist (the real database uses foreign keys).
 
-Summary (card 432, run on 20 Nov 2026): 20 tests, all automatic. White-box 11, Boundary/negative 8, Integration 1. Passed 20, failed 0, not run 0 (plus the real-database run still to do). Pass rate 100%. Open bugs: none. Screenshots: `432-fake-database-red.png` and `432-fake-database-green.png`.
+Summary (card 432, run on 2026-11-20): 20 tests, all automatic. White-box 11, Boundary/negative 8, Integration 1. Passed 20, failed 0, not run 0 (plus the real-database run still to do). Pass rate 100%. Open bugs: none. Screenshots: `432-fake-database-red.png` and `432-fake-database-green.png`.
+
+### Sort and search timings (card 425)
+
+MSTest file: `tests/CinemaBooking.Tests/SortPerformanceTests.cs`. Week 8: Kushal's merge sort and binary search (`SortHelper`, card 424) against a bubble sort baseline (a helper in the test file only), linear search (`FilmService.SearchByTitle`) and the hash table lookup by id. Each test checks the answer is right and prints the average time under Standard Output. Full table and comments: `docs/testing/timing-results.md`. Red step: commit `23d5ed6` (sort helper still stubs). Green step: commit `cbba8d4`, screenshot `425-sort-performance-green.png`.
+
+| Test ID | Test type | Mode | Area | What is tested | Preconditions | Test data | Post-conditions | Expected result | Actual result | Pass/Fail | Executed date | Tester | Bug ID |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| TIME-01 | Performance | Automatic | Sort | Time merge sort (MergeSort_RandomFilms_SortedAndTimed (1000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 1,000 films | Original films unchanged | Sorted by title, all 1,000 films kept; time printed | Sorted by title, all 1,000 films kept; 0.6101 ms | Pass | 2026-11-26 | Irwin | - |
+| TIME-02 | Performance | Automatic | Sort | Time merge sort (MergeSort_RandomFilms_SortedAndTimed (10000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 10,000 films | Original films unchanged | Sorted by title, all 10,000 films kept; time printed | Sorted by title, all 10,000 films kept; 9.6715 ms | Pass | 2026-11-26 | Irwin | - |
+| TIME-03 | Performance | Automatic | Sort | Time merge sort (MergeSort_RandomFilms_SortedAndTimed (100000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 100,000 films | Original films unchanged | Sorted by title, all 100,000 films kept; time printed | Sorted by title, all 100,000 films kept; 119.6030 ms | Pass | 2026-11-26 | Irwin | - |
+| TIME-04 | Performance | Automatic | Sort | Time bubble sort (baseline) (BubbleSort_RandomFilms_SortedAndTimed (1000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 1,000 films | Original films unchanged | Sorted by title, all 1,000 films kept; time printed | Sorted by title, all 1,000 films kept; 13.6700 ms | Pass | 2026-11-26 | Irwin | - |
+| TIME-05 | Performance | Automatic | Sort | Time bubble sort (baseline) (BubbleSort_RandomFilms_SortedAndTimed (10000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 10,000 films | Original films unchanged | Sorted by title, all 10,000 films kept; time printed | Sorted by title, all 10,000 films kept; 1701.3211 ms | Pass | 2026-11-26 | Irwin | - |
+| TIME-06 | Performance | Automatic | Search | Time linear search (LinearSearch_RandomFilms_FoundAndTimed (1000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 1,000 films, 100 titles spread across them | Original films unchanged | All 100 titles found; time printed | All 100 titles found; 10.6273 ms for 100 searches | Pass | 2026-11-26 | Irwin | - |
+| TIME-07 | Performance | Automatic | Search | Time linear search (LinearSearch_RandomFilms_FoundAndTimed (10000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 10,000 films, 100 titles | Original films unchanged | All 100 titles found; time printed | All 100 titles found; 77.6784 ms for 100 searches | Pass | 2026-11-26 | Irwin | - |
+| TIME-08 | Performance | Automatic | Search | Time linear search (LinearSearch_RandomFilms_FoundAndTimed (100000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 100,000 films, 100 titles | Original films unchanged | All 100 titles found; time printed | All 100 titles found; 876.5503 ms for 100 searches | Pass | 2026-11-26 | Irwin | - |
+| TIME-09 | Performance | Automatic | Search | Time binary search (BinarySearch_SortedFilms_FoundAndTimed (1000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 1,000 films sorted by merge sort, 100 titles | Original films unchanged | All 100 titles found at the right place; time printed | All 100 titles found at the right place; 0.0342 ms for 100 searches | Pass | 2026-11-26 | Irwin | - |
+| TIME-10 | Performance | Automatic | Search | Time binary search (BinarySearch_SortedFilms_FoundAndTimed (10000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 10,000 sorted films, 100 titles | Original films unchanged | All 100 titles found at the right place; time printed | All 100 titles found at the right place; 0.0261 ms for 100 searches | Pass | 2026-11-26 | Irwin | - |
+| TIME-11 | Performance | Automatic | Search | Time binary search (BinarySearch_SortedFilms_FoundAndTimed (100000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 100,000 sorted films, 100 titles | Original films unchanged | All 100 titles found at the right place; time printed | All 100 titles found at the right place; 0.0387 ms for 100 searches | Pass | 2026-11-26 | Irwin | - |
+| TIME-12 | Performance | Automatic | Hash table | Time hash lookup (HashLookup_RandomFilms_FoundAndTimed (1000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 1,000 films in HashTable<int, Film>, 100 ids | Original films unchanged | All 100 ids found; time printed | All 100 ids found; 0.0188 ms for 100 lookups | Pass | 2026-11-26 | Irwin | - |
+| TIME-13 | Performance | Automatic | Hash table | Time hash lookup (HashLookup_RandomFilms_FoundAndTimed (10000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 10,000 films, 100 ids | Original films unchanged | All 100 ids found; time printed | All 100 ids found; 0.0203 ms for 100 lookups | Pass | 2026-11-26 | Irwin | - |
+| TIME-14 | Performance | Automatic | Hash table | Time hash lookup (HashLookup_RandomFilms_FoundAndTimed (100000)) | n films with random 8-letter titles, seed 42; 1 warm-up run, then average of 5 runs | 100,000 films, 100 ids | Original films unchanged | All 100 ids found; time printed | All 100 ids found; 0.0074 ms for 100 lookups | Pass | 2026-11-26 | Irwin | - |
+
+Big O check: when n grows 10 times, merge sort gets about 12 to 16 times slower (O(n log n) predicts about 12.5 to 13.3), and bubble sort gets 124 times slower (O(n squared) predicts 100). Linear search grows about 10 times (O(n)), while binary search and hash lookup stay flat at a few hundredths of a millisecond for 100 searches (O(log n) and O(1)); their small ups and downs are stopwatch noise.
+
+Summary (card 425, run on 2026-11-26): 14 tests, all automatic, all Performance. Passed 14, failed 0, not run 0. Bubble sort at 100,000 films was left out on purpose (about 3 minutes per sort).
 
 ### Extra test types (card 418) and summary
 
@@ -855,6 +897,21 @@ MSTest file: `tests/CinemaBooking.Tests/PerformanceSecurityTests.cs`. These run 
 | 2026-11-20 | FakeDatabase green step | Test Explorer, Run All | 207 tests, 207 passed |
 | 2026-11-20 | Added seat grid, showing and member tests (361) | Test Explorer, Run All | 242 tests, 242 passed |
 | 2026-11-20 | Added performance, security and boundary tests (418) | Test Explorer, Run All | 250 tests, 250 passed |
+| 2026-11-22 | Added SaveFilm to the fake (316); merged Kushal (318, test database); added users and audit tests (337) | Test Explorer, Run All | 296 tests, 292 passed, 4 failed (BUG-05 to BUG-08) |
+| 2026-11-23 | Added sort and search timing tests (425), red step | Test Explorer, Run All | SortPerformanceTests fail on purpose (sort helper still stubs) |
+| 2026-11-26 | Cherry-picked Kushal's merge sort and binary search (424, `59dd5ee`), 425 green | Test Explorer, Run All | 310 tests, 306 passed, 4 failed (the same BUG-05 to BUG-08 rows; Kushal's fix in 318 is not on this branch yet) |
+| 2026-11-26 | Cherry-picked Kushal's 318 fix (`116ebf6`, `e637a18`), retest of BUG-05 to BUG-08 | Test Explorer, Run All on `feature/irwin` at `a1d752a`, CINEMA_TEST_DB set to CinemaBookingTestDb | 310 tests, 310 passed, 0 failed, 0 skipped |
+
+#### Runs on other branches (not this branch)
+
+These runs were done on a teammate's branch, because the tests for those cards are not on `feature/irwin` (they come with newer commits on that branch). The test counts are different from the 310 above because it is different code, not the same code run twice. Every run had CINEMA_TEST_DB set to CinemaBookingTestDb and 0 skipped, so all the database tests really ran against the test database.
+
+| Date | Branch and commit | Cards checked | Full run | Card tests |
+|---|---|---|---|---|
+| 2026-11-26 | `feature/kushal` at `cc43f8c` (includes 405 green `a5463ba`) | 446, 444, 443, 405 | 890 run, 890 passed, 0 failed, 0 skipped | 446 UpdatePassword 16 of 16 (8 fake, 8 database); 444 DatabaseFilmTests 10 of 10; 443 FilmServiceSortTests 11 of 11; 405 DeleteShowing 15 of 15 (8 fake, 7 database, the first run of the database ones) |
+| 2026-11-27 | `feature/shankar` at `1974f67` (includes 447 green `dd19bba`, and Kushal's 318 and 446) | 447 | 894 run, 894 passed, 0 failed, 0 skipped | ChangePasswordTests 35 of 35. The hand test of the change password screen is Not run (no screen yet, Sprint 4), see HT-46 in `hand-tests.md` |
+
+Screenshots of these runs were sent to Divyesh and the card owners in the group chat. They are not saved on this branch, because the tests they show are not on this branch.
 
 Retest after a bug fix: HASH-15 (BUG-04) failed on 12 Nov on the old `FilmHashTable`, passed on 15 Nov on the new `HashTable<int, Film>` and in every run since.
 
@@ -865,18 +922,23 @@ Retest after a bug fix: HASH-15 (BUG-04) failed on 12 Nov on the old `FilmHashTa
 | PERF-01 | Add 1000 films (many resizes) and find each one | 1 ms |
 | PERF-02 | Search by title through 1000 films | 2 ms |
 | PERF-03 | One booking through BookingService (fake database) | 0 ms (under 1 ms) |
-| Not run yet | Database queries and a booking on SQL Server | Waits for the CinemaBookingTest database |
-| Not run yet | Sort and search at 1,000, 10,000 and 100,000 films | Card 425, waits for Kushal's sort code (424) |
+| PERF-04 | 50 user saves and 50 finds on SQL Server | About 170 ms |
+| Not run yet | A booking on SQL Server | Waits for the database version of the fake tests |
+| TIME-01 to 03 | Merge sort at 1,000, 10,000 and 100,000 films | 0.61 ms, 9.67 ms, 119.60 ms |
+| TIME-04 and 05 | Bubble sort (baseline) at 1,000 and 10,000 films | 13.67 ms, 1701.32 ms |
+| TIME-06 to 08 | 100 linear searches at 1,000, 10,000 and 100,000 films | 10.63 ms, 77.68 ms, 876.55 ms |
+| TIME-09 to 11 | 100 binary searches at 1,000, 10,000 and 100,000 films | 0.034 ms, 0.026 ms, 0.039 ms |
+| TIME-12 to 14 | 100 hash lookups at 1,000, 10,000 and 100,000 films | 0.019 ms, 0.020 ms, 0.007 ms |
 
 #### Security
 
 | What the card asks | Where it is tested | Result |
 |---|---|---|
-| SQL injection text | SEC-08 (search box), SEC-09 (guest name); DB-10 on SQL Server | SEC-08 and SEC-09 pass; DB-10 not run, waits for the test database |
+| SQL injection text | SEC-08 (search box), SEC-09 (guest name), SEC-10 (email on SQL Server); DB-10 (film title on SQL Server) | SEC-08, SEC-09 and SEC-10 pass; DB-10 not run yet |
 | SQL injection in every text box | Hand tests, card 363 | Not run, waits for the windows |
 | Role checks | Akilesh's ServiceTests (for example `AddFilm_NotAnAdmin_IsRefused`, also for remove) | Pass (Akilesh's tests, card 359) |
-| Lock-out after 3 wrong passwords | USER-03, USER-04 and Akilesh's card 336 | Not run, waits for Kushal's card 318 and Shankar's card 400 |
-| No plain text passwords | USER-02 | Not run, waits for Shankar's PasswordHasher (card 333) and the test database |
+| Lock-out after 3 wrong passwords | Columns saved: Kushal's SetFailedAttempts tests (pass). Lock-out rule: Akilesh's card 336 | Columns pass; the rule waits for Shankar's card 400 |
+| No plain text passwords | USER-02 | Not run, waits for Shankar's PasswordHasher (card 333) |
 | Apostrophes in text | SRCH-10 (pass); DB-11 on SQL Server (not run) | |
 
 #### Boundary and negative
@@ -937,7 +999,7 @@ Planned from section 6 of `docs/design/ai-agent.md` (card 371, Shankar). They us
 
 ## 3. Summary
 
-Worked out on 24 Nov 2026. Update it after every run. It counts every row of the test-case table, including the data-side rows. The manual journeys J1 to J6 are steps, not rows, and are not counted.
+Worked out on 27 Nov 2026. Update it after every run. It counts every row of the test-case table, including the data-side rows. The manual journeys J1 to J6 are steps, not rows, and are not counted.
 
 | Item | Count |
 |---|---|
@@ -946,14 +1008,14 @@ Worked out on 24 Nov 2026. Update it after every run. It counts every row of the
 | Tests of type Integration | 85 |
 | Tests of type System | 15 |
 | Tests of type Regression | 2 |
-| Tests of type Performance | 4 |
-| Tests of type Security | 39 |
-| Tests of type Boundary/negative | 178 |
-| Automatic tests | 522 |
+| Tests of type Performance | 19 |
+| Tests of type Security | 40 |
+| Tests of type Boundary/negative | 185 |
+| Automatic tests | 545 |
 | Manual tests | 23 |
-| Total tests | 545 |
-| Passed | 330 |
+| Total tests | 568 |
+| Passed | 358 |
 | Failed | 0 |
-| Not run | 215 |
+| Not run | 210 |
 | Pass rate (passed out of tests run) | 100% |
-| Open bugs (BUG-12; BUG-09 is Fixed, waiting for retest) | 1 |
+| Open bugs (BUG-12) | 1 |
