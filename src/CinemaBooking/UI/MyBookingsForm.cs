@@ -61,6 +61,7 @@ namespace CinemaBooking.UI
             lstBookings.ForeColor = UiTheme.TEXT;
             lstBookings.BorderStyle = BorderStyle.None;
             lstBookings.SetBounds(FormParts.PAGE_PADDING, LIST_TOP, LIST_WIDTH, LIST_HEIGHT);
+            lstBookings.SelectedIndexChanged += (sender, e) => UpdateCancelButton();
             Controls.Add(lstBookings);
 
             btnCancel.SetBounds(FormParts.PAGE_PADDING, LIST_TOP + LIST_HEIGHT + 10, 240, 40);
@@ -126,7 +127,7 @@ namespace CinemaBooking.UI
             Booking booking = _listed_bookings[chosen_index];
 
             // only a booking that is still confirmed can be cancelled
-            if (booking.Status != BookingStatus.Confirmed)
+            if (!MyBookingLine.CanCancel(booking))
             {
                 ShowProblem("This booking is already cancelled");
                 return;
@@ -173,7 +174,17 @@ namespace CinemaBooking.UI
         private void SetBusy(bool is_busy)
         {
             _is_busy = is_busy;
-            btnCancel.Enabled = !is_busy;
+            UpdateCancelButton();
+        }
+
+        // the button is off while a call runs and when the chosen line is already cancelled
+        private void UpdateCancelButton()
+        {
+            int chosen_index = lstBookings.SelectedIndex;
+            bool chosen_is_cancelled = chosen_index >= 0 && chosen_index < _listed_bookings.Length
+                && !MyBookingLine.CanCancel(_listed_bookings[chosen_index]);
+
+            btnCancel.Enabled = !_is_busy && !chosen_is_cancelled;
         }
     }
 }
