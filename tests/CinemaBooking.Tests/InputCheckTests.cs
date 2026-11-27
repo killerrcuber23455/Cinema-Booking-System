@@ -168,9 +168,19 @@ public class InputCheckTests
     }
 
     [TestMethod]
-    public void IsValidPassword_OnlySpaces_IsRefused()
+    public void IsValidPassword_EightSpaces_IsRefusedAndSaysOnlySpaces()
     {
         bool is_valid = InputCheck.IsValidPassword("        ", out string message);
+
+        Assert.IsFalse(is_valid);
+        // 8 spaces are long enough, so "at least 8 characters" would be a confusing message
+        Assert.AreEqual("password cannot be only spaces", message);
+    }
+
+    [TestMethod]
+    public void IsValidPassword_ThreeSpaces_SaysEightCharacters()
+    {
+        bool is_valid = InputCheck.IsValidPassword("   ", out string message);
 
         Assert.IsFalse(is_valid);
         Assert.AreEqual("password must be at least 8 characters", message);
