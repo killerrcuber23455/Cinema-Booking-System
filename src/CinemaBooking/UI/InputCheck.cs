@@ -89,9 +89,16 @@ namespace CinemaBooking.UI
         // a password needs at least 8 characters and cannot be only spaces
         public static bool IsValidPassword(string password, out string error_message)
         {
-            if (string.IsNullOrWhiteSpace(password) || password.Length < MIN_PASSWORD_LENGTH)
+            if (password == null || password.Length < MIN_PASSWORD_LENGTH)
             {
                 error_message = "password must be at least " + MIN_PASSWORD_LENGTH + " characters";
+                return false;
+            }
+
+            // long enough but only spaces, so saying "at least 8 characters" would confuse the person
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                error_message = "password cannot be only spaces";
                 return false;
             }
 
