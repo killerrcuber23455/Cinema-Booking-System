@@ -7,6 +7,8 @@ using CinemaBooking.Services;
 
 namespace CinemaBooking.Tests;
 
+// these tests share one TEST database and one showing id, so they must not run beside other tests
+[DoNotParallelize]
 [TestClass]
 [TestCategory("Database")]
 public class CancelBookingTests
@@ -37,6 +39,11 @@ public class CancelBookingTests
         _database = new Database(connection_string);
         _showings = new ShowingTable();
         _showings.CreateShowing(SHOWING_ID, 1, 1, DateTime.Now.AddDays(1), 250m, 8, 12);
+
+        // a booking points at its showing and a showing points at its film, so both rows must be in the
+        // TEST database first. both calls return false if the row is already there from an earlier run
+        _database.SaveFilm(new Film(1, "Test Film", "Drama", 2024, 100, 12, "a test film", "test.jpg"));
+        _database.SaveShowing(new Showing(SHOWING_ID, 1, 1, DateTime.Now.AddDays(1), 250m, new SeatGrid(8, 12)));
         return new BookingService(_database, _showings);
     }
 
