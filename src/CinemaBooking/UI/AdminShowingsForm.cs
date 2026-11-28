@@ -207,7 +207,7 @@ namespace CinemaBooking.UI
 
             string error_message;
 
-            if (!_showing_admin_service.RemoveShowing(showing.Id, _role, out error_message))
+            if (!_showing_store.RemoveShowing(showing.Id, _role, out error_message))
             {
                 ShowError(error_message);
                 return;
