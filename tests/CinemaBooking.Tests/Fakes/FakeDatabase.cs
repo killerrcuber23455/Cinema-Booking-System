@@ -31,6 +31,15 @@ public class FakeDatabase : IDatabase
     private int _next_member_id = 1;
     private int _next_booking_id = 1;
 
+    // the screens by id, the same two screens that cinema.sql adds (8 rows by 12 seats)
+    private readonly HashTable<int, CinemaScreen> _screens = new HashTable<int, CinemaScreen>();
+
+    public FakeDatabase()
+    {
+        _screens.Add(1, new CinemaScreen(1, "Screen 1", 8, 12));
+        _screens.Add(2, new CinemaScreen(2, "Screen 2", 8, 12));
+    }
+
     // ---------- films ----------
 
     // switches for tests: make the fake fail the way sql server can
@@ -374,16 +383,52 @@ public class FakeDatabase : IDatabase
         return _showings.Remove(showing_id);
     }
 
-    // stub for now, the real rules come with the 406 green step
+    // the real Database.SaveScreen: false if the screen is not valid,
+    // or the id is used, or the name is used (sql server ignores upper and lower case)
     public bool SaveScreen(CinemaScreen screen)
     {
-        return false;
+        string errors;
+        if (!screen.IsValid(out errors))
+        {
+            return false;
+        }
+
+        if (_screens.Find(screen.Id) != null)
+        {
+            return false;
+        }
+
+        CinemaScreen[] all_screens = _screens.ListAll();
+        for (int index = 0; index < all_screens.Length; index++)
+        {
+            if (string.Equals(all_screens[index].Name, screen.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        // we store a copy, so changing the caller's object later does not change our data
+        return _screens.Add(screen.Id, new CinemaScreen(screen.Id, screen.Name, screen.RowCount, screen.SeatsPerRow));
     }
 
-    // stub for now, the real rules come with the 406 green step
+    // puts a copy of every screen in the given table and returns how many were added
     public int LoadScreens(HashTable<int, CinemaScreen> screen_table)
     {
-        return 0;
+        CinemaScreen[] all_screens = _screens.ListAll();
+        int loaded = 0;
+
+        for (int index = 0; index < all_screens.Length; index++)
+        {
+            CinemaScreen stored = all_screens[index];
+            CinemaScreen copy = new CinemaScreen(stored.Id, stored.Name, stored.RowCount, stored.SeatsPerRow);
+
+            if (screen_table.Add(copy.Id, copy))
+            {
+                loaded++;
+            }
+        }
+
+        return loaded;
     }
     // ---------- small helpers ----------
 

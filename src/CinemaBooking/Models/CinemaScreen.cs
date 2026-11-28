@@ -25,39 +25,93 @@ namespace CinemaBooking.Models
             SeatsPerRow = seats_per_row;
         }
 
-        // stub for now, the real rules come with the 406 green step
+        // validation methods, each returns false with a reason
         public static bool IsValidId(int id, out string error_message)
         {
+            if (id <= 0)
+            {
+                error_message = "screen id must be a positive number";
+                return false;
+            }
+
             error_message = "";
             return true;
         }
 
-        // stub for now
         public static bool IsValidName(string name, out string error_message)
         {
+            if (string.IsNullOrWhiteSpace(name) || name.Length > MAX_NAME_LENGTH)
+            {
+                error_message = "name cannot be empty and must be " + MAX_NAME_LENGTH + " characters or fewer";
+                return false;
+            }
+
             error_message = "";
             return true;
         }
 
-        // stub for now
         public static bool IsValidRowCount(int row_count, out string error_message)
         {
+            if (row_count < 1 || row_count > MAX_ROWS)
+            {
+                error_message = "rows must be between 1 and " + MAX_ROWS + " (seat letters A to Z)";
+                return false;
+            }
+
             error_message = "";
             return true;
         }
 
-        // stub for now
         public static bool IsValidSeatsPerRow(int seats_per_row, out string error_message)
         {
+            if (seats_per_row < 1 || seats_per_row > MAX_SEATS_PER_ROW)
+            {
+                error_message = "seats per row must be between 1 and " + MAX_SEATS_PER_ROW;
+                return false;
+            }
+
             error_message = "";
             return true;
         }
 
-        // stub for now
+        // checks every field and puts all the problems in one text, empty if the screen is fine
         public bool IsValid(out string errors)
         {
             errors = "";
-            return true;
+            string error_message;
+
+            if (!IsValidId(Id, out error_message))
+            {
+                errors = AddError(errors, error_message);
+            }
+
+            if (!IsValidName(Name, out error_message))
+            {
+                errors = AddError(errors, error_message);
+            }
+
+            if (!IsValidRowCount(RowCount, out error_message))
+            {
+                errors = AddError(errors, error_message);
+            }
+
+            if (!IsValidSeatsPerRow(SeatsPerRow, out error_message))
+            {
+                errors = AddError(errors, error_message);
+            }
+
+            return errors == "";
+        }
+
+        // adds one problem to the text of problems
+        private static string AddError(string errors, string new_error)
+        {
+            if (errors == "")
+            {
+                return new_error;
+            }
+
+            return errors + "; " + new_error;
         }
     }
 }
