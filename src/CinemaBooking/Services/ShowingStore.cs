@@ -9,6 +9,7 @@ namespace CinemaBooking.Services
     public class ShowingStore
     {
         public const string SAVE_FAILED_TEXT = "The showing could not be saved to the database (the id or the screen time may already be used), so it was not added.";
+        public const string REMOVE_FAILED_TEXT = "The showing could not be removed from the database (it may have bookings, even cancelled ones), so it was kept.";
 
         private readonly IDatabase _database;
         private readonly ShowingAdminService _showing_admin_service;
@@ -19,6 +20,45 @@ namespace CinemaBooking.Services
             _database = database;
             _showing_admin_service = showing_admin_service;
             _showing_table = showing_table;
+        }
+
+        // removes a showing (staff or admin) from the program and from the database.
+        // if the database refuses (for example a cancelled booking still uses the showing, or the database is down)
+        // the showing is put back, so the program and the database say the same
+        public bool RemoveShowing(int showing_id, Role role, out string error_message)
+        {
+            Showing? showing = _showing_table.FindShowing(showing_id);
+
+            // ShowingAdminService checks the role, that the showing exists and that it has no booked seats first
+            if (!_showing_admin_service.RemoveShowing(showing_id, role, out error_message))
+            {
+                return false;
+            }
+
+            bool is_deleted;
+            try
+            {
+                is_deleted = _database.DeleteShowing(showing_id);
+            }
+            catch (Exception)
+            {
+                is_deleted = false;
+            }
+
+            if (!is_deleted)
+            {
+                // the database did not forget it, so the program must keep it too
+                if (showing != null)
+                {
+                    _showing_table.AddShowing(showing);
+                }
+
+                error_message = REMOVE_FAILED_TEXT;
+                return false;
+            }
+
+            error_message = "";
+            return true;
         }
 
         // adds a showing (staff or admin) to the program and saves it to the database.

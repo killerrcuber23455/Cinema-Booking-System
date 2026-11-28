@@ -52,6 +52,7 @@ public class FakeDatabase : IDatabase
     public bool ThrowOnDeleteFilm { get; set; }
     public bool ShowingSaveFails { get; set; }
     public bool ThrowOnSaveShowing { get; set; }
+    public bool ThrowOnDeleteShowing { get; set; }
     public bool ThrowOnLoadBookings { get; set; }
 
     // the real Database.SaveFilm: false if the id is already used
@@ -364,6 +365,11 @@ public class FakeDatabase : IDatabase
     // the real Database.DeleteShowing: false if the id is not found or a booking (even a cancelled one) uses the showing
     public bool DeleteShowing(int showing_id)
     {
+        if (ThrowOnDeleteShowing)
+        {
+            throw new InvalidOperationException("database is down");
+        }
+
         Showing? showing = _showings.Find(showing_id);
         if (showing == null)
         {
