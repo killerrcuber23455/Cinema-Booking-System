@@ -12,6 +12,18 @@ namespace CinemaBooking.UI
             return booking.Status == BookingStatus.Confirmed;
         }
 
+        // the seats of a booking as text: "C5, C6", or "freed" for a cancelled booking that has no seats left
+        public static string SeatList(Booking booking)
+        {
+            return "";
+        }
+
+        // the note under the list for the chosen booking: nothing for a confirmed one, a reason for a cancelled one
+        public static string SelectionNote(Booking? booking)
+        {
+            return "?";
+        }
+
         // for example: Heat · Tue 1 Dec 2026 · 18:30  -  seats C5, C6  -  Rs 300.00  -  Confirmed  -  ABC123
         // a cancelled booking has no seats left, so it says "seats freed" and not an empty list
         public static string Text(Booking booking, string showing_text)

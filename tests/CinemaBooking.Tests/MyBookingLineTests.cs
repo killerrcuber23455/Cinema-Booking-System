@@ -69,4 +69,50 @@ public class MyBookingLineTests
 
         StringAssert.Contains(text, "Rs 150.50");
     }
+
+    // the seats as text (card 349 follow-up: the Find booking page and My bookings must say the same)
+
+    [TestMethod]
+    public void SeatList_ConfirmedBooking_ListsTheSeats()
+    {
+        Assert.AreEqual("C5, C6", MyBookingLine.SeatList(Make(BookingStatus.Confirmed)));
+    }
+
+    [TestMethod]
+    public void SeatList_BookingWithNoSeats_SaysFreed()
+    {
+        Booking cancelled = new Booking(5, "ABC123", 1, 1, "", "", "", new string[0], 300m, 30, 0,
+            BookingStatus.Cancelled, new DateTime(2026, 11, 1));
+
+        Assert.AreEqual("freed", MyBookingLine.SeatList(cancelled));
+    }
+
+    [TestMethod]
+    public void Text_UsesTheSameSeatWordsAsSeatList()
+    {
+        Booking cancelled = new Booking(5, "ABC123", 1, 1, "", "", "", new string[0], 300m, 30, 0,
+            BookingStatus.Cancelled, new DateTime(2026, 11, 1));
+
+        StringAssert.Contains(MyBookingLine.Text(cancelled, "Heat"), "seats " + MyBookingLine.SeatList(cancelled));
+    }
+
+    // the note under the list
+
+    [TestMethod]
+    public void SelectionNote_NothingChosen_IsEmpty()
+    {
+        Assert.AreEqual("", MyBookingLine.SelectionNote(null));
+    }
+
+    [TestMethod]
+    public void SelectionNote_ConfirmedBooking_IsEmpty()
+    {
+        Assert.AreEqual("", MyBookingLine.SelectionNote(Make(BookingStatus.Confirmed)));
+    }
+
+    [TestMethod]
+    public void SelectionNote_CancelledBooking_SaysAlreadyCancelled()
+    {
+        Assert.AreEqual("This booking is already cancelled", MyBookingLine.SelectionNote(Make(BookingStatus.Cancelled)));
+    }
 }
