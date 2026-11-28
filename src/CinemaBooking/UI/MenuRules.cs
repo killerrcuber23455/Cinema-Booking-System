@@ -41,11 +41,11 @@ namespace CinemaBooking.UI
             MenuItem.Films, MenuItem.Showings, MenuItem.CancelBooking, MenuItem.Members
         };
 
-        // an admin sees everything staff see, and also the tier rules, the staff accounts page and the admin page
+        // an admin sees everything staff see, and also the tier rules, the admin page and the screens page
         private static readonly MenuItem[] ADMIN_ITEMS =
         {
             MenuItem.Films, MenuItem.Showings, MenuItem.CancelBooking, MenuItem.Members,
-            MenuItem.TierRules, MenuItem.Admin
+            MenuItem.TierRules, MenuItem.Admin, MenuItem.Screens
         };
 
         // true when this role may see this menu button

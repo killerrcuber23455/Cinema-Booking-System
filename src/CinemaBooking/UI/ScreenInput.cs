@@ -15,13 +15,42 @@ namespace CinemaBooking.UI
         // one message for each box, in page order, and an empty text for a box that is fine
         public static string[] CheckBoxes(string name, string rows_text, string seats_text)
         {
-            return new string[BOX_COUNT];
+            string[] messages = new string[BOX_COUNT];
+            string rule_message;
+
+            messages[BOX_NAME] = "";
+            if (!CinemaScreen.IsValidName((name ?? "").Trim(), out rule_message))
+            {
+                messages[BOX_NAME] = rule_message.TrimEnd('\n');
+            }
+
+            messages[BOX_ROWS] = "";
+            if (!int.TryParse((rows_text ?? "").Trim(), out int row_count))
+            {
+                messages[BOX_ROWS] = "rows must be a whole number";
+            }
+            else if (!CinemaScreen.IsValidRowCount(row_count, out rule_message))
+            {
+                messages[BOX_ROWS] = rule_message.TrimEnd('\n');
+            }
+
+            messages[BOX_SEATS] = "";
+            if (!int.TryParse((seats_text ?? "").Trim(), out int seats_per_row))
+            {
+                messages[BOX_SEATS] = "seats per row must be a whole number";
+            }
+            else if (!CinemaScreen.IsValidSeatsPerRow(seats_per_row, out rule_message))
+            {
+                messages[BOX_SEATS] = rule_message.TrimEnd('\n');
+            }
+
+            return messages;
         }
 
         // the whole number in a box that CheckBoxes accepted, 0 if it is not a whole number
         public static int ReadNumber(string text)
         {
-            return -1;
+            return int.TryParse((text ?? "").Trim(), out int number) ? number : 0;
         }
     }
 }

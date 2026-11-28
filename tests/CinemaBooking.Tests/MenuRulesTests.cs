@@ -69,12 +69,12 @@ public class MenuRulesTests
     // admin
 
     [TestMethod]
-    public void ItemsFor_Admin_HasSixButtonsAndNoStaffAccountsPage()
+    public void ItemsFor_Admin_HasSevenButtonsAndNoStaffAccountsPage()
     {
         MenuItem[] expected =
         {
             MenuItem.Films, MenuItem.Showings, MenuItem.CancelBooking, MenuItem.Members,
-            MenuItem.TierRules, MenuItem.Admin
+            MenuItem.TierRules, MenuItem.Admin, MenuItem.Screens
         };
 
         CollectionAssert.AreEqual(expected, MenuRules.ItemsFor(Role.Admin));
