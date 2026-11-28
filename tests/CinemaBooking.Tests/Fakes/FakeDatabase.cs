@@ -365,6 +365,11 @@ public class FakeDatabase : IDatabase
     // the real Database.DeleteShowing: false if the id is not found or a booking (even a cancelled one) uses the showing
     public bool DeleteShowing(int showing_id)
     {
+        if (ThrowOnDeleteShowing)
+        {
+            throw new InvalidOperationException("database is down");
+        }
+
         Showing? showing = _showings.Find(showing_id);
         if (showing == null)
         {
