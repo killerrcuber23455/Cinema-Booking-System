@@ -112,11 +112,19 @@ public class FakeUserRepository : IUserRepository
         return false;
     }
 
+    // a test sets this to true to act like the database refused the save
+    public bool FailUpdatePassword { get; set; }
+
     // like the real UpdatePassword: false if the hash or salt is empty or the user is not found,
     // otherwise the new hash and salt are saved, the failed attempts and the lock are cleared,
     // and a "password_changed" audit row is written (without the password or the hash)
     public bool UpdatePassword(int user_id, string password_hash, string salt)
     {
+        if (FailUpdatePassword)
+        {
+            return false;
+        }
+
         if (string.IsNullOrWhiteSpace(password_hash) || string.IsNullOrWhiteSpace(salt))
         {
             return false;
