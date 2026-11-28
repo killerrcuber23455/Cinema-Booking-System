@@ -698,5 +698,99 @@ namespace CinemaBooking.Data
 
             return added;
         }
+
+
+        // saves a screen with the id it already has. returns false if the screen is not valid,
+        // or the id or the name is already used. never throws for those.
+        public bool SaveScreen(CinemaScreen screen)
+        {
+            string errors;
+            if (!screen.IsValid(out errors))
+            {
+                return false;
+            }
+
+            using (SqlConnection connection = OpenConnection())
+            using (SqlCommand command = new SqlCommand(
+                "INSERT INTO screens (id, name, row_count, seats_per_row) " +
+                "VALUES (@id, @name, @row_count, @seats_per_row)",
+                connection))
+            {
+                command.Parameters.AddWithValue("@id", screen.Id);
+                command.Parameters.AddWithValue("@name", screen.Name);
+                command.Parameters.AddWithValue("@row_count", screen.RowCount);
+                command.Parameters.AddWithValue("@seats_per_row", screen.SeatsPerRow);
+
+                try
+                {
+                    command.ExecuteNonQuery();
+                    return true;
+                }
+                catch (SqlException error)
+                {
+                    // a used id or name, a size the table refuses or a name that is too long: a normal problem, not a crash
+                    if (SqlErrors.IsRuleError(error))
+                    {
+                        return false;
+                    }
+
+                    throw;
+                }
+            }
+        }
+
+        // reads every screen from the database and adds it to the hash table.
+        // returns how many screens were added.
+        public int LoadScreens(HashTable<int, CinemaScreen> screen_table)
+        {
+            int loaded = 0;
+
+            using (SqlConnection connection = OpenConnection())
+            using (SqlCommand command = new SqlCommand(
+                "SELECT id, name, row_count, seats_per_row FROM screens", connection))
+            using (SqlDataReader reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    CinemaScreen screen = new CinemaScreen(
+                        reader.GetInt32(0),
+                        reader.GetString(1),
+                        reader.GetInt32(2),
+                        reader.GetInt32(3));
+
+                    if (screen_table.Add(screen.Id, screen))
+                    {
+                        loaded++;
+                    }
+                }
+            }
+
+            return loaded;
+        }
+        // deletes a showing by id. returns false if it is not found or it has bookings, never throws for those.
+        public bool DeleteShowing(int showing_id)
+        {
+            using (SqlConnection connection = OpenConnection())
+            using (SqlCommand command = new SqlCommand(
+                "DELETE FROM showings WHERE id = @id", connection))
+            {
+                command.Parameters.AddWithValue("@id", showing_id);
+
+                try
+                {
+                    return command.ExecuteNonQuery() > 0;
+                }
+                catch (SqlException error)
+                {
+                    // the foreign key from bookings refuses the delete: a normal problem, not a crash
+                    if (SqlErrors.IsRuleError(error))
+                    {
+                        return false;
+                    }
+
+                    throw;
+                }
+            }
+        }
     }
 }

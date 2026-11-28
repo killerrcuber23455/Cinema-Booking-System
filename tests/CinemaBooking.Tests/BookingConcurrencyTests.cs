@@ -109,6 +109,22 @@ public class BookingConcurrencyTests
             return 0;
         }
 
+
+        public bool DeleteShowing(int showing_id)
+        {
+            return false;
+        }
+
+        public bool SaveScreen(CinemaScreen screen)
+        {
+            return false;
+        }
+
+        public int LoadScreens(HashTable<int, CinemaScreen> screen_table)
+        {
+            return 0;
+        }
+
         // the concurrency tests do not use films, this only has to compile since IDatabase has SaveFilm
         public bool SaveFilm(Film film)
         {

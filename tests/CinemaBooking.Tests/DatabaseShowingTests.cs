@@ -1,4 +1,4 @@
-// tests GetTakenSeats, SaveShowing and LoadShowings against the separate test database (owner: kushal)
+// tests GetTakenSeats, SaveShowing, LoadShowings and DeleteShowing against the separate test database (owner: kushal)
 using CinemaBooking.Data;
 using CinemaBooking.DataStructures;
 using CinemaBooking.Models;
@@ -52,6 +52,11 @@ namespace CinemaBooking.Tests
             Booking booking = new Booking(0, reference, showing_id, null, "Guest", "g@x.com", "5712345",
                 new string[] { seat }, 8.50m, 0, 0, BookingStatus.Confirmed, DateTime.Now.AddMinutes(-1));
             return _database.SaveBooking(booking);
+        }
+
+        private int CountShowings()
+        {
+            return _database.LoadShowings(new ShowingTable());
         }
 
         [TestMethod]
@@ -119,6 +124,74 @@ namespace CinemaBooking.Tests
             Assert.IsNotNull(grid);
             Assert.IsFalse(grid.IsSeatFree("D4"));
             Assert.IsTrue(grid.IsSeatFree("D5"));
+        }
+
+        [TestMethod]
+        public void DeleteShowing_ExistingShowing_ReturnsTrue()
+        {
+            _database.SaveShowing(MakeShowing(1, 18));
+
+            Assert.IsTrue(_database.DeleteShowing(1));
+        }
+
+        [TestMethod]
+        public void DeleteShowing_RemovesTheShowing()
+        {
+            _database.SaveShowing(MakeShowing(1, 18));
+
+            _database.DeleteShowing(1);
+
+            Assert.AreEqual(0, CountShowings());
+        }
+
+        [TestMethod]
+        public void DeleteShowing_UnknownId_ReturnsFalse()
+        {
+            _database.SaveShowing(MakeShowing(1, 18));
+
+            Assert.IsFalse(_database.DeleteShowing(99));
+            Assert.AreEqual(1, CountShowings());
+        }
+
+        [TestMethod]
+        public void DeleteShowing_ShowingWithBooking_ReturnsFalseAndKeepsIt()
+        {
+            _database.SaveShowing(MakeShowing(1, 18));
+            SaveConfirmedBooking("T-0005", 1, "A1");
+
+            Assert.IsFalse(_database.DeleteShowing(1));
+            Assert.AreEqual(1, CountShowings());
+        }
+
+        [TestMethod]
+        public void DeleteShowing_ShowingWithCancelledBooking_ReturnsFalse()
+        {
+            _database.SaveShowing(MakeShowing(1, 18));
+            int id = SaveConfirmedBooking("T-0006", 1, "B2");
+            _database.CancelBooking(id);
+
+            Assert.IsFalse(_database.DeleteShowing(1));
+        }
+
+        [TestMethod]
+        public void DeleteShowing_FreesTheScreenTime()
+        {
+            _database.SaveShowing(MakeShowing(1, 18));
+
+            _database.DeleteShowing(1);
+
+            Assert.IsTrue(_database.SaveShowing(MakeShowing(2, 18)));
+        }
+
+        [TestMethod]
+        public void DeleteShowing_BookingOnAnotherShowing_DoesNotBlock()
+        {
+            _database.SaveShowing(MakeShowing(1, 18));
+            _database.SaveShowing(MakeShowing(2, 20));
+            SaveConfirmedBooking("T-0007", 2, "C3");
+
+            Assert.IsTrue(_database.DeleteShowing(1));
+            Assert.AreEqual(1, CountShowings());
         }
     }
 }

@@ -112,6 +112,32 @@ public class FakeUserRepository : IUserRepository
         return false;
     }
 
+    // like the real UpdatePassword: false if the hash or salt is empty or the user is not found,
+    // otherwise the new hash and salt are saved, the failed attempts and the lock are cleared,
+    // and a "password_changed" audit row is written (without the password or the hash)
+    public bool UpdatePassword(int user_id, string password_hash, string salt)
+    {
+        if (string.IsNullOrWhiteSpace(password_hash) || string.IsNullOrWhiteSpace(salt))
+        {
+            return false;
+        }
+
+        for (int index = 0; index < _users.Count; index++)
+        {
+            if (_users[index].Id == user_id)
+            {
+                _users[index].PasswordHash = password_hash;
+                _users[index].Salt = salt;
+                _users[index].FailedAttempts = 0;
+                _users[index].LockedUntil = null;
+                AuditRows.Add(new AuditRow(user_id, "password_changed", "password changed"));
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public bool HasAnyAdmin()
     {
         for (int index = 0; index < _users.Count; index++)

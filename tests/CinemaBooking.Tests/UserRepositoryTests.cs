@@ -195,5 +195,96 @@ namespace CinemaBooking.Tests
 
             Assert.AreEqual(1, _repository.CountAuditRows("role_changed"));
         }
+
+        [TestMethod]
+        public void UpdatePassword_SavesNewHashAndSalt()
+        {
+            int id = _repository.SaveUser("pw@x.com", "oldhash", "oldsalt", Role.Customer, null);
+
+            Assert.IsTrue(_repository.UpdatePassword(id, "newhash", "newsalt"));
+
+            UserRecord? user = _repository.FindByEmail("pw@x.com");
+            Assert.IsNotNull(user);
+            Assert.AreEqual("newhash", user.PasswordHash);
+            Assert.AreEqual("newsalt", user.Salt);
+        }
+
+        [TestMethod]
+        public void UpdatePassword_UnknownUser_ReturnsFalse()
+        {
+            Assert.IsFalse(_repository.UpdatePassword(99999, "newhash", "newsalt"));
+        }
+
+        [TestMethod]
+        public void UpdatePassword_ClearsFailedAttemptsAndLock()
+        {
+            int id = _repository.SaveUser("lock@x.com", "oldhash", "oldsalt", Role.Customer, null);
+            _repository.SetFailedAttempts(id, 5, new DateTime(2030, 1, 1, 10, 0, 0));
+
+            Assert.IsTrue(_repository.UpdatePassword(id, "newhash", "newsalt"));
+
+            UserRecord? user = _repository.FindByEmail("lock@x.com");
+            Assert.IsNotNull(user);
+            Assert.AreEqual(0, user.FailedAttempts);
+            Assert.IsNull(user.LockedUntil);
+        }
+
+        [TestMethod]
+        public void UpdatePassword_DoesNotChangeOtherUsers()
+        {
+            int first_id = _repository.SaveUser("one@x.com", "hash1", "salt1", Role.Customer, null);
+            _repository.SaveUser("two@x.com", "hash2", "salt2", Role.Staff, null);
+
+            Assert.IsTrue(_repository.UpdatePassword(first_id, "newhash", "newsalt"));
+
+            UserRecord? other = _repository.FindByEmail("two@x.com");
+            Assert.IsNotNull(other);
+            Assert.AreEqual("hash2", other.PasswordHash);
+            Assert.AreEqual("salt2", other.Salt);
+        }
+
+        [TestMethod]
+        public void UpdatePassword_EmptyHash_ReturnsFalseAndChangesNothing()
+        {
+            int id = _repository.SaveUser("eh@x.com", "oldhash", "oldsalt", Role.Customer, null);
+
+            Assert.IsFalse(_repository.UpdatePassword(id, "", "newsalt"));
+
+            UserRecord? user = _repository.FindByEmail("eh@x.com");
+            Assert.IsNotNull(user);
+            Assert.AreEqual("oldhash", user.PasswordHash);
+            Assert.AreEqual("oldsalt", user.Salt);
+        }
+
+        [TestMethod]
+        public void UpdatePassword_EmptySalt_ReturnsFalseAndChangesNothing()
+        {
+            int id = _repository.SaveUser("es@x.com", "oldhash", "oldsalt", Role.Customer, null);
+
+            Assert.IsFalse(_repository.UpdatePassword(id, "newhash", "  "));
+
+            UserRecord? user = _repository.FindByEmail("es@x.com");
+            Assert.IsNotNull(user);
+            Assert.AreEqual("oldhash", user.PasswordHash);
+            Assert.AreEqual("oldsalt", user.Salt);
+        }
+
+        [TestMethod]
+        public void UpdatePassword_WritesAuditRow()
+        {
+            int id = _repository.SaveUser("au@x.com", "oldhash", "oldsalt", Role.Customer, null);
+
+            _repository.UpdatePassword(id, "newhash", "newsalt");
+
+            Assert.AreEqual(1, _repository.CountAuditRows("password_changed"));
+        }
+
+        [TestMethod]
+        public void UpdatePassword_UnknownUser_WritesNoAuditRow()
+        {
+            _repository.UpdatePassword(99999, "newhash", "newsalt");
+
+            Assert.AreEqual(0, _repository.CountAuditRows("password_changed"));
+        }
     }
 }

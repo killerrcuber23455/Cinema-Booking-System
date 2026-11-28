@@ -50,5 +50,15 @@ namespace CinemaBooking.Data
 
         // loads every showing into the table with its taken seats marked
         int LoadShowings(ShowingTable showing_table);
+
+        // deletes a showing by id, false if it is not found or the showing has bookings
+        bool DeleteShowing(int showing_id);
+
+        // saves a screen with the id it already has, false if the id or the name already exists
+        bool SaveScreen(CinemaScreen screen);
+
+        // reads every screen into the hash table, returns how many were added
+        int LoadScreens(HashTable<int, CinemaScreen> screen_table);
+
     }
 }
