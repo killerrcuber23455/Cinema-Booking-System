@@ -14,6 +14,8 @@ namespace CinemaBooking.UI
         public const int LABEL_HEIGHT = 20;
         public const int BOX_HEIGHT = 42;
         public const int MESSAGE_HEIGHT = 16;
+        // for narrow boxes side by side: room for two lines so a long message is not cut off
+        public const int BOX_MESSAGE_HEIGHT = 34;
         public const int ROW_HEIGHT = 80;
 
         // the title and the line under it take the first 80 pixels, the first row starts under them
@@ -131,8 +133,8 @@ namespace CinemaBooking.UI
             Size room = new Size(FORM_WIDTH, LINK_HEIGHT);
             TextFormatFlags flags = TextFormatFlags.NoPadding;
 
-            int prefix_width = prefix == "" ? 0 : TextRenderer.MeasureText(prefix, prefix_font, room, flags).Width + 2;
-            int link_width = TextRenderer.MeasureText(link_text, link_font, room, flags).Width + 2;
+            int prefix_width = prefix == "" ? 0 : TextRenderer.MeasureText(prefix, prefix_font, room, flags).Width + 10;
+            int link_width = TextRenderer.MeasureText(link_text, link_font, room, flags).Width + 10;
             int gap = prefix == "" ? 0 : LINK_GAP;
             int left = PAGE_PADDING + ((FORM_WIDTH - (prefix_width + gap + link_width)) / 2);
 

@@ -61,7 +61,7 @@ namespace CinemaBooking.UI
             lstBookings.ForeColor = UiTheme.TEXT;
             lstBookings.BorderStyle = BorderStyle.None;
             lstBookings.SetBounds(FormParts.PAGE_PADDING, LIST_TOP, LIST_WIDTH, LIST_HEIGHT);
-            lstBookings.SelectedIndexChanged += (sender, e) => UpdateCancelButton();
+            lstBookings.SelectedIndexChanged += (sender, e) => ChosenBookingChanged();
             Controls.Add(lstBookings);
 
             btnCancel.SetBounds(FormParts.PAGE_PADDING, LIST_TOP + LIST_HEIGHT + 10, 240, 40);
@@ -175,6 +175,23 @@ namespace CinemaBooking.UI
         {
             _is_busy = is_busy;
             UpdateCancelButton();
+        }
+
+        // choosing another line clears an old red message and shows a note when the line is already cancelled
+        private void ChosenBookingChanged()
+        {
+            UpdateCancelButton();
+
+            if (_is_busy)
+            {
+                return;
+            }
+
+            int chosen_index = lstBookings.SelectedIndex;
+            Booking? chosen = chosen_index >= 0 && chosen_index < _listed_bookings.Length ? _listed_bookings[chosen_index] : null;
+
+            lblMessage.ForeColor = UiTheme.TEXT_MUTED;
+            lblMessage.Text = MyBookingLine.SelectionNote(chosen);
         }
 
         // the button is off while a call runs and when the chosen line is already cancelled

@@ -108,7 +108,7 @@ namespace CinemaBooking.UI
             _box_messages[MemberInput.BOX_EMAIL] = MakeBoxMessage(FormParts.PAGE_PADDING + 256, messages_top, 260);
             _box_messages[MemberInput.BOX_PHONE] = MakeBoxMessage(FormParts.PAGE_PADDING + 532, messages_top, 228);
 
-            int button_top = messages_top + FormParts.MESSAGE_HEIGHT + 8;
+            int button_top = messages_top + FormParts.BOX_MESSAGE_HEIGHT + 8;
             PlaceButton(btnRegister, FormParts.PAGE_PADDING, button_top, 220);
             btnRegister.Click += (sender, e) => ClickRegister();
 
@@ -131,7 +131,7 @@ namespace CinemaBooking.UI
             Label message = new Label();
             message.ForeColor = UiTheme.ACCENT_RED;
             message.Font = UiTheme.SMALL_FONT;
-            message.SetBounds(left, top, width, FormParts.MESSAGE_HEIGHT);
+            message.SetBounds(left, top, width, FormParts.BOX_MESSAGE_HEIGHT);
             Controls.Add(message);
             return message;
         }

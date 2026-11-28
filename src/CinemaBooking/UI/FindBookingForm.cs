@@ -169,7 +169,7 @@ namespace CinemaBooking.UI
 
             lblResult.Text = "Reference: " + booking.Reference + "\n"
                 + _describe_showing(booking.ShowingId) + "\n"
-                + "Seats: " + string.Join(", ", booking.Seats) + "\n"
+                + "Seats: " + MyBookingLine.SeatList(booking) + "\n"
                 + "Total: Rs " + booking.Total.ToString("0.00", culture) + "\n"
                 + "Status: " + booking.Status;
 
