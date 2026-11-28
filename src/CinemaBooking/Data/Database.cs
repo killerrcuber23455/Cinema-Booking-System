@@ -700,6 +700,19 @@ namespace CinemaBooking.Data
         }
 
 
+        // saves a screen with the id it already has, false if the id or the name already exists.
+        // stub for now, the real SQL comes with the 406 green step
+        public bool SaveScreen(CinemaScreen screen)
+        {
+            return false;
+        }
+
+        // reads every screen into the hash table, returns how many were added.
+        // stub for now, the real SQL comes with the 406 green step
+        public int LoadScreens(HashTable<int, CinemaScreen> screen_table)
+        {
+            return 0;
+        }
         // deletes a showing by id. returns false if it is not found or it has bookings, never throws for those.
         public bool DeleteShowing(int showing_id)
         {

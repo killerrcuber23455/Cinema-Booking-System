@@ -374,6 +374,17 @@ public class FakeDatabase : IDatabase
         return _showings.Remove(showing_id);
     }
 
+    // stub for now, the real rules come with the 406 green step
+    public bool SaveScreen(CinemaScreen screen)
+    {
+        return false;
+    }
+
+    // stub for now, the real rules come with the 406 green step
+    public int LoadScreens(HashTable<int, CinemaScreen> screen_table)
+    {
+        return 0;
+    }
     // ---------- small helpers ----------
 
     // the key for one seat in one showing, for example "1:C5"
