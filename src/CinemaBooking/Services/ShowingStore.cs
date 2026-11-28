@@ -9,6 +9,7 @@ namespace CinemaBooking.Services
     public class ShowingStore
     {
         public const string SAVE_FAILED_TEXT = "The showing could not be saved to the database (the id or the screen time may already be used), so it was not added.";
+        public const string REMOVE_FAILED_TEXT = "The showing could not be removed from the database (it may have bookings, even cancelled ones), so it was kept.";
 
         private readonly IDatabase _database;
         private readonly ShowingAdminService _showing_admin_service;
@@ -21,6 +22,13 @@ namespace CinemaBooking.Services
             _showing_table = showing_table;
         }
 
+        // removes a showing (staff or admin) from the program and from the database.
+        // stub for now, the real rules come with the green step
+        public bool RemoveShowing(int showing_id, Role role, out string error_message)
+        {
+            error_message = "";
+            return false;
+        }
         // adds a showing (staff or admin) to the program and saves it to the database.
         // if the database refuses (id or screen time already used, or the database is down) the showing is taken back out
         public bool AddShowing(int showing_id, int film_id, int screen_id, DateTime starts_at, decimal price,
