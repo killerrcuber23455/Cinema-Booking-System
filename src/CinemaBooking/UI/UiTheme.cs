@@ -95,6 +95,7 @@ namespace CinemaBooking.UI
         public const string ICON_MEMBERS = "";
         public const string ICON_ADMIN = "";
         public const string ICON_TIER_RULES = "";
+        public const string ICON_SCREENS = "";
         public const string ICON_ACCOUNT = "";
         public const string ICON_EXIT = "";
     }

@@ -44,6 +44,7 @@ namespace CinemaBooking.UI
         private readonly MenuButton btnMembers = new MenuButton();
         private readonly MenuButton btnTiers = new MenuButton();
         private readonly MenuButton btnAdmin = new MenuButton();
+        private readonly MenuButton btnScreens = new MenuButton();
         private readonly MenuButton btnExit = new MenuButton();
 
         // the button that is open now, it is shown in red
@@ -63,6 +64,7 @@ namespace CinemaBooking.UI
         private readonly CatalogStore _catalog_store;
         private readonly ShowingService _showing_service;
         private readonly ShowingAdminService _showing_admin_service;
+        private readonly ScreenService _screen_service;
         private readonly ShowingStore _showing_store;
         private readonly MemberService _member_service;
         private readonly AuthService _auth_service;
@@ -105,6 +107,7 @@ namespace CinemaBooking.UI
             _showing_admin_service = new ShowingAdminService(showing_table, FilmExists);
             _showing_store = new ShowingStore(database, _showing_admin_service, showing_table);
             _member_service = new MemberService(database);
+            _screen_service = new ScreenService(database);
 
             BuildWindow();
             BuildSideMenu();
@@ -177,6 +180,7 @@ namespace CinemaBooking.UI
             AddMenuButton(btnMembers, "Members", UiTheme.ICON_MEMBERS, MakeMembersPage);
             AddMenuButton(btnTiers, "Tier rules", UiTheme.ICON_TIER_RULES, MakeTierRulesPage);
             AddMenuButton(btnAdmin, "Manage films", UiTheme.ICON_ADMIN, MakeAdminPage);
+            AddMenuButton(btnScreens, "Screens", UiTheme.ICON_SCREENS, MakeScreensPage);
 
             // the user box is at the very bottom, exit sits just above it. both are docked, so they stay there at any window height
             _user_chip.Dock = DockStyle.Bottom;
@@ -373,6 +377,8 @@ namespace CinemaBooking.UI
                     return btnTiers;
                 case MenuItem.Admin:
                     return btnAdmin;
+                case MenuItem.Screens:
+                    return btnScreens;
                 default:
                     return btnFilms;
             }
@@ -573,6 +579,31 @@ namespace CinemaBooking.UI
             }
 
             return new AdminFilmsForm(_film_service, _catalog_store, _current_role, ShowGoodToast);
+        }
+
+        // the screens window (card 406) opens only for an admin, ScreenService also refuses anyone else
+        // the page gets small functions, so it holds no rules and no database of its own
+        private Control MakeScreensPage()
+        {
+            if (_current_role != Role.Admin)
+            {
+                return MakePlaceholderPage("Sign in as an admin to manage screens.");
+            }
+
+            Role acting_role = _current_role;
+
+            return new AdminScreensForm(
+                () =>
+                {
+                    CinemaScreen[] screens = _screen_service.ListScreens(acting_role, out string load_error);
+                    return (screens, load_error);
+                },
+                (name, row_count, seats_per_row) =>
+                {
+                    int new_id = _screen_service.AddScreen(name, row_count, seats_per_row, acting_role, out string add_error);
+                    return (new_id, add_error);
+                },
+                ShowGoodToast);
         }
 
         // the seat map of the chosen showing (card 348), back goes to the film's detail page
