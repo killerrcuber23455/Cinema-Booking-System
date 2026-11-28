@@ -14,7 +14,8 @@ namespace CinemaBooking.UI
         CancelBooking,
         Members,
         TierRules,
-        Admin
+        Admin,
+        Screens
     }
 
     public static class MenuRules
